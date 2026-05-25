@@ -1,9 +1,7 @@
 package com.tree.twig_tree.domain.node.controller;
 
 import com.tree.twig_tree.domain.node.exception.NodeException;
-import com.tree.twig_tree.domain.node.service.NodeService;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
-import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
 import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.GeneralSuccessCode;
@@ -16,8 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class NodeController {
-
-    private final NodeService nodeService;
 
     @GetMapping("/error")
     @Operation(summary = "에러 핸들러 동작 테스트 API", description = "flag 값이 false이면 의도적으로 NodeException을 발생시킵니다.")
