@@ -5,7 +5,12 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
-@RequiredArgsConstructor
 public class ProjectException extends RuntimeException {
     private final BaseErrorCode errorCode;
+
+    // 기본 생성자: BaseErrorCode의 메시지를 부모(RuntimeException)에게 전달
+    public ProjectException(BaseErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
 }
