@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NodeController {
 
-    @GetMapping("/error")
+    @GetMapping("/error1")
     @Operation(summary = "에러 핸들러 동작 테스트 API", description = "flag 값이 false이면 의도적으로 NodeException을 발생시킵니다.")
     public ApiResponse<String> testErrorHandler(@RequestParam(name = "flag") boolean flag) {
 
