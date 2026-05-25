@@ -1,7 +1,10 @@
 package com.tree.twig_tree.domain.node.exception;
 
-public class NodeException extends RuntimeException {
-  public NodeException(String message) {
-    super(message);
+import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
+import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
+
+public class NodeException extends ProjectException {
+  public NodeException(BaseErrorCode errorCode) {
+    super(errorCode);
   }
 }
