@@ -1,8 +1,4 @@
 {
-  "code": "TREE_FETCHED",
-  "message": "조회된 트리에 노드가 없습니다.",
-  "data": {
-    "tree_id": 99,
-    "nodes": []
-  }
+  "tree_id": 99,
+  "nodes": []
 }
