@@ -2,6 +2,8 @@ package com.tree.twig_tree.domain.chat.controller;
 
 import tools.jackson.databind.JsonNode;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
+import com.tree.twig_tree.domain.chat.exception.code.ChatSuccessCode;
+import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.mock.MockResponseLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 채팅 컨트롤러 (현재는 mock 모드).
 
- * 실제 LLM 호출 로직({@code ChatService})은 그대로 유지되어 있으며, 추후 mock 분기를 제거하면
+ * 실제 LLM 호출 로직(ChatService)은 그대로 유지되어 있으며, 추후 mock 분기를 제거하면
  * 그대로 사용할 수 있다.
 
  * 사용 예시:
@@ -34,12 +36,13 @@ public class ChatController {
     private final MockResponseLoader mockResponseLoader;
 
     @PostMapping
-    public JsonNode chat(
+    public ApiResponse<JsonNode> chat(
         @RequestBody(required = false) ChatReqDTO req,  // 잠시 비활성화
         @RequestParam(defaultValue = "small") String scenario
     ) {
         validateScenario(scenario);
-        return mockResponseLoader.load(MOCK_PATH_PREFIX + scenario + MOCK_PATH_SUFFIX);
+        JsonNode treeData = mockResponseLoader.load(MOCK_PATH_PREFIX + scenario + MOCK_PATH_SUFFIX);
+        return ApiResponse.onSuccess(ChatSuccessCode.TREE_FETCHED, treeData);
     }
 
     /**
