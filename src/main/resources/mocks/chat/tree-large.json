@@ -1,0 +1,70 @@
+{
+  "code": "TREE_FETCHED",
+  "message": "트리가 성공적으로 조회되었습니다.",
+  "data": {
+    "tree_id": 34,
+    "nodes": [
+      { "node_id": 1,  "title": "자료구조",     "memo": "데이터를 조직하고 저장하는 방법", "parent_id": null, "order_id": 1 },
+      { "node_id": 2,  "title": "알고리즘",     "memo": "문제 해결을 위한 절차",          "parent_id": null, "order_id": 2 },
+      { "node_id": 3,  "title": "운영체제",     "memo": "하드웨어와 응용 프로그램 사이의 인터페이스", "parent_id": null, "order_id": 3 },
+      { "node_id": 4,  "title": "네트워크",     "parent_id": null, "order_id": 4 },
+      { "node_id": 5,  "title": "데이터베이스", "memo": "구조화된 데이터의 저장소",        "parent_id": null, "order_id": 5 },
+
+      { "node_id": 6,  "title": "배열",         "memo": "연속된 메모리 공간",              "parent_id": 1, "order_id": 1 },
+      { "node_id": 7,  "title": "연결리스트",   "parent_id": 1, "order_id": 2 },
+      { "node_id": 8,  "title": "스택",         "memo": "LIFO 자료구조",                  "parent_id": 1, "order_id": 3 },
+      { "node_id": 9,  "title": "큐",           "memo": "FIFO 자료구조",                  "parent_id": 1, "order_id": 4 },
+      { "node_id": 10, "title": "트리",         "memo": "계층적 자료구조",                "parent_id": 1, "order_id": 5 },
+      { "node_id": 11, "title": "그래프",       "parent_id": 1, "order_id": 6 },
+      { "node_id": 12, "title": "해시테이블",   "memo": "키-값 매핑 자료구조",             "parent_id": 1, "order_id": 7 },
+
+      { "node_id": 13, "title": "이진트리",     "memo": "각 노드가 최대 2개의 자식",       "parent_id": 10, "order_id": 1 },
+      { "node_id": 14, "title": "BST",          "memo": "왼쪽 < 부모 < 오른쪽",            "parent_id": 10, "order_id": 2 },
+      { "node_id": 15, "title": "AVL 트리",     "parent_id": 10, "order_id": 3 },
+      { "node_id": 16, "title": "힙",           "memo": "우선순위 큐 구현용",              "parent_id": 10, "order_id": 4 },
+
+      { "node_id": 17, "title": "DFS",          "memo": "깊이 우선 탐색",                  "parent_id": 11, "order_id": 1 },
+      { "node_id": 18, "title": "BFS",          "memo": "너비 우선 탐색",                  "parent_id": 11, "order_id": 2 },
+
+      { "node_id": 19, "title": "정렬",         "parent_id": 2, "order_id": 1 },
+      { "node_id": 20, "title": "탐색",         "memo": "이진 탐색, 선형 탐색 등",         "parent_id": 2, "order_id": 2 },
+      { "node_id": 21, "title": "동적계획법",   "memo": "부분 문제 결과 재사용",           "parent_id": 2, "order_id": 3 },
+      { "node_id": 22, "title": "그리디",       "parent_id": 2, "order_id": 4 },
+      { "node_id": 23, "title": "분할정복",     "memo": "문제를 나눠 푼다",                "parent_id": 2, "order_id": 5 },
+      { "node_id": 24, "title": "백트래킹",     "parent_id": 2, "order_id": 6 },
+
+      { "node_id": 25, "title": "버블 정렬",    "memo": "O(n²)",                          "parent_id": 19, "order_id": 1 },
+      { "node_id": 26, "title": "퀵 정렬",      "memo": "평균 O(n log n)",                 "parent_id": 19, "order_id": 2 },
+      { "node_id": 27, "title": "병합 정렬",    "memo": "안정 정렬, O(n log n)",           "parent_id": 19, "order_id": 3 },
+      { "node_id": 28, "title": "힙 정렬",      "parent_id": 19, "order_id": 4 },
+
+      { "node_id": 29, "title": "메모이제이션", "memo": "Top-down 방식",                   "parent_id": 21, "order_id": 1 },
+      { "node_id": 30, "title": "타뷸레이션",   "memo": "Bottom-up 방식",                  "parent_id": 21, "order_id": 2 },
+
+      { "node_id": 31, "title": "프로세스",     "memo": "실행 중인 프로그램",              "parent_id": 3, "order_id": 1 },
+      { "node_id": 32, "title": "스레드",       "parent_id": 3, "order_id": 2 },
+      { "node_id": 33, "title": "스케줄링",     "memo": "CPU 할당 순서 결정",              "parent_id": 3, "order_id": 3 },
+      { "node_id": 34, "title": "메모리 관리",  "parent_id": 3, "order_id": 4 },
+      { "node_id": 35, "title": "파일시스템",   "memo": "데이터의 영구 저장 구조",         "parent_id": 3, "order_id": 5 },
+
+      { "node_id": 36, "title": "FCFS",         "memo": "First Come First Served",         "parent_id": 33, "order_id": 1 },
+      { "node_id": 37, "title": "SJF",          "memo": "Shortest Job First",              "parent_id": 33, "order_id": 2 },
+      { "node_id": 38, "title": "라운드 로빈",  "parent_id": 33, "order_id": 3 },
+
+      { "node_id": 39, "title": "OSI 7계층",    "memo": "물리/데이터링크/네트워크/전송/세션/표현/응용", "parent_id": 4, "order_id": 1 },
+      { "node_id": 40, "title": "TCP/IP",       "parent_id": 4, "order_id": 2 },
+      { "node_id": 41, "title": "HTTP",         "memo": "웹의 기본 프로토콜",              "parent_id": 4, "order_id": 3 },
+      { "node_id": 42, "title": "DNS",          "memo": "도메인 → IP 변환",                "parent_id": 4, "order_id": 4 },
+
+      { "node_id": 43, "title": "HTTP/1.1",     "memo": "Keep-Alive 도입",                 "parent_id": 41, "order_id": 1 },
+      { "node_id": 44, "title": "HTTP/2",       "memo": "멀티플렉싱 지원",                 "parent_id": 41, "order_id": 2 },
+      { "node_id": 45, "title": "HTTPS",        "parent_id": 41, "order_id": 3 },
+
+      { "node_id": 46, "title": "관계형 DB",    "memo": "테이블 기반, ACID 보장",          "parent_id": 5, "order_id": 1 },
+      { "node_id": 47, "title": "NoSQL",        "parent_id": 5, "order_id": 2 },
+      { "node_id": 48, "title": "인덱스",       "memo": "검색 성능 향상",                  "parent_id": 5, "order_id": 3 },
+      { "node_id": 49, "title": "트랜잭션",     "memo": "ACID 속성",                       "parent_id": 5, "order_id": 4 },
+      { "node_id": 50, "title": "정규화",       "memo": "중복 제거와 무결성",              "parent_id": 5, "order_id": 5 }
+    ]
+  }
+}

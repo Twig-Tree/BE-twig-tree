@@ -16,7 +16,18 @@ spring:
       hibernate:
         format_sql: true
 
-# 3. Logging & Debugging
+# 3. OpenAI (mock 모드에서는 실제 호출되지 않으므로 dummy 기본값 사용)
+openai:
+  api-key: ${OPENAI_API_KEY:dummy}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+
+# 4. Ollama (Local LLM, mock 모드에서는 실제 호출되지 않음)
+ollama:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:llama3.2}
+
+# 5. Logging & Debugging
 logging:
   level:
     org.hibernate.orm.jdbc.bind: trace
