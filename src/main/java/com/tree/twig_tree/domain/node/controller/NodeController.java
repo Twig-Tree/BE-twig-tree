@@ -1,32 +1,100 @@
 package com.tree.twig_tree.domain.node.controller;
 
-import com.tree.twig_tree.domain.node.exception.NodeException;
+import com.tree.twig_tree.domain.node.dto.NodeReqDTO;
+import com.tree.twig_tree.domain.node.dto.NodeResDTO;
+import com.tree.twig_tree.domain.node.exception.code.NodeSuccessCode;
+import com.tree.twig_tree.domain.node.service.NodeService;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
-import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.GeneralSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
+@Tag(name = "노드 API", description = "노드 생성, 조회, 수정 관련 API")
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/trees")
 public class NodeController {
 
-    @GetMapping("/error1")
-    @Operation(summary = "에러 핸들러 동작 테스트 API", description = "flag 값이 false이면 의도적으로 NodeException을 발생시킵니다.")
-    public ApiResponse<String> testErrorHandler(@RequestParam(name = "flag") boolean flag) {
+    private final NodeService nodeService;
 
-        if (!flag) {
-            // 여기서 예외를 던지면 Controller Advice가 가로챕니다.
-            throw new NodeException(GeneralErrorCode.BAD_REQUEST);
-        }
+    /**
+     * 새로운 노드 생성
+     * @param treeId
+     * @param dto
+     * @return nodeId
+     */
+    @Operation(summary = "새로운 노드 생성", description = "트리에 새로운 노드를 생성합니다.")
+    @PostMapping("/{treeId}/nodes")
+    public ApiResponse<NodeResDTO.NodeId> createNode(@PathVariable Long treeId, @RequestBody NodeReqDTO.CreateNode dto) {
+        BaseSuccessCode code = NodeSuccessCode.NODE_CREATED;
+        return ApiResponse.onSuccess(code, nodeService.createNode(treeId, dto));
 
-        BaseSuccessCode code = GeneralSuccessCode.OK;
-        return ApiResponse.onSuccess(code, "API가 성공적으로 호출되었습니다.");
     }
+
+    /**
+     * 노드 제목 수정
+     * PATCH /trees/{treeId}/nodes/{nodeId}
+     * @param treeId
+     * @param nodeId
+     * @param dto
+     * @return
+     */
+    @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다.")
+    @PatchMapping("/{treeId}/nodes/{nodeId}")
+    public ApiResponse<NodeResDTO.NodeId> editNodeName(@PathVariable Long treeId, @PathVariable Long nodeId,
+                                              @RequestBody NodeReqDTO.EditNodeName dto) {
+        BaseSuccessCode code = NodeSuccessCode.NODE_UPDATED;
+        return ApiResponse.onSuccess(code, nodeService.editNodeName(treeId, nodeId, dto));
+    }
+
+    /**
+     * 단일 노드 상세 조회
+     * GET /trees/{treeId}/nodes/{nodeId}
+     * @param treeId
+     * @param nodeId
+     * @return
+     */
+    @Operation(summary = "단일 노드 상세 조회", description = "특정 노드의 상세 정보를 조회합니다.")
+    @GetMapping("/{treeId}/nodes/{nodeId}")
+    public ApiResponse<NodeResDTO.GetNode> getNode(@PathVariable Long treeId, @PathVariable Long nodeId) {
+        BaseSuccessCode code = NodeSuccessCode.NODE_FOUND;
+        return ApiResponse.onSuccess(code, nodeService.getNode(treeId, nodeId));
+    }
+
+    /**
+     * 트리의 전체 노드 조회
+     * GET /trees/{treeId}
+     * @param treeId
+     * @return
+     */
+    @GetMapping("/{treeId}")
+    @Operation(summary = "트리 전체 노드 조회", description = "트리의 모든 노드를 조회합니다.")
+    public ApiResponse<NodeResDTO.GetTree> getFullTree(@PathVariable Long treeId) {
+        BaseSuccessCode code = NodeSuccessCode.NODE_FOUND;
+        return ApiResponse.onSuccess(code, nodeService.getFullTree(treeId));
+    }
+
+    /**
+     * 특정 루트 기준 서브트리 조회
+     * GET /trees/{treeId}/nodes/{rootId}
+     * @param treeId
+     * @param rootId
+     * @return
+     */
+    @GetMapping("/{treeId}/nodes/{rootId}/subtree")
+    @Operation(summary = "서브트리 노드 조회", description = "특정 노드를 루트로 하는 서브트리의 모든 노드를 조회합니다.")
+    public ApiResponse<List<NodeResDTO.GetNode>> getSubTree(@PathVariable Long treeId, @PathVariable Long rootId) {
+        BaseSuccessCode code = NodeSuccessCode.NODE_FOUND;
+        return ApiResponse.onSuccess(code, nodeService.getSubTree(treeId, rootId));
+    }
+
+
+
 
 
 
