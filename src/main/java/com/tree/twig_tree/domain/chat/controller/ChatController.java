@@ -12,20 +12,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 채팅 컨트롤러 (현재는 mock 모드).
- *
- * <p>실제 LLM 호출 로직({@code ChatService})은 그대로 유지되어 있으며, 추후 mock 분기를 제거하면
+
+ * 실제 LLM 호출 로직({@code ChatService})은 그대로 유지되어 있으며, 추후 mock 분기를 제거하면
  * 그대로 사용할 수 있다.
- *
- * <p>사용 예시:
- * <pre>
- *   POST /api/chat                     → tree-small.json  (기본값)
- *   POST /api/chat?scenario=empty      → tree-empty.json  (노드 0개)
- *   POST /api/chat?scenario=small      → tree-small.json  (노드 5개)
- *   POST /api/chat?scenario=large      → tree-large.json  (노드 50개)
- * </pre>
+
+ * 사용 예시:
+ *   POST /tree-request                     → tree-small.json  (기본값)
+ *   POST /tree-request?scenario=empty      → tree-empty.json  (노드 0개)
+ *   POST /tree-request?scenario=small      → tree-small.json  (노드 5개)
+ *   POST /tree-request?scenario=large      → tree-large.json  (노드 50개)
+
  */
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("/tree-request")
 @RequiredArgsConstructor
 public class ChatController {
 
@@ -36,7 +35,7 @@ public class ChatController {
 
     @PostMapping
     public JsonNode chat(
-        @RequestBody(required = false) ChatReqDTO req,
+        @RequestBody(required = false) ChatReqDTO req,  // 잠시 비활성화
         @RequestParam(defaultValue = "small") String scenario
     ) {
         validateScenario(scenario);
