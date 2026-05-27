@@ -12,7 +12,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "nodes")
+@Table(name = "nodes", uniqueConstraints = {
+        // DB 제약조건: 같은 parentId를 가진 노드들끼리는 orderId가 겹치면 안됩니다.
+        @UniqueConstraint(columnNames = {"parent_id", "order_id"})
+})
 public class Node {
 
     @Id
@@ -23,9 +26,6 @@ public class Node {
     @Column(name = "parent_id")
     private Long parentId;
 
-    /**
-     * TODO: orderId는 겹치면 안된다는 제약조건을 걸어야합니다.
-     */
     @Column(name = "order_id")
     private Long orderId;
 
