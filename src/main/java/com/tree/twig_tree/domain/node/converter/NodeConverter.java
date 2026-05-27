@@ -23,7 +23,6 @@ public class NodeConverter {
     // entity -> dto
     public static NodeResDTO.GetTree toGetFullTreeNodes(Tree tree, List<Node> fullTreeNodes) {
         return NodeResDTO.GetTree.builder()
-                .treeName(tree.getName())
                 .nodes(fullTreeNodes.stream()
                         .map(NodeConverter::toGetNode)
                         .toList())

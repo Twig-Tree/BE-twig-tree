@@ -54,6 +54,18 @@ public class NodeController {
     }
 
     /**
+     * 노드 삭제
+     * @param nodeId
+     */
+    @Operation(summary = "노드 삭제", description = "특정 노드를 삭제합니다. ")
+    @DeleteMapping("/{nodeId}")
+    public ApiResponse<Void> deleteNode(@PathVariable Long nodeId){
+        BaseSuccessCode code = NodeSuccessCode.NODE_DELETED;
+        nodeService.deleteNode(nodeId);
+        return ApiResponse.onSuccess(code, null);
+    }
+
+    /**
      * 단일 노드 상세 조회
      * GET /trees/{treeId}/nodes/{nodeId}
      * @param treeId

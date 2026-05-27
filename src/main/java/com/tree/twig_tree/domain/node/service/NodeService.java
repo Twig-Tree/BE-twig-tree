@@ -67,6 +67,16 @@ public class NodeService {
     }
 
     /**
+     * 노드 삭제
+     * @param nodeId
+     */
+    @Transactional
+    public void deleteNode(Long nodeId) {
+        Node node = validateNode(nodeId);
+        nodeRepository.delete(node);
+    }
+
+    /**
      * 단일 노드 상세 조회
      * @param treeId
      * @param nodeId
@@ -128,4 +138,6 @@ public class NodeService {
             throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
         }
     }
+
+
 }

@@ -27,32 +27,31 @@ public class TreeController {
      */
     @GetMapping
     @Operation(summary = "모든 트리 조회", description = "모든 트리를 조회합니다.")
-    public ApiResponse<List<TreeResDTO.GetTree>> getAllTrees() {
+    public ApiResponse<List<TreeResDTO.TreeId>> getAllTrees() {
         BaseSuccessCode code = TreeSuccessCode.TREES_FOUND;
         return ApiResponse.onSuccess(code, treeService.getAllTrees());
     }
 
     /**
-     * 트리 정보 상세 조회 (노드 정보X)
-     * @param treeId
-     * @return Tree
-     */
-    @Operation(summary = "단일 트리 상세 조회", description = "특정 트리 정보를 조회합니다.")
-    @GetMapping("/{treeId}")
-    public ApiResponse<TreeResDTO.GetTree> getTree(@PathVariable Long treeId) {
-        BaseSuccessCode code = TreeSuccessCode.TREE_FOUND;
-        return ApiResponse.onSuccess(code, treeService.getTree(treeId));
-    }
-
-    /**
      * 트리 생성
-     * @param name
      * @return treeId
      */
     @Operation(summary = "새로운 트리 생성", description = "새로운 트리를 생성합니다.")
     @PostMapping
-    public ApiResponse<TreeResDTO.TreeId> createTree(@RequestParam String name) {
+    public ApiResponse<TreeResDTO.TreeId> createTree() {
         BaseSuccessCode code = TreeSuccessCode.TREE_CREATED;
-        return ApiResponse.onSuccess(code, treeService.createTree(name));
+        return ApiResponse.onSuccess(code, treeService.createTree());
+    }
+
+    /**
+     * 트리 삭제
+     * @param treeId
+     */
+    @Operation(summary = "트리 삭제", description = "트리를 삭제합니다.")
+    @DeleteMapping("/{treeId}")
+    public ApiResponse<Void> deleteTree(@PathVariable Long treeId) {
+        BaseSuccessCode code = TreeSuccessCode.TREE_DELETED;
+        treeService.deleteTree(treeId);
+        return ApiResponse.onSuccess(code, null);
     }
 }
