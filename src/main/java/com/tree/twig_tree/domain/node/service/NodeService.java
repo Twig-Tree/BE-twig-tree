@@ -35,15 +35,13 @@ public class NodeService {
     public NodeResDTO.NodeId createNode(Long treeId, NodeReqDTO.CreateNode dto) {
         Tree tree = treeRepository.findById(treeId)
                 .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
-
         if (dto.parentId() != null) {
-            Node parentNode = nodeRepository.findById(dto.parentId())
+            Node parentNode = nodeRepository.findById(dto.parentId()) // findById(null)은 불가능함
                     .orElseThrow(() -> new NodeException(NodeErrorCode.PARENT_NOT_FOUND));
-
 
             // 데이터 무결성 체크: 부모 노드의 트리 ID와 현재 요청된 트리 ID가 일치하는가?
             if (!parentNode.getTree().getId().equals(treeId)) {
-                throw new IllegalArgumentException("부모 노드가 해당 트리에 속해있지 않습니다.");
+                throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
             }
         }
 
@@ -101,7 +99,6 @@ public class NodeService {
      * @return
      */
     public NodeResDTO.GetTree getFullTreeNodes(Long treeId) {
-
         Tree tree = treeRepository.findById(treeId).orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
         List<Node> fullTreeNodes = nodeRepository.findFullTreeByTreeId(treeId);
 

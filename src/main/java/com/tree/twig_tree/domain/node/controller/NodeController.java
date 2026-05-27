@@ -8,6 +8,7 @@ import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +30,8 @@ public class NodeController {
      */
     @Operation(summary = "새로운 노드 생성", description = "트리에 새로운 노드를 생성합니다.")
     @PostMapping()
-    public ApiResponse<NodeResDTO.NodeId> createNode(@PathVariable Long treeId, @RequestBody NodeReqDTO.CreateNode dto) {
+    public ApiResponse<NodeResDTO.NodeId> createNode(
+            @PathVariable Long treeId, @RequestBody @Valid NodeReqDTO.CreateNode dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_CREATED;
         return ApiResponse.onSuccess(code, nodeService.createNode(treeId, dto));
 
