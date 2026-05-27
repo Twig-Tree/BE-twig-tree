@@ -48,7 +48,7 @@ public class NodeController {
     @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다.")
     @PatchMapping("/{nodeId}")
     public ApiResponse<NodeResDTO.NodeId> editNodeName(@PathVariable Long treeId, @PathVariable Long nodeId,
-                                              @RequestBody NodeReqDTO.EditNodeName dto) {
+                                              @RequestBody @Valid NodeReqDTO.EditNodeName dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_UPDATED;
         return ApiResponse.onSuccess(code, nodeService.editNodeName(treeId, nodeId, dto));
     }
