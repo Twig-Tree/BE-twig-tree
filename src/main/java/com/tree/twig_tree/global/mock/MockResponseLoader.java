@@ -11,7 +11,7 @@ import java.io.InputStream;
 /**
  * classpath 의 mock JSON 파일을 읽어 JsonNode 로 반환한다.
 
- * 경로 예시: mocks/chat/tree-default.json
+ * 경로 예시: mocks/chat/tree-small.json
  */
 @Component
 @RequiredArgsConstructor
