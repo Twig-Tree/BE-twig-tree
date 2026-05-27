@@ -4,6 +4,8 @@ import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.exception.code.ChatSuccessCode;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.mock.MockResponseLoader;
+import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
+import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -126,7 +128,7 @@ public class ChatController {
      */
     private void validateScenario(String scenario) {
         if (!scenario.matches("[a-z0-9-]+")) {
-            throw new IllegalArgumentException("scenario 값이 올바르지 않습니다: " + scenario);
+            throw new ProjectException(GeneralErrorCode.BAD_REQUEST);
         }
     }
 }
