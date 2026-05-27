@@ -1,15 +1,10 @@
 package com.tree.twig_tree.domain.chat.exception;
 
-import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
-import lombok.Getter;
+import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
+import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
 
-@Getter
-public class ChatException extends RuntimeException {
-
-    private final ChatErrorCode errorCode;
-
-    public ChatException(ChatErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
+public class ChatException extends ProjectException {
+    public ChatException(BaseErrorCode errorCode) {
+        super(errorCode);
     }
 }

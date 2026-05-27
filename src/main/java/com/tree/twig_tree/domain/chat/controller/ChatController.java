@@ -120,7 +120,7 @@ public class ChatController {
     ) {
         validateScenario(scenario);
         JsonNode treeData = mockResponseLoader.load(MOCK_PATH_PREFIX + scenario + MOCK_PATH_SUFFIX);
-        return ApiResponse.onSuccess(ChatSuccessCode.TREE_FETCHED, treeData);
+        return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, treeData);
     }
 
     /**
