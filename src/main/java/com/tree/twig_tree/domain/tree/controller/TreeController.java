@@ -55,5 +55,4 @@ public class TreeController {
         BaseSuccessCode code = TreeSuccessCode.TREE_CREATED;
         return ApiResponse.onSuccess(code, treeService.createTree(name));
     }
-
 }

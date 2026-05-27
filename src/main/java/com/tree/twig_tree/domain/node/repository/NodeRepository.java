@@ -11,7 +11,6 @@ import java.util.List;
 @Repository
 public interface NodeRepository extends JpaRepository<Node, Long> {
 
-
     // 해당 treeId를 갖는 트리의 전체 노드들 조회
     @Query(value = """
         WITH RECURSIVE tree_hierarchy AS (
@@ -30,7 +29,6 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
         SELECT * FROM tree_hierarchy
         """, nativeQuery = true)
     List<Node> findFullTreeByTreeId(@Param("treeId") Long treeId);
-
 
     // 해당 rootId를 갖는 서브트리의 노드들 조회
     @Query(value = """

@@ -20,5 +20,4 @@ public class Tree {
     private Long id;
 
     private String name;
-
 }

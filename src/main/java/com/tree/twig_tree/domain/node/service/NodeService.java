@@ -128,11 +128,4 @@ public class NodeService {
             throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
         }
     }
-
-
-
-
-
-
-
 }

@@ -26,5 +26,4 @@ public class NodeResDTO {
     public record NodeId(
             Long nodeId
     ) {}
-
 }

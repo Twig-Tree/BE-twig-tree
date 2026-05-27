@@ -15,6 +15,4 @@ public class TreeResDTO {
             String treeName
             // 추가 트리 정보가 추가될 수 있습니다.
     ) {}
-
-
 }

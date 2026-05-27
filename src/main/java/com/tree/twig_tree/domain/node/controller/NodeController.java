@@ -93,10 +93,4 @@ public class NodeController {
         BaseSuccessCode code = NodeSuccessCode.NODES_FOUND;
         return ApiResponse.onSuccess(code, nodeService.getSubTreeNodes(treeId, rootId));
     }
-
-
-
-
-
-
 }
