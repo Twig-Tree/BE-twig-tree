@@ -6,7 +6,6 @@ import com.tree.twig_tree.domain.node.exception.code.NodeSuccessCode;
 import com.tree.twig_tree.domain.node.service.NodeService;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
-import com.tree.twig_tree.global.apiPayload.code.GeneralSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,7 @@ import java.util.List;
 @Tag(name = "노드 API", description = "노드 생성, 조회, 수정 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/trees")
+@RequestMapping("/trees/{treeId}/nodes")
 public class NodeController {
 
     private final NodeService nodeService;
@@ -29,7 +28,7 @@ public class NodeController {
      * @return nodeId
      */
     @Operation(summary = "새로운 노드 생성", description = "트리에 새로운 노드를 생성합니다.")
-    @PostMapping("/{treeId}/nodes")
+    @PostMapping()
     public ApiResponse<NodeResDTO.NodeId> createNode(@PathVariable Long treeId, @RequestBody NodeReqDTO.CreateNode dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_CREATED;
         return ApiResponse.onSuccess(code, nodeService.createNode(treeId, dto));
@@ -42,10 +41,10 @@ public class NodeController {
      * @param treeId
      * @param nodeId
      * @param dto
-     * @return
+     * @return nodeId
      */
     @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다.")
-    @PatchMapping("/{treeId}/nodes/{nodeId}")
+    @PatchMapping("/{nodeId}")
     public ApiResponse<NodeResDTO.NodeId> editNodeName(@PathVariable Long treeId, @PathVariable Long nodeId,
                                               @RequestBody NodeReqDTO.EditNodeName dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_UPDATED;
@@ -60,7 +59,7 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "단일 노드 상세 조회", description = "특정 노드의 상세 정보를 조회합니다.")
-    @GetMapping("/{treeId}/nodes/{nodeId}")
+    @GetMapping("/{nodeId}")
     public ApiResponse<NodeResDTO.GetNode> getNode(@PathVariable Long treeId, @PathVariable Long nodeId) {
         BaseSuccessCode code = NodeSuccessCode.NODE_FOUND;
         return ApiResponse.onSuccess(code, nodeService.getNode(treeId, nodeId));
@@ -72,11 +71,11 @@ public class NodeController {
      * @param treeId
      * @return
      */
-    @GetMapping("/{treeId}")
+    @GetMapping
     @Operation(summary = "트리 전체 노드 조회", description = "트리의 모든 노드를 조회합니다.")
     public ApiResponse<NodeResDTO.GetTree> getFullTree(@PathVariable Long treeId) {
-        BaseSuccessCode code = NodeSuccessCode.NODE_FOUND;
-        return ApiResponse.onSuccess(code, nodeService.getFullTree(treeId));
+        BaseSuccessCode code = NodeSuccessCode.NODES_FOUND;
+        return ApiResponse.onSuccess(code, nodeService.getFullTreeNodes(treeId));
     }
 
     /**
@@ -86,11 +85,11 @@ public class NodeController {
      * @param rootId
      * @return
      */
-    @GetMapping("/{treeId}/nodes/{rootId}/subtree")
+    @GetMapping("/{rootId}/subtree")
     @Operation(summary = "서브트리 노드 조회", description = "특정 노드를 루트로 하는 서브트리의 모든 노드를 조회합니다.")
     public ApiResponse<List<NodeResDTO.GetNode>> getSubTree(@PathVariable Long treeId, @PathVariable Long rootId) {
-        BaseSuccessCode code = NodeSuccessCode.NODE_FOUND;
-        return ApiResponse.onSuccess(code, nodeService.getSubTree(treeId, rootId));
+        BaseSuccessCode code = NodeSuccessCode.NODES_FOUND;
+        return ApiResponse.onSuccess(code, nodeService.getSubTreeNodes(treeId, rootId));
     }
 
 

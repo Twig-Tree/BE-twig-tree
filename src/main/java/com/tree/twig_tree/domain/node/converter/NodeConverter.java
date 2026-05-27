@@ -21,7 +21,7 @@ public class NodeConverter {
     }
 
     // entity -> dto
-    public static NodeResDTO.GetTree toGetFullTree(Tree tree, List<Node> fullTreeNodes) {
+    public static NodeResDTO.GetTree toGetFullTreeNodes(Tree tree, List<Node> fullTreeNodes) {
         return NodeResDTO.GetTree.builder()
                 .treeName(tree.getName())
                 .nodes(fullTreeNodes.stream()
@@ -30,7 +30,7 @@ public class NodeConverter {
                 .build();
     }
 
-    public static List<NodeResDTO.GetNode> toGetSubTree(List<Node> subTreeNodes) {
+    public static List<NodeResDTO.GetNode> toGetSubTreeNodes(List<Node> subTreeNodes) {
         return subTreeNodes.stream()
                 .map(NodeConverter::toGetNode)
                 .toList();

@@ -29,7 +29,7 @@ public class NodeService {
      * 노드 생성
      * @param treeId
      * @param dto
-     * @return
+     * @return nodeId
      */
     @Transactional
     public NodeResDTO.NodeId createNode(Long treeId, NodeReqDTO.CreateNode dto) {
@@ -57,7 +57,7 @@ public class NodeService {
      * @param treeId
      * @param nodeId
      * @param dto
-     * @return
+     * @return nodeId
      */
     @Transactional
     public NodeResDTO.NodeId editNodeName(Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
@@ -71,54 +71,13 @@ public class NodeService {
             throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
         }
 
-        /**
-         * 이거 맞는지 한번 봐야겠음 !!
-         */
         node.updateTitle(dto.name());
 
         return new NodeResDTO.NodeId(node.getId());
     }
 
     /**
-     * 트리의 전체 노드 조회
-     * @param treeId
-     * @return
-     */
-    public NodeResDTO.GetTree getFullTree(Long treeId) {
-
-        Tree tree = treeRepository.findById(treeId).orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
-        List<Node> fullTreeNodes = nodeRepository.findFullTreeByTreeId(treeId);
-
-        return NodeConverter.toGetFullTree(tree, fullTreeNodes);
-
-    }
-
-    /**
-     * 서브 트리 조회
-     * @param treeId
-     * @param rootId
-     * @return
-     */
-    public List<NodeResDTO.GetNode> getSubTree(Long treeId, Long rootId) {
-
-        // ------ (추후 구현) 공통 검증 메서드 분리 필요
-        treeRepository.findById(treeId)
-                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
-        Node node = nodeRepository.findById(rootId)
-                .orElseThrow(() -> new NodeException(NodeErrorCode.PARENT_NOT_FOUND));
-
-        if (!node.getTree().getId().equals(treeId)) {
-            throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
-        }
-        // ------
-
-        List<Node> subTreeNodes = nodeRepository.findSubTreeByRootId(rootId);
-
-        return NodeConverter.toGetSubTree(subTreeNodes);
-    }
-
-    /**
-     * 특정 노드 조회
+     * 단일 노드 상세 조회
      * @param treeId
      * @param nodeId
      * @return
@@ -135,6 +94,46 @@ public class NodeService {
 
         return NodeConverter.toGetNode(node);
     }
+
+    /**
+     * 트리의 전체 노드 조회
+     * @param treeId
+     * @return
+     */
+    public NodeResDTO.GetTree getFullTreeNodes(Long treeId) {
+
+        Tree tree = treeRepository.findById(treeId).orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
+        List<Node> fullTreeNodes = nodeRepository.findFullTreeByTreeId(treeId);
+
+        return NodeConverter.toGetFullTreeNodes(tree, fullTreeNodes);
+
+    }
+
+    /**
+     * 특정 루트 기준 서브트리 조회
+     * @param treeId
+     * @param rootId
+     * @return
+     */
+    public List<NodeResDTO.GetNode> getSubTreeNodes(Long treeId, Long rootId) {
+
+        // ------ (추후 구현) 공통 검증 메서드 분리 필요
+        treeRepository.findById(treeId)
+                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
+        Node node = nodeRepository.findById(rootId)
+                .orElseThrow(() -> new NodeException(NodeErrorCode.PARENT_NOT_FOUND));
+
+        if (!node.getTree().getId().equals(treeId)) {
+            throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
+        }
+        // ------
+
+        List<Node> subTreeNodes = nodeRepository.findSubTreeByRootId(rootId);
+
+        return NodeConverter.toGetSubTreeNodes(subTreeNodes);
+    }
+
+
 
 
 }
