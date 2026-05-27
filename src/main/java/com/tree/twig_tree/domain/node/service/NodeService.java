@@ -33,16 +33,13 @@ public class NodeService {
      */
     @Transactional
     public NodeResDTO.NodeId createNode(Long treeId, NodeReqDTO.CreateNode dto) {
-        Tree tree = treeRepository.findById(treeId)
-                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
+        Tree tree = validateTree(treeId);
         if (dto.parentId() != null) {
             Node parentNode = nodeRepository.findById(dto.parentId()) // findById(null)은 불가능함
                     .orElseThrow(() -> new NodeException(NodeErrorCode.PARENT_NOT_FOUND));
 
             // 데이터 무결성 체크: 부모 노드의 트리 ID와 현재 요청된 트리 ID가 일치하는가?
-            if (!parentNode.getTree().getId().equals(treeId)) {
-                throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
-            }
+            validateNodeInTree(parentNode, treeId);
         }
 
         Node newNode = NodeConverter.toCreateNode(tree, dto);
@@ -59,15 +56,10 @@ public class NodeService {
      */
     @Transactional
     public NodeResDTO.NodeId editNodeName(Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
-        Tree tree = treeRepository.findById(treeId)
-                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
-        Node node = nodeRepository.findById(nodeId)
-                .orElseThrow(() -> new NodeException(NodeErrorCode.NODE_NOT_FOUND));
-
-        // 무결성 검증
-        if (!node.getTree().getId().equals(tree.getId())) {
-            throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
-        }
+        // 검증
+        validateTree(treeId);
+        Node node = validateNode(nodeId);
+        validateNodeInTree(node, treeId);
 
         node.updateTitle(dto.name());
 
@@ -81,14 +73,9 @@ public class NodeService {
      * @return
      */
     public NodeResDTO.GetNode getNode(Long treeId, Long nodeId) {
-        treeRepository.findById(treeId)
-                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
-        Node node = nodeRepository.findById(nodeId)
-                .orElseThrow(() -> new NodeException(NodeErrorCode.NODE_NOT_FOUND));
-
-        if (!node.getTree().getId().equals(treeId)) {
-            throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
-        }
+        validateTree(treeId);
+        Node node = validateNode(nodeId);
+        validateNodeInTree(node, treeId);
 
         return NodeConverter.toGetNode(node);
     }
@@ -99,7 +86,7 @@ public class NodeService {
      * @return
      */
     public NodeResDTO.GetTree getFullTreeNodes(Long treeId) {
-        Tree tree = treeRepository.findById(treeId).orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
+        Tree tree = validateTree(treeId);
         List<Node> fullTreeNodes = nodeRepository.findFullTreeByTreeId(treeId);
 
         return NodeConverter.toGetFullTreeNodes(tree, fullTreeNodes);
@@ -113,22 +100,37 @@ public class NodeService {
      * @return
      */
     public List<NodeResDTO.GetNode> getSubTreeNodes(Long treeId, Long rootId) {
-
-        // ------ (추후 구현) 공통 검증 메서드 분리 필요
-        treeRepository.findById(treeId)
-                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
-        Node node = nodeRepository.findById(rootId)
-                .orElseThrow(() -> new NodeException(NodeErrorCode.PARENT_NOT_FOUND));
-
-        if (!node.getTree().getId().equals(treeId)) {
-            throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
-        }
-        // ------
+        validateTree(treeId);
+        Node node = validateNode(rootId);
+        validateNodeInTree(node, treeId);
 
         List<Node> subTreeNodes = nodeRepository.findSubTreeByRootId(rootId);
 
         return NodeConverter.toGetSubTreeNodes(subTreeNodes);
     }
+
+    /**
+     * 공통 검증 메서드
+     * : DB 조회 후 찾지 못하면 예외를 발생시킵니다.
+     */
+    private Tree validateTree(Long treeId) {
+        return treeRepository.findById(treeId)
+                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
+    }
+
+    private Node validateNode(Long nodeId) {
+        return nodeRepository.findById(nodeId)
+                .orElseThrow(() -> new NodeException(NodeErrorCode.NODE_NOT_FOUND));
+    }
+
+    private void validateNodeInTree(Node node, Long treeId) {
+        if (!node.getTree().getId().equals(treeId)) {
+            throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
+        }
+    }
+
+
+
 
 
 
