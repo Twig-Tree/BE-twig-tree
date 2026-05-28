@@ -3,6 +3,7 @@ package com.tree.twig_tree.domain.node.exception;
 import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,7 +16,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 // 범위 지정 - 노드 패키지에서 발생한 예외만 NodeExceptionAdvice가 먼저 확인합니다.
 @RestControllerAdvice(basePackages = "com.tree.twig_tree.domain.node")
+@Slf4j
 public class NodeExceptionAdvice {
+
+
 
     // 노드의 orderId 제약조건 예외 처리
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -23,8 +27,12 @@ public class NodeExceptionAdvice {
             DataIntegrityViolationException e
     ) {
         String message = e.getMessage();
+        log.error("DataIntegrityViolation message: {}", e.getMessage()); // 추가
 
-        if (message != null && message.contains("parent_id") && message.contains("order_id")) {
+        if (message != null && (
+                message.contains("uk_nodes_root_order_id") ||
+                message.contains("uk_nodes_parent_order_id")
+        ))  {
             BaseErrorCode code = NodeErrorCode.DUPLICATED_ORDER_ID;
             return ResponseEntity.status(code.getStatus())
                     .body(ApiResponse.onFailure(code, null));
