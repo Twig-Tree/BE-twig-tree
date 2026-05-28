@@ -34,15 +34,17 @@ public class NodeService {
     @Transactional
     public NodeResDTO.NodeId createNode(Long treeId, NodeReqDTO.CreateNode dto) {
         Tree tree = validateTree(treeId);
+
+        Node parentNode = null;
         if (dto.parentId() != null) {
-            Node parentNode = nodeRepository.findById(dto.parentId()) // findById(null)은 불가능함
+            parentNode = nodeRepository.findById(dto.parentId()) // findById(null)은 불가능함
                     .orElseThrow(() -> new NodeException(NodeErrorCode.PARENT_NOT_FOUND));
 
             // 데이터 무결성 체크: 부모 노드의 트리 ID와 현재 요청된 트리 ID가 일치하는가?
             validateNodeInTree(parentNode, treeId);
         }
 
-        Node newNode = NodeConverter.toCreateNode(tree, dto);
+        Node newNode = NodeConverter.toCreateNode(tree, parentNode, dto);
         Node savedNode = nodeRepository.save(newNode);
         return new NodeResDTO.NodeId(savedNode.getId());
     }
@@ -61,7 +63,7 @@ public class NodeService {
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
 
-        node.updateTitle(dto.name());
+        node.updateName(dto.name());
 
         return new NodeResDTO.NodeId(node.getId());
     }
@@ -71,8 +73,10 @@ public class NodeService {
      * @param nodeId
      */
     @Transactional
-    public void deleteNode(Long nodeId) {
+    public void deleteNode(Long treeId, Long nodeId) {
+        validateTree(treeId);
         Node node = validateNode(nodeId);
+        validateNodeInTree(node, treeId);
         nodeRepository.delete(node);
     }
 
@@ -96,10 +100,10 @@ public class NodeService {
      * @return
      */
     public NodeResDTO.GetTree getFullTreeNodes(Long treeId) {
-        Tree tree = validateTree(treeId);
+        validateTree(treeId);
         List<Node> fullTreeNodes = nodeRepository.findFullTreeByTreeId(treeId);
 
-        return NodeConverter.toGetFullTreeNodes(tree, fullTreeNodes);
+        return NodeConverter.toGetFullTreeNodes(fullTreeNodes);
 
     }
 

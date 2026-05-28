@@ -24,5 +24,6 @@ public class Tree {
     private Long id;
 
     @OneToMany(mappedBy = "tree", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<Node> nodes = new ArrayList<>();
 }

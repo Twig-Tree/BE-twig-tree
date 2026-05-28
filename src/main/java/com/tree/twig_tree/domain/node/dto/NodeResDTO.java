@@ -17,7 +17,6 @@ public class NodeResDTO {
 
     @Builder
     public record GetTree(
-            String treeName,
             List<GetNode> nodes
     ) {}
 

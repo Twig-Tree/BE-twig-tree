@@ -10,9 +10,9 @@ import java.util.List;
 public class NodeConverter {
 
     // dto -> entity
-    public static Node toCreateNode(Tree tree, NodeReqDTO.CreateNode dto) {
+    public static Node toCreateNode(Tree tree, Node parentNode, NodeReqDTO.CreateNode dto) {
         return Node.builder()
-                .parentId(dto.parentId())
+                .parent(parentNode)
                 .orderId(dto.orderId())
                 .name(dto.name())
                 .memo(null) // 처음 생성 시 null로 초기화
@@ -21,7 +21,7 @@ public class NodeConverter {
     }
 
     // entity -> dto
-    public static NodeResDTO.GetTree toGetFullTreeNodes(Tree tree, List<Node> fullTreeNodes) {
+    public static NodeResDTO.GetTree toGetFullTreeNodes(List<Node> fullTreeNodes) {
         return NodeResDTO.GetTree.builder()
                 .nodes(fullTreeNodes.stream()
                         .map(NodeConverter::toGetNode)
@@ -39,7 +39,7 @@ public class NodeConverter {
     public static NodeResDTO.GetNode toGetNode(Node node) {
         return NodeResDTO.GetNode.builder()
                 .nodeId(node.getId())
-                .parentId(node.getParentId())
+                .parentId(node.getParent() != null ? node.getParent().getId(): null)
                 .orderId(node.getOrderId())
                 .name(node.getName())
                 .memo(node.getMemo())
