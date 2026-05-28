@@ -11,10 +11,15 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true # 기존 DB를 V0으로 기준점을 잡고, V1부터 실행하겠다는 의미
+    baseline-version: 0
+
 
 # 3. Logging & Debugging
 logging:

@@ -15,10 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "nodes", uniqueConstraints = {
-        // DB 제약조건: 같은 parentId를 가진 노드들끼리는 orderId가 겹치면 안됩니다.
-        @UniqueConstraint(columnNames = {"parent_id", "order_id"})
-})
+@Table(name = "nodes")
 public class Node {
 
     @Id
@@ -30,7 +27,7 @@ public class Node {
 
     private String memo;
 
-    // orderId의 DB 제약사항이 있습니다.
+    // orderId의 DB 제약사항을 flyway에 정의합니다.
     // orderId는 비즈니스 로직으로 결정되는 값이라 임의로 초기화하면 안 됩니다. null로 존재해야 오류 시에도 인지할 수 있습니다.
     @Column(name = "order_id")
     private Long orderId;
