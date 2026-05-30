@@ -1,8 +1,8 @@
-CREATE TABLE trees (
+CREATE TABLE IF NOT EXISTS trees (
                       tree_id BIGSERIAL PRIMARY KEY
 );
 
-CREATE TABLE nodes (
+CREATE TABLE IF NOT EXISTS nodes (
                        node_id   BIGSERIAL PRIMARY KEY,
                        name      VARCHAR(255),
                        memo      VARCHAR(255),
