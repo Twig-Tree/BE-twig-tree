@@ -1,0 +1,10 @@
+{
+  "tree_id": 12,
+  "nodes": [
+    { "node_id": 1, "title": "자료구조", "memo": "데이터를 조직하고 저장하는 방법", "parent_id": null, "order_id": 1 },
+    { "node_id": 2, "title": "알고리즘", "parent_id": null, "order_id": 2 },
+    { "node_id": 3, "title": "배열",     "memo": "연속된 메모리 공간",           "parent_id": 1, "order_id": 1 },
+    { "node_id": 4, "title": "스택",     "memo": "LIFO 자료구조",                "parent_id": 1, "order_id": 2 },
+    { "node_id": 5, "title": "정렬",     "parent_id": 2, "order_id": 1 }
+  ]
+}
