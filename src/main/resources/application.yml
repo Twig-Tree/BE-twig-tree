@@ -11,10 +11,16 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true # 기존 DB를 V0으로 기준점을 잡고, V1부터 실행하겠다는 의미
+    baseline-version: 0
+    schemas: public
+
 
 # 3. OpenAI (mock 모드에서는 실제 호출되지 않으므로 dummy 기본값 사용)
 openai:
