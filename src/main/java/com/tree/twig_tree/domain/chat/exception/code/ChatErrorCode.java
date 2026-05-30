@@ -9,8 +9,8 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ChatErrorCode implements BaseErrorCode {
 
-    UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "CHAT400", "지원하지 않는 AI 제공자입니다."),
-    LLM_CALL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CHAT500", "AI 모델 호출에 실패했습니다.");
+    UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "CHAT400-1", "지원하지 않는 AI 제공자입니다."),
+    LLM_CALL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CHAT500-1", "AI 모델 호출에 실패했습니다.");
 
     private final HttpStatus status;
     private final String code;

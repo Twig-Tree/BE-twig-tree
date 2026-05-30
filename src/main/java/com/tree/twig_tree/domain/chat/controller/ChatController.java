@@ -61,7 +61,7 @@ public class ChatController {
                         value = """
                         {
                           "isSuccess": true,
-                          "code": "TREE_GENERATED",
+                          "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
                           "data": {
                             "tree_id": 12,
@@ -81,7 +81,7 @@ public class ChatController {
                         value = """
                         {
                           "isSuccess": true,
-                          "code": "TREE_GENERATED",
+                          "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
                           "data": { "tree_id": 99, "nodes": [] }
                         }
@@ -92,7 +92,7 @@ public class ChatController {
                         value = """
                         {
                           "isSuccess": true,
-                          "code": "TREE_GENERATED",
+                          "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
                           "data": {
                             "tree_id": 34,
