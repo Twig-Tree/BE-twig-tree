@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "tree")
+@Table(name = "trees")
 public class Tree {
 
     @Column(name = "tree_id")

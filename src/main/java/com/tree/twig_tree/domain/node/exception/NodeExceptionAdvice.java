@@ -29,10 +29,17 @@ public class NodeExceptionAdvice {
         String message = e.getMessage();
         log.error("DataIntegrityViolation message: {}", e.getMessage()); // 추가
 
-        if (message != null && (
-                message.contains("uk_nodes_root_order_id") ||
-                message.contains("uk_nodes_parent_order_id")
-        ))  {
+        if (message == null) throw e;
+
+        // 트리당 루트노드는 하나여야 합니다.
+        if (message.contains("uk_nodes_root_per_tree"))  {
+            BaseErrorCode code = NodeErrorCode.ONE_ROOT_PER_TREE;
+            return ResponseEntity.status(code.getStatus())
+                    .body(ApiResponse.onFailure(code, null));
+        }
+
+        // 일반 노드는 orderId가 겹치면 압됩니다.
+        if (message.contains("uk_nodes_parent_order_id"))  {
             BaseErrorCode code = NodeErrorCode.DUPLICATED_ORDER_ID;
             return ResponseEntity.status(code.getStatus())
                     .body(ApiResponse.onFailure(code, null));
