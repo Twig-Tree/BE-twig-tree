@@ -9,7 +9,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-@JsonPropertyOrder({"isSuccess", "code", "message", "result"}) // JSON 내 순서 지정
+@JsonPropertyOrder({"isSuccess", "code", "message", "data"}) // JSON 내 순서 지정
 public class ApiResponse<T> {
 
     @JsonProperty("isSuccess")
@@ -21,17 +21,17 @@ public class ApiResponse<T> {
     @JsonProperty("message")
     private final String message;
 
-    @JsonProperty("result")
-    private T result;
+    @JsonProperty("data")
+    private T data;
 
     // 성공한 경우
-    public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T result) {
-        return new ApiResponse<>(true, code.getCode(), code.getMessage(), result );
+    public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T data) {
+        return new ApiResponse<>(true, code.getCode(), code.getMessage(), data );
     }
 
     // 실패한 경우
-    public static <T> ApiResponse<T> onFailure(BaseErrorCode code, T result) {
-        return new ApiResponse<>(false, code.getCode(), code.getMessage(), result );
+    public static <T> ApiResponse<T> onFailure(BaseErrorCode code, T data) {
+        return new ApiResponse<>(false, code.getCode(), code.getMessage(), data );
     }
 
 

@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ChatSuccessCode implements BaseSuccessCode {
 
-    TREE_GENERATED(HttpStatus.OK, "TREE_GENERATED", "트리가 성공적으로 생성되었습니다.");
+    TREE_GENERATED(HttpStatus.CREATED, "CHAT201-1", "트리가 성공적으로 생성되었습니다.");
 
     private final HttpStatus status;
     private final String code;

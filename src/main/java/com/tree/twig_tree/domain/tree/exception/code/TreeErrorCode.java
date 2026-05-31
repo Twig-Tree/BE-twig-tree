@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum TreeErrorCode implements BaseErrorCode{
 
-    TREE_NOT_FOUND(HttpStatus.NOT_FOUND, "TREE404","해당 트리가 존재하지 않습니다.");
+    TREE_NOT_FOUND(HttpStatus.NOT_FOUND, "TREE404-1","해당 트리가 존재하지 않습니다.");
 
     private final HttpStatus status;
     private final String code;

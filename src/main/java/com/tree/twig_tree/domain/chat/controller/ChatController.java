@@ -61,9 +61,9 @@ public class ChatController {
                         value = """
                         {
                           "isSuccess": true,
-                          "code": "TREE_GENERATED",
+                          "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
-                          "result": {
+                          "data": {
                             "tree_id": 12,
                             "nodes": [
                               { "node_id": 1, "title": "자료구조", "memo": "데이터를 조직하고 저장하는 방법", "parent_id": null, "order_id": 1 },
@@ -81,9 +81,9 @@ public class ChatController {
                         value = """
                         {
                           "isSuccess": true,
-                          "code": "TREE_GENERATED",
+                          "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
-                          "result": { "tree_id": 99, "nodes": [] }
+                          "data": { "tree_id": 99, "nodes": [] }
                         }
                         """
                     ),
@@ -92,9 +92,9 @@ public class ChatController {
                         value = """
                         {
                           "isSuccess": true,
-                          "code": "TREE_GENERATED",
+                          "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
-                          "result": {
+                          "data": {
                             "tree_id": 34,
                             "nodes": [
                               { "node_id": 1, "title": "자료구조", "parent_id": null, "order_id": 1 },
