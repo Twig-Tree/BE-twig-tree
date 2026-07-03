@@ -23,16 +23,16 @@ public class WorkspaceController {
 
     /**
      * 특정 폴더 내 워크스페이스 목록 조회
-     * @param parentFolderId (null 가능) 이 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.
+     * @param folderId (null 가능) 이 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.
      * @return
      */
     @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "parentFolderId 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.")
     @GetMapping
     public ApiResponse<List<WorkspaceResDTO.GetWorkspace>> getWorkspaces(
-            @RequestParam(required = false) Long parentFolderId
+            @RequestParam(required = false) Long folderId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
-        return ApiResponse.onSuccess(code, workspaceService.getWorkspaces(parentFolderId));
+        return ApiResponse.onSuccess(code, workspaceService.getWorkspaces(folderId));
     }
 
     /**

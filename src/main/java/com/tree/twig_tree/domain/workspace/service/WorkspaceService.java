@@ -22,7 +22,7 @@ public class WorkspaceService {
     private final FolderRepository folderRepository;
     private final WorkspaceRepository workspaceRepository;
 
-    public List<WorkspaceResDTO.GetWorkspace> getWorkspaces(Long parentFolderId) {
+    public List<WorkspaceResDTO.GetWorkspace> getWorkspaces(Long folderId) {
 
 
         return List.of();
