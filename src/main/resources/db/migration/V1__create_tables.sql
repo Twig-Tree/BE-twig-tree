@@ -32,3 +32,14 @@ CREATE TABLE IF NOT EXISTS folders (
                                  REFERENCES folders (folder_id)
                                  ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS workspaces (
+                            workspace_id BIGSERIAL PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            folder_id BIGINT,
+
+                            CONSTRAINT fk_workspace_folder
+                                FOREIGN KEY (folder_id)
+                                    REFERENCES folders(folder_id)
+                                    ON DELETE CASCADE
+);
