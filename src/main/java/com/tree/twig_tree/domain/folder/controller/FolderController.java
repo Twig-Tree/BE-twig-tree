@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 
-@Tag(name = "폴더 API", description = "폴더 생성, 조회, 수정, 삭제 관련 API")
+@Tag(name = "Folder", description = "폴더 생성, 조회, 수정, 삭제 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/folders")
@@ -49,7 +49,7 @@ public class FolderController {
      * @return
      */
     @Operation(summary = "폴더 이름 수정", description = "폴더 이름을 수정합니다. 같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다.")
-    @PostMapping("/{folderId}")
+    @PatchMapping("/{folderId}")
     public ApiResponse<FolderResDTO.FolderId> updateFolder(
             @PathVariable Long folderId,
             @RequestBody @Valid FolderReqDTO.UpdateFolder dto

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "트리 API", description = "트리 생성, 조회, 수정 관련 API")
+@Tag(name = "Tree", description = "트리 생성, 조회, 수정 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/trees")

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "워크스페이스 API", description = "워크스페이스 생성, 조회, 수정 관련 API")
+@Tag(name = "Workspace", description = "워크스페이스 생성, 조회, 수정 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/workspaces")
