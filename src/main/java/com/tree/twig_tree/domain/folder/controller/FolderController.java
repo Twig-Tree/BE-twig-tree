@@ -25,28 +25,28 @@ public class FolderController {
 
     /**
      * 폴더 목록 조회
-     * @param parentFolderId 이 값을 기준으로 하위 폴더 목록을 조회합니다.
+     * @param folderParentId 이 값을 기준으로 하위 폴더 목록을 조회합니다.
      * @return
      */
-    @Operation(summary = "폴더 목록 조회", description = "parent_folder_id를 기준으로 하위 폴더 목록을 조회합니다. <br>" +"파라미터 없이 조회하면 parend_folder_id = null 인 폴더가 조회됩니다.")
+    @Operation(summary = "폴더 목록 조회", description = "folder_parent_id를 기준으로 하위 폴더 목록을 조회합니다. <br>" +"파라미터 없이 조회하면 folder_parent_id = null 인 폴더가 조회됩니다.")
     @GetMapping
     public ApiResponse<List<FolderResDTO.GetFolder>> getFolders(
-            @RequestParam(required = false) Long parentFolderId
+            @RequestParam(required = false) Long folderParentId
     ) {
         BaseSuccessCode code = FolderSuccessCode.FOLDERS_FOUND;
-        return ApiResponse.onSuccess(code, folderService.getFolders(parentFolderId));
+        return ApiResponse.onSuccess(code, folderService.getFolders(folderParentId));
     }
 
     /**
      * 새로운 폴더 생성
-     * parent_folder_id는 null이 가능하여 path variable이 아닌 request body로 받습니다.
+     * folder_parent_id는 null이 가능하여 path variable이 아닌 request body로 받습니다.
      * @param dto
      * @return
      */
     @Operation(
             summary = "새로운 폴더 생성",
             description = "새로운 폴더를 생성합니다.<br>" +
-                    "parent_folder_id가 null이면 최상위 루트에 들어갑니다.<br>" +
+                    "folder_parent_id가 null이면 최상위 루트에 들어갑니다.<br>" +
                     "같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다."
     )    @PostMapping
     public ApiResponse<FolderResDTO.FolderId> createFolder(
@@ -54,6 +54,15 @@ public class FolderController {
     ) {
         BaseSuccessCode code = FolderSuccessCode.FOLDER_CREATED;
         return ApiResponse.onSuccess(code, folderService.createFolder(dto));
+    }
+
+    @Operation(summary = "폴더 조회", description = "")
+    @GetMapping("/{folderId}")
+    public ApiResponse<FolderResDTO.GetFolder> getFolder(
+            @PathVariable Long folderId
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDER_FOUND;
+        return ApiResponse.onSuccess(code, folderService.getFolder(folderId));
     }
 
     /**

@@ -10,7 +10,7 @@ public class FolderReqDTO {
             String name,
 
             @Min(1) // null 가능
-            Long parentFolderId
+            Long folderParentId
     ){}
 
     public record UpdateFolder (

@@ -9,9 +9,10 @@ public class FolderResDTO {
             Long folderId
     ) {}
 
-
+    @Builder
     public record GetFolder (
             Long folderId,
-            String name
+            String name,
+            Long folderParentId
     ){}
 }

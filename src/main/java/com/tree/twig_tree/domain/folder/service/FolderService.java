@@ -22,16 +22,16 @@ public class FolderService {
 
     /**
      * 폴더 목록 조회
-     * @param parentFolderId
+     * @param folderParentId
      * @return
      */
-    public List<FolderResDTO.GetFolder> getFolders(Long parentFolderId) {
+    public List<FolderResDTO.GetFolder> getFolders(Long folderParentId) {
         List<Folder> folders;
-        if (parentFolderId == null) {
+        if (folderParentId == null) {
             folders = folderRepository.findAllByParentIsNull();
         } else {
-            Folder parentFolder = folderRepository.findById(parentFolderId).orElseThrow(()->new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
-            folders = folderRepository.findAllByParent(parentFolder);
+            Folder parent = folderRepository.findById(folderParentId).orElseThrow(()->new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
+            folders = folderRepository.findAllByParent(parent);
         }
 
         return FolderConverter.getFolders(folders);
@@ -45,19 +45,31 @@ public class FolderService {
     @Transactional
     public FolderResDTO.FolderId createFolder(FolderReqDTO.CreateFolder dto) {
 
-        Folder parentFolder = null;
-        if (dto.parentFolderId() != null) {
-            parentFolder = folderRepository.findById(dto.parentFolderId()).orElseThrow(() -> new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
+        Folder parent = null;
+        if (dto.folderParentId() != null) {
+            parent = folderRepository.findById(dto.folderParentId()).orElseThrow(() -> new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
         }
 
         Folder newFolder = Folder.builder()
-                .parent(parentFolder)
+                .parent(parent)
                 .name(dto.name())
                 .build();
 
         folderRepository.save(newFolder);
 
         return new FolderResDTO.FolderId(newFolder.getId());
+    }
+
+    /**
+     * 폴더 조회
+     * @param folderId
+     * @return
+     */
+    public FolderResDTO.GetFolder getFolder(Long folderId) {
+
+        Folder folder = folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+
+        return FolderConverter.getFolder(folder);
     }
 
     /**
@@ -88,4 +100,6 @@ public class FolderService {
 
         return null;
     }
+
+
 }
