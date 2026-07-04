@@ -21,7 +21,24 @@ public class FolderService {
     private final FolderRepository folderRepository;
 
     /**
-     * 노드 생성
+     * 폴더 목록 조회
+     * @param parentFolderId
+     * @return
+     */
+    public List<FolderResDTO.GetFolder> getFolders(Long parentFolderId) {
+        List<Folder> folders;
+        if (parentFolderId == null) {
+            folders = folderRepository.findAllByParentIsNull();
+        } else {
+            Folder parentFolder = folderRepository.findById(parentFolderId).orElseThrow(()->new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
+            folders = folderRepository.findAllByParent(parentFolder);
+        }
+
+        return FolderConverter.getFolders(folders);
+    }
+
+    /**
+     * 폴더 생성
      * @param dto
      * @return
      */
@@ -44,7 +61,7 @@ public class FolderService {
     }
 
     /**
-     * 폴더 이름
+     * 폴더 이름 수정
      * @param folderId
      * @param dto
      * @return
@@ -70,22 +87,5 @@ public class FolderService {
         folderRepository.delete(folder);
 
         return null;
-    }
-
-    /**
-     * 폴더 목록 조회
-     * @param parentFolderId
-     * @return
-     */
-    public List<FolderResDTO.GetFolder> getFolders(Long parentFolderId) {
-        List<Folder> folders;
-        if (parentFolderId == null) {
-            folders = folderRepository.findAllByParentIsNull();
-        } else {
-            Folder parentFolder = folderRepository.findById(parentFolderId).orElseThrow(()->new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
-            folders = folderRepository.findAllByParent(parentFolder);
-        }
-
-        return FolderConverter.getFolders(folders);
     }
 }

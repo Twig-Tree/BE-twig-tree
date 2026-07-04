@@ -70,13 +70,14 @@ public class WorkspaceController {
      * @param workspaceId
      * @return
      */
-    @Operation(summary = "워크스페이스 수정", description = "")
+    @Operation(summary = "워크스페이스 이름 수정", description = "")
     @PatchMapping("/{workspaceId}")
     public ApiResponse<WorkspaceResDTO.WorkspaceId> updateWorkspace(
-            @PathVariable Long workspaceId
+            @PathVariable Long workspaceId,
+            @RequestBody WorkspaceReqDTO.UpdateWorkspace dto
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_UPDATED;
-        return ApiResponse.onSuccess(code, workspaceService.updateWorkspace(workspaceId));
+        return ApiResponse.onSuccess(code, workspaceService.updateWorkspace(workspaceId, dto.name()));
     }
 
     /**

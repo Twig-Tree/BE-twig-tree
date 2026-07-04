@@ -11,4 +11,9 @@ public class WorkspaceReqDTO {
             @Min(1) // null 가능
             Long folderId
     ){}
+
+    public record UpdateWorkspace (
+            @NotBlank
+            String name
+    ){}
 }

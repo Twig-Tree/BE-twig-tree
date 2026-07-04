@@ -24,6 +24,20 @@ public class FolderController {
     private final FolderService folderService;
 
     /**
+     * 폴더 목록 조회
+     * @param parentFolderId 이 값을 기준으로 하위 폴더 목록을 조회합니다.
+     * @return
+     */
+    @Operation(summary = "폴더 목록 조회", description = "parent_folder_id를 기준으로 하위 폴더 목록을 조회합니다. <br>" +"파라미터 없이 조회하면 parend_folder_id = null 인 폴더가 조회됩니다.")
+    @GetMapping
+    public ApiResponse<List<FolderResDTO.GetFolder>> getFolders(
+            @RequestParam(required = false) Long parentFolderId
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDERS_FOUND;
+        return ApiResponse.onSuccess(code, folderService.getFolders(parentFolderId));
+    }
+
+    /**
      * 새로운 폴더 생성
      * parent_folder_id는 null이 가능하여 path variable이 아닌 request body로 받습니다.
      * @param dto
@@ -71,20 +85,4 @@ public class FolderController {
         BaseSuccessCode code = FolderSuccessCode.FOLDER_DELETED;
         return ApiResponse.onSuccess(code, folderService.deleteFolder(folderId));
     }
-
-    /**
-     * 폴더 목록 조회
-     * @param parentFolderId 이 값을 기준으로 하위 폴더 목록을 조회합니다.
-     * @return
-     */
-    @Operation(summary = "폴더 목록 조회", description = "parent_folder_id를 기준으로 하위 폴더 목록을 조회합니다. <br>" +"파라미터 없이 조회하면 parend_folder_id = null 인 폴더가 조회됩니다.")
-    @GetMapping
-    public ApiResponse<List<FolderResDTO.GetFolder>> getFolders(
-            @RequestParam(required = false) Long parentFolderId
-    ) {
-        BaseSuccessCode code = FolderSuccessCode.FOLDERS_FOUND;
-        return ApiResponse.onSuccess(code, folderService.getFolders(parentFolderId));
-    }
-
-
 }

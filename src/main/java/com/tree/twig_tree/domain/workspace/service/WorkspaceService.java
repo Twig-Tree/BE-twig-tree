@@ -8,6 +8,8 @@ import com.tree.twig_tree.domain.workspace.converter.WorkspaceConverter;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceReqDTO;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceResDTO;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
+import com.tree.twig_tree.domain.workspace.exception.WorkspaceException;
+import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceErrorCode;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -63,17 +65,42 @@ public class WorkspaceService {
         return new WorkspaceResDTO.WorkspaceId(workspace.getId());
     }
 
+    /**
+     * 워크스페이스 조회
+     * @param workspaceId
+     * @return
+     */
     public WorkspaceResDTO.GetWorkspace getWorkspace(Long workspaceId) {
-        return null;
+
+        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+
+        return WorkspaceConverter.toGetWorkspace(workspace);
     }
 
+    /**
+     * 워크스페이스 이름 수정
+     * @param workspaceId
+     * @return
+     */
     @Transactional
-    public WorkspaceResDTO.WorkspaceId updateWorkspace(Long workspaceId) {
-        return null;
+    public WorkspaceResDTO.WorkspaceId updateWorkspace(Long workspaceId, String name) {
+        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+
+        workspace.updateName(name);
+
+        return new WorkspaceResDTO.WorkspaceId(workspace.getId());
     }
 
+    /**
+     * 워크스페이스 삭제
+     * @param workspaceId
+     * @return
+     */
     @Transactional
     public Void deleteWorkspace(Long workspaceId) {
+        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+
+        workspaceRepository.delete(workspace);
         return null;
     }
 }
