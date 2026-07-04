@@ -8,6 +8,7 @@ import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.*;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +27,8 @@ public class WorkspaceController {
      * @param folderId (null 가능) 이 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.
      * @return
      */
-    @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "parentFolderId 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.")
+    @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.<br>"
+            + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
     @GetMapping
     public ApiResponse<List<WorkspaceResDTO.GetWorkspace>> getWorkspaces(
             @RequestParam(required = false) Long folderId
@@ -40,10 +42,10 @@ public class WorkspaceController {
      * @param dto // name, folderId (null 가능)
      * @return
      */
-    @Operation(summary = "새로운 워크스페이스 생성", description = "")
+    @Operation(summary = "새로운 워크스페이스 생성", description = "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스가 생성됩니다.")
     @PostMapping
     public ApiResponse<WorkspaceResDTO.WorkspaceId> createWorkspace(
-            @RequestBody WorkspaceReqDTO.CreateWorkspace dto
+            @RequestBody @Valid WorkspaceReqDTO.CreateWorkspace dto
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_CREATED;
         return ApiResponse.onSuccess(code, workspaceService.createWorkspace(dto));

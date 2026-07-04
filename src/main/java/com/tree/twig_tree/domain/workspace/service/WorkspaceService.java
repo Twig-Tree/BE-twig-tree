@@ -4,6 +4,7 @@ import com.tree.twig_tree.domain.folder.entity.Folder;
 import com.tree.twig_tree.domain.folder.exception.FolderException;
 import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.folder.repository.FolderRepository;
+import com.tree.twig_tree.domain.workspace.converter.WorkspaceConverter;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceReqDTO;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceResDTO;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
@@ -22,10 +23,20 @@ public class WorkspaceService {
     private final FolderRepository folderRepository;
     private final WorkspaceRepository workspaceRepository;
 
+    /**
+     * 특정 폴더 내의 워크스페이스 목록 조회
+     * @param folderId null이면 폴더에 속하지 않는 최상위 워크스페이스
+     * @return
+     */
     public List<WorkspaceResDTO.GetWorkspace> getWorkspaces(Long folderId) {
 
+        if (folderId != null && !folderRepository.existsById(folderId)) {
+            throw new FolderException(FolderErrorCode.FOLDER_NOT_FOUND);
+        }
 
-        return List.of();
+        List<Workspace> workspaceList = workspaceRepository.findAllByFolder_Id(folderId);
+
+        return WorkspaceConverter.toGetWorkspaces(workspaceList);
     }
 
     /**
@@ -37,14 +48,14 @@ public class WorkspaceService {
     public WorkspaceResDTO.WorkspaceId createWorkspace(WorkspaceReqDTO.CreateWorkspace dto) {
 
         // 폴더가 있는지 확인
-        Folder parentFolder = null;
+        Folder folder = null;
         if (dto.folderId() != null) {
-            parentFolder = folderRepository.findById(dto.folderId()).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+            folder = folderRepository.findById(dto.folderId()).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
         }
 
         Workspace workspace = Workspace.builder()
                 .name(dto.name())
-                .folder(parentFolder)
+                .folder(folder)
                 .build();
 
         workspaceRepository.save(workspace);
