@@ -74,7 +74,7 @@ public class WorkspaceController {
     @PatchMapping("/{workspaceId}")
     public ApiResponse<WorkspaceResDTO.WorkspaceId> updateWorkspace(
             @PathVariable Long workspaceId,
-            @RequestBody WorkspaceReqDTO.UpdateWorkspace dto
+            @RequestBody @Valid WorkspaceReqDTO.UpdateWorkspace dto
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_UPDATED;
         return ApiResponse.onSuccess(code, workspaceService.updateWorkspace(workspaceId, dto.name()));

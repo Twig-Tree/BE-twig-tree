@@ -36,7 +36,12 @@ public class WorkspaceService {
             throw new FolderException(FolderErrorCode.FOLDER_NOT_FOUND);
         }
 
-        List<Workspace> workspaceList = workspaceRepository.findAllByFolder_Id(folderId);
+        List<Workspace> workspaceList;
+        if (folderId == null) {
+            workspaceList = workspaceRepository.findAllByFolderIsNull();
+        } else {
+            workspaceList = workspaceRepository.findAllByFolder_Id(folderId);
+        }
 
         return WorkspaceConverter.toGetWorkspaces(workspaceList);
     }
