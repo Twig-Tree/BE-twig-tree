@@ -1,10 +1,10 @@
 {
-  "tree_id": 12,
+  "treeId": 12,
   "nodes": [
-    { "node_id": 1, "title": "자료구조", "memo": "데이터를 조직하고 저장하는 방법", "parent_id": null, "order_id": 1 },
-    { "node_id": 2, "title": "알고리즘", "parent_id": null, "order_id": 2 },
-    { "node_id": 3, "title": "배열",     "memo": "연속된 메모리 공간",           "parent_id": 1, "order_id": 1 },
-    { "node_id": 4, "title": "스택",     "memo": "LIFO 자료구조",                "parent_id": 1, "order_id": 2 },
-    { "node_id": 5, "title": "정렬",     "parent_id": 2, "order_id": 1 }
+    { "nodeId": 1, "name": "자료구조", "memo": "데이터를 조직하고 저장하는 방법", "parentId": null, "orderId": 1 },
+    { "nodeId": 2, "name": "알고리즘", "parentId": null, "orderId": 2 },
+    { "nodeId": 3, "name": "배열",     "memo": "연속된 메모리 공간",           "parentId": 1, "orderId": 1 },
+    { "nodeId": 4, "name": "스택",     "memo": "LIFO 자료구조",                "parentId": 1, "orderId": 2 },
+    { "nodeId": 5, "name": "정렬",     "parentId": 2, "orderId": 1 }
   ]
 }

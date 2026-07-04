@@ -47,6 +47,7 @@ public class ChatController {
             - `small` (기본): 노드 5개
             - `empty`: 노드 0개
             - `large`: 노드 50개
+            - `max`: 노드 100개
             """
     )
     @ApiResponses(value = {
@@ -64,13 +65,13 @@ public class ChatController {
                           "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
                           "data": {
-                            "tree_id": 12,
+                            "treeId": 12,
                             "nodes": [
-                              { "node_id": 1, "title": "자료구조", "memo": "데이터를 조직하고 저장하는 방법", "parent_id": null, "order_id": 1 },
-                              { "node_id": 2, "title": "알고리즘", "parent_id": null, "order_id": 2 },
-                              { "node_id": 3, "title": "배열", "memo": "연속된 메모리 공간", "parent_id": 1, "order_id": 1 },
-                              { "node_id": 4, "title": "스택", "memo": "LIFO 자료구조", "parent_id": 1, "order_id": 2 },
-                              { "node_id": 5, "title": "정렬", "parent_id": 2, "order_id": 1 }
+                              { "nodeId": 1, "name": "자료구조", "memo": "데이터를 조직하고 저장하는 방법", "parentId": null, "orderId": 1 },
+                              { "nodeId": 2, "name": "알고리즘", "parentId": null, "orderId": 2 },
+                              { "nodeId": 3, "name": "배열", "memo": "연속된 메모리 공간", "parentId": 1, "orderId": 1 },
+                              { "nodeId": 4, "name": "스택", "memo": "LIFO 자료구조", "parentId": 1, "orderId": 2 },
+                              { "nodeId": 5, "name": "정렬", "parentId": 2, "orderId": 1 }
                             ]
                           }
                         }
@@ -83,7 +84,7 @@ public class ChatController {
                           "isSuccess": true,
                           "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
-                          "data": { "tree_id": 99, "nodes": [] }
+                          "data": { "treeId": 99, "nodes": [] }
                         }
                         """
                     ),
@@ -95,9 +96,9 @@ public class ChatController {
                           "code": "CHAT201-1",
                           "message": "트리가 성공적으로 생성되었습니다.",
                           "data": {
-                            "tree_id": 34,
+                            "treeId": 34,
                             "nodes": [
-                              { "node_id": 1, "title": "자료구조", "parent_id": null, "order_id": 1 },
+                              { "nodeId": 1, "name": "자료구조", "parentId": null, "orderId": 1 },
                               "... (총 50개 노드, 깊이 3)"
                             ]
                           }
@@ -113,7 +114,7 @@ public class ChatController {
         @RequestBody(required = false) ChatReqDTO req,
         @Parameter(
             description = "Mock 시나리오 선택",
-            schema = @Schema(allowableValues = {"empty", "small", "large"}, defaultValue = "small"),
+            schema = @Schema(allowableValues = {"empty", "small", "large", "max"}, defaultValue = "small"),
             example = "small"
         )
         @RequestParam(defaultValue = "small") String scenario
