@@ -7,4 +7,3 @@ CREATE UNIQUE INDEX uk_workspace_root_name
 CREATE UNIQUE INDEX uk_workspace_folder_name
     ON workspaces (folder_id, name)
     WHERE folder_id IS NOT NULL;
-
