@@ -38,7 +38,7 @@ public class Node {
     private Node parent;
 
     // 부모 노드가 삭제되면 자식 노드도 함께 삭제되어야 합니다.
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "parent")
     @Builder.Default // @Builder 사용 시 필드 기본값이 무시되므로 초기화가 필요합니다.
     List<Node> children = new ArrayList<>();
 

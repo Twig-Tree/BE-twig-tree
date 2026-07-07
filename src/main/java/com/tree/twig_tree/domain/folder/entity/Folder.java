@@ -37,12 +37,12 @@ public class Folder {
     private Folder parent;
 
     // 자식 리스트
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "parent")
     @Builder.Default
     List<Folder> children = new ArrayList<>();
 
     // 폴더가 삭제되면 하위 워크스페이스들도 삭제됩니다.
-    @OneToMany(mappedBy = "folder", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "folder")
     @Builder.Default
     private List<Workspace> workspaces = new ArrayList<>();
 
