@@ -23,7 +23,7 @@ public class Tree {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToMany(mappedBy = "tree", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tree")
     @Builder.Default
     private List<Node> nodes = new ArrayList<>();
 }

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "노드 API", description = "노드 생성, 조회, 수정 관련 API")
+@Tag(name = "Node", description = "노드 생성, 조회, 수정 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/trees/{treeId}/nodes")

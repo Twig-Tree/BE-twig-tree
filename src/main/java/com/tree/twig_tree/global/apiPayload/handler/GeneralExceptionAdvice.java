@@ -4,9 +4,8 @@ import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
 import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
+import com.tree.twig_tree.global.apiPayload.util.ConstraintErrorCodeMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -53,6 +52,8 @@ public class GeneralExceptionAdvice {
                 .body(ApiResponse.onFailure(code, errors));
     }
 
+
+
     // DB 제약조건 위반 시 예외 처리
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<String>> handleDataIntegrityViolationException(
@@ -60,7 +61,9 @@ public class GeneralExceptionAdvice {
     ) {
         log.error("handleDataIntegrityViolationException: {}", e.getMessage());
 
-        BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        // 도메인 별 제약조건 에러코드 매핑
+        BaseErrorCode code = ConstraintErrorCodeMapper.getErrorCode(e);
+
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, "데이터 제약조건을 위반했습니다."));
     }
