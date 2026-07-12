@@ -3,6 +3,8 @@ name: twigtree
 services:
   db:
     image: postgres:16
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: twigtree-db
       POSTGRES_USER: twigtree123
@@ -17,15 +19,32 @@ services:
     restart: unless-stopped
     mem_limit: 256m
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 128m
+
   app:
     build: .
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DB_URL: jdbc:postgresql://db:5432/twigtree-db
       DB_USERNAME: twigtree123
       DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=40.0"
     ports:
       - "8080:8080"
