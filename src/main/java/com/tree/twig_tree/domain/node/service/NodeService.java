@@ -32,7 +32,7 @@ public class NodeService {
      * @return nodeId
      */
     @Transactional
-    public NodeResDTO.NodeId createNode(Long treeId, NodeReqDTO.CreateNode dto) {
+    public NodeResDTO.GetNode createNode(Long treeId, NodeReqDTO.CreateNode dto) {
         Tree tree = validateTree(treeId);
 
         Node parentNode = null;
@@ -46,7 +46,7 @@ public class NodeService {
 
         Node newNode = NodeConverter.toCreateNode(tree, parentNode, dto);
         Node savedNode = nodeRepository.save(newNode);
-        return new NodeResDTO.NodeId(savedNode.getId());
+        return NodeConverter.toGetNode(savedNode);
     }
 
     /**
@@ -54,10 +54,10 @@ public class NodeService {
      * @param treeId
      * @param nodeId
      * @param dto
-     * @return nodeId
+     * @return
      */
     @Transactional
-    public NodeResDTO.NodeId editNodeName(Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
+    public NodeResDTO.GetNode editNodeName(Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
         // 검증
         validateTree(treeId);
         Node node = validateNode(nodeId);
@@ -65,7 +65,7 @@ public class NodeService {
 
         node.updateName(dto.name());
 
-        return new NodeResDTO.NodeId(node.getId());
+        return NodeConverter.toGetNode(node);
     }
 
     /**
