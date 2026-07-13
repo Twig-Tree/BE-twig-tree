@@ -51,6 +51,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 request.setAttribute(AUTH_ERROR_ATTRIBUTE, AuthErrorCode.INVALID_ACCESS_TOKEN);
             }
         }
+
+        filterChain.doFilter(request, response);
     }
 
     // Bearer ... 형식에서 토큰만 추출
@@ -67,7 +69,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String role = claims.get("role", String.class);
 
         return UsernamePasswordAuthenticationToken.authenticated(memberId, null, List.of(new SimpleGrantedAuthority(role)));
-
-
     }
+
 }
