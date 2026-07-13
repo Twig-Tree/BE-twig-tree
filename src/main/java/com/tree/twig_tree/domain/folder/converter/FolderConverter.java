@@ -6,12 +6,12 @@ import com.tree.twig_tree.domain.folder.entity.Folder;
 import java.util.List;
 
 public class FolderConverter {
-    public static List<FolderResDTO.GetFolder> getFolders(List<Folder> folders) {
+    public static List<FolderResDTO.GetFolder> toGetFolders(List<Folder> folders) {
         return folders.stream()
-                .map(FolderConverter::getFolder).toList();
+                .map(FolderConverter::toGetFolder).toList();
     }
 
-    public static FolderResDTO.GetFolder getFolder(Folder folder) {
+    public static FolderResDTO.GetFolder toGetFolder(Folder folder) {
         return FolderResDTO.GetFolder.builder()
                 .folderId(folder.getId())
                 .name(folder.getName())

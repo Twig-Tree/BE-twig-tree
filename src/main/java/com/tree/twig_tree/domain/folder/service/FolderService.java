@@ -34,7 +34,7 @@ public class FolderService {
             folders = folderRepository.findAllByParent(parent);
         }
 
-        return FolderConverter.getFolders(folders);
+        return FolderConverter.toGetFolders(folders);
     }
 
     /**
@@ -43,7 +43,7 @@ public class FolderService {
      * @return
      */
     @Transactional
-    public FolderResDTO.FolderId createFolder(FolderReqDTO.CreateFolder dto) {
+    public FolderResDTO.GetFolder createFolder(FolderReqDTO.CreateFolder dto) {
 
         Folder parent = null;
         if (dto.folderParentId() != null) {
@@ -57,7 +57,7 @@ public class FolderService {
 
         folderRepository.save(newFolder);
 
-        return new FolderResDTO.FolderId(newFolder.getId());
+        return FolderConverter.toGetFolder(newFolder);
     }
 
     /**
@@ -69,7 +69,7 @@ public class FolderService {
 
         Folder folder = folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
 
-        return FolderConverter.getFolder(folder);
+        return FolderConverter.toGetFolder(folder);
     }
 
     /**
@@ -79,13 +79,13 @@ public class FolderService {
      * @return
      */
     @Transactional
-    public FolderResDTO.FolderId updateFolder(Long folderId, FolderReqDTO.UpdateFolder dto) {
+    public FolderResDTO.GetFolder updateFolder(Long folderId, FolderReqDTO.UpdateFolder dto) {
 
         Folder folder = folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
 
         folder.updateName(dto.name());
 
-        return new FolderResDTO.FolderId(folder.getId());
+        return FolderConverter.toGetFolder(folder);
     }
 
     /**

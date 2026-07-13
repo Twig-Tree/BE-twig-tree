@@ -27,7 +27,7 @@ public class WorkspaceController {
      * @param folderId (null 가능) 이 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.
      * @return
      */
-    @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.<br>"
+    @Operation(summary = "특정베이프 2022년 잡지부록 가방 폴더 내 워크스페이스 목록 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.<br>"
             + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
     @GetMapping
     public ApiResponse<List<WorkspaceResDTO.GetWorkspace>> getWorkspaces(
