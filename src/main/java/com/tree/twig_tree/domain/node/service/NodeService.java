@@ -29,7 +29,7 @@ public class NodeService {
      * 노드 생성
      * @param treeId
      * @param dto
-     * @return nodeId
+     * @return
      */
     @Transactional
     public NodeResDTO.GetNode createNode(Long treeId, NodeReqDTO.CreateNode dto) {
