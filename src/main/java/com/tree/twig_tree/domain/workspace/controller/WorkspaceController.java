@@ -44,7 +44,7 @@ public class WorkspaceController {
      */
     @Operation(summary = "새로운 워크스페이스 생성", description = "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스가 생성됩니다.")
     @PostMapping
-    public ApiResponse<WorkspaceResDTO.WorkspaceId> createWorkspace(
+    public ApiResponse<WorkspaceResDTO.GetWorkspace> createWorkspace(
             @RequestBody @Valid WorkspaceReqDTO.CreateWorkspace dto
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_CREATED;
@@ -72,7 +72,7 @@ public class WorkspaceController {
      */
     @Operation(summary = "워크스페이스 이름 수정", description = "")
     @PatchMapping("/{workspaceId}")
-    public ApiResponse<WorkspaceResDTO.WorkspaceId> updateWorkspace(
+    public ApiResponse<WorkspaceResDTO.GetWorkspace> updateWorkspace(
             @PathVariable Long workspaceId,
             @RequestBody @Valid WorkspaceReqDTO.UpdateWorkspace dto
     ) {

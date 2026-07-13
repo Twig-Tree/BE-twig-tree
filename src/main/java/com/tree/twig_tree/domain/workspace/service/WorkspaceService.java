@@ -52,7 +52,7 @@ public class WorkspaceService {
      * @return
      */
     @Transactional
-    public WorkspaceResDTO.WorkspaceId createWorkspace(WorkspaceReqDTO.CreateWorkspace dto) {
+    public WorkspaceResDTO.GetWorkspace createWorkspace(WorkspaceReqDTO.CreateWorkspace dto) {
 
         // 폴더가 있는지 확인
         Folder folder = null;
@@ -67,7 +67,7 @@ public class WorkspaceService {
 
         workspaceRepository.save(workspace);
 
-        return new WorkspaceResDTO.WorkspaceId(workspace.getId());
+        return WorkspaceConverter.toGetWorkspace(workspace);
     }
 
     /**
@@ -88,12 +88,12 @@ public class WorkspaceService {
      * @return
      */
     @Transactional
-    public WorkspaceResDTO.WorkspaceId updateWorkspace(Long workspaceId, String name) {
+    public WorkspaceResDTO.GetWorkspace updateWorkspace(Long workspaceId, String name) {
         Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
 
         workspace.updateName(name);
 
-        return new WorkspaceResDTO.WorkspaceId(workspace.getId());
+        return WorkspaceConverter.toGetWorkspace(workspace);
     }
 
     /**

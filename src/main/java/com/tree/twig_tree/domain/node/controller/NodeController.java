@@ -26,11 +26,11 @@ public class NodeController {
      * 새로운 노드 생성
      * @param treeId
      * @param dto
-     * @return nodeId
+     * @return
      */
     @Operation(summary = "새로운 노드 생성", description = "트리에 새로운 노드를 생성합니다.")
     @PostMapping()
-    public ApiResponse<NodeResDTO.NodeId> createNode(
+    public ApiResponse<NodeResDTO.GetNode> createNode(
             @PathVariable Long treeId, @RequestBody @Valid NodeReqDTO.CreateNode dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_CREATED;
         return ApiResponse.onSuccess(code, nodeService.createNode(treeId, dto));
@@ -43,11 +43,11 @@ public class NodeController {
      * @param treeId
      * @param nodeId
      * @param dto
-     * @return nodeId
+     * @return
      */
     @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다.")
     @PatchMapping("/{nodeId}")
-    public ApiResponse<NodeResDTO.NodeId> editNodeName(@PathVariable Long treeId, @PathVariable Long nodeId,
+    public ApiResponse<NodeResDTO.GetNode> editNodeName(@PathVariable Long treeId, @PathVariable Long nodeId,
                                               @RequestBody @Valid NodeReqDTO.EditNodeName dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_UPDATED;
         return ApiResponse.onSuccess(code, nodeService.editNodeName(treeId, nodeId, dto));

@@ -49,7 +49,7 @@ public class FolderController {
                     "folder_parent_id가 null이면 최상위 루트에 들어갑니다.<br>" +
                     "같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다."
     )    @PostMapping
-    public ApiResponse<FolderResDTO.FolderId> createFolder(
+    public ApiResponse<FolderResDTO.GetFolder> createFolder(
             @RequestBody @Valid FolderReqDTO.CreateFolder dto
     ) {
         BaseSuccessCode code = FolderSuccessCode.FOLDER_CREATED;
@@ -73,7 +73,7 @@ public class FolderController {
      */
     @Operation(summary = "폴더 이름 수정", description = "폴더 이름을 수정합니다. 같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다.")
     @PatchMapping("/{folderId}")
-    public ApiResponse<FolderResDTO.FolderId> updateFolder(
+    public ApiResponse<FolderResDTO.GetFolder> updateFolder(
             @PathVariable Long folderId,
             @RequestBody @Valid FolderReqDTO.UpdateFolder dto
     ){
