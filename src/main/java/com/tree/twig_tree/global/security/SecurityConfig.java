@@ -47,7 +47,8 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PERMIT_ALL_PATTERNS).permitAll()
-                        .anyRequest().authenticated())
+                        // TODO: 개발 편의를 위해 임시 전체 개방. 배포 전 authenticated()로 복원
+                        .anyRequest().permitAll())
 
                 // 거부 판정 시 응답 작성자 지정
                 .exceptionHandling(handler -> handler
