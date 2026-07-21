@@ -1,17 +1,16 @@
 package com.tree.twig_tree.domain.chat.controller;
 
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
+import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.code.ChatSuccessCode;
+import com.tree.twig_tree.domain.chat.service.ChatService;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
-import com.tree.twig_tree.global.mock.MockResponseLoader;
-import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
 import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
+import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
+import com.tree.twig_tree.global.mock.MockResponseLoader;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,12 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
 /**
- * 채팅 컨트롤러 (현재는 mock 모드).
+ * 트리 생성 컨트롤러.
  *
- * <p>실제 LLM 호출 로직(ChatService)은 그대로 유지되어 있으며, 추후 mock 분기를 제거하면
- * 그대로 사용할 수 있다.
+ * <p>기본 동작은 LLM 을 호출해 실제 트리를 생성/저장한다.
+ * 프론트 개발용으로, {@code mock} 파라미터를 주면 미리 정의된 mock 트리를 그대로 반환한다.
  */
-@Tag(name = "Chat (Mock)", description = "트리 생성 요청 mock API")
+@Tag(name = "Tree Generation", description = "LLM 기반 트리 생성 API")
 @RestController
 @RequestMapping("/tree-request")
 @RequiredArgsConstructor
@@ -36,89 +35,40 @@ public class ChatController {
     private static final String MOCK_PATH_PREFIX = "mocks/chat/tree-";
     private static final String MOCK_PATH_SUFFIX = ".json";
 
+    private final ChatService chatService;
     private final MockResponseLoader mockResponseLoader;
 
     @Operation(
-        summary = "트리 생성 요청 (Mock)",
+        summary = "트리 생성 요청",
         description = """
-            지정된 시나리오에 따라 미리 정의된 트리 데이터를 반환합니다.
-            현재 mock 모드이며, `scenario` 파라미터로 응답 데이터를 전환할 수 있습니다.
+            사용자 메시지를 LLM 에 전달해 계층형 트리를 생성하고 DB 에 저장한 뒤,
+            생성된 트리(treeId + nodes)를 반환합니다.
 
-            - `small` (기본): 노드 5개
-            - `empty`: 노드 0개
-            - `large`: 노드 50개
-            - `max`: 노드 100개
+            요청 본문: `{ "message": "자료구조 트리 만들어줘", "provider": "OPENAI" }`
+
+            프론트 개발용 mock:
+            - `?mock=small` (노드 5개), `?mock=empty`, `?mock=large`, `?mock=max`
+            - `mock` 파라미터가 있으면 LLM 을 호출하지 않고 미리 정의된 트리를 반환합니다.
             """
     )
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "트리 조회 성공",
-            content = @Content(
-                mediaType = "application/json",
-                examples = {
-                    @ExampleObject(
-                        name = "small (기본)",
-                        value = """
-                        {
-                          "isSuccess": true,
-                          "code": "CHAT201-1",
-                          "message": "트리가 성공적으로 생성되었습니다.",
-                          "data": {
-                            "treeId": 12,
-                            "nodes": [
-                              { "nodeId": 1, "name": "자료구조", "memo": "데이터를 조직하고 저장하는 방법", "parentId": null, "orderId": 1 },
-                              { "nodeId": 2, "name": "알고리즘", "parentId": null, "orderId": 2 },
-                              { "nodeId": 3, "name": "배열", "memo": "연속된 메모리 공간", "parentId": 1, "orderId": 1 },
-                              { "nodeId": 4, "name": "스택", "memo": "LIFO 자료구조", "parentId": 1, "orderId": 2 },
-                              { "nodeId": 5, "name": "정렬", "parentId": 2, "orderId": 1 }
-                            ]
-                          }
-                        }
-                        """
-                    ),
-                    @ExampleObject(
-                        name = "empty (빈 트리)",
-                        value = """
-                        {
-                          "isSuccess": true,
-                          "code": "CHAT201-1",
-                          "message": "트리가 성공적으로 생성되었습니다.",
-                          "data": { "treeId": 99, "nodes": [] }
-                        }
-                        """
-                    ),
-                    @ExampleObject(
-                        name = "large (대형 트리)",
-                        value = """
-                        {
-                          "isSuccess": true,
-                          "code": "CHAT201-1",
-                          "message": "트리가 성공적으로 생성되었습니다.",
-                          "data": {
-                            "treeId": 34,
-                            "nodes": [
-                              { "nodeId": 1, "name": "자료구조", "parentId": null, "orderId": 1 },
-                              "... (총 50개 노드, 깊이 3)"
-                            ]
-                          }
-                        }
-                        """
-                    )
-                }
-            )
-        )
-    })
     @PostMapping
-    public ApiResponse<JsonNode> chat(
+    public ApiResponse<?> generateTree(
         @RequestBody(required = false) ChatReqDTO req,
         @Parameter(
-            description = "Mock 시나리오 선택",
-            schema = @Schema(allowableValues = {"empty", "small", "large", "max"}, defaultValue = "small"),
-            example = "small"
+            description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않고 mock 트리를 반환합니다.",
+            schema = @Schema(allowableValues = {"empty", "small", "large", "max"})
         )
-        @RequestParam(defaultValue = "small") String scenario
+        @RequestParam(required = false) String mock
     ) {
+        if (mock != null) {
+            return mockResponse(mock);
+        }
+
+        TreeGenResDTO tree = chatService.generateTree(req);
+        return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
+    }
+
+    private ApiResponse<JsonNode> mockResponse(String scenario) {
         validateScenario(scenario);
         JsonNode treeData = mockResponseLoader.load(MOCK_PATH_PREFIX + scenario + MOCK_PATH_SUFFIX);
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, treeData);
