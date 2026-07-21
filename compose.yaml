@@ -26,6 +26,8 @@ services:
       DB_URL: jdbc:postgresql://db:5432/twigtree-db
       DB_USERNAME: twigtree123
       DB_PASSWORD: ${DB_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=40.0"
     ports:
       - "8080:8080"
