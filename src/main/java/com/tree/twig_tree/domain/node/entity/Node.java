@@ -52,9 +52,11 @@ public class Node {
      */
     // 노드 이름 수정
     public void updateName(String newName) {
-        if (newName == null || newName.trim().isEmpty()) {
-            throw new IllegalArgumentException("노드 제목은 공백일 수 없습니다.");
-        }
         this.name = newName;
+    }
+
+    // 메모 수정
+    public void updateMemo(String newContent) {
+        this.memo = newContent;
     }
 }
