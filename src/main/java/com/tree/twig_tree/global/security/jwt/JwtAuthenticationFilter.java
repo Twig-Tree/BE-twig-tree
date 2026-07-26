@@ -43,6 +43,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null) {
             try {
                 Claims claims = jwtProvider.parseClaims(token);
+
+                // refresh 토큰은 재발급 용도로만 쓰여야 하므로 인증에 사용될 수 없다
+                if (!jwtProvider.isTokenType(claims, TokenType.ACCESS)) {
+                    throw new JwtException("access 토큰이 아닙니다.");
+                }
+
                 SecurityContextHolder.getContext()
                         .setAuthentication(createAuthentication(claims));
             } catch (ExpiredJwtException e) {
@@ -66,7 +72,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private Authentication createAuthentication(Claims claims) {
         Long memberId = jwtProvider.getMemberId(claims);
-        String role = claims.get("role", String.class);
+        String role = claims.get(JwtProvider.ROLE_CLAIM, String.class);
+
+        if (role == null) {
+            throw new JwtException("role 클레임이 없는 토큰입니다.");
+        }
 
         return UsernamePasswordAuthenticationToken.authenticated(memberId, null, List.of(new SimpleGrantedAuthority(role)));
     }

@@ -35,6 +35,26 @@ class JwtProviderTest {
     }
 
     @Test
+    void 액세스_토큰은_typ가_ACCESS다() {
+        JwtProvider provider = provider(60_000L);
+        Claims claims = provider.parseClaims(provider.createAccessToken(42L, Role.ROLE_USER));
+
+        assertThat(provider.isTokenType(claims, TokenType.ACCESS)).isTrue();
+        assertThat(provider.isTokenType(claims, TokenType.REFRESH)).isFalse();
+    }
+
+    @Test
+    void 리프레시_토큰은_typ가_REFRESH이고_role이_없다() {
+        JwtProvider provider = provider(60_000L);
+        Claims claims = provider.parseClaims(provider.createRefreshToken(42L));
+
+        assertThat(provider.isTokenType(claims, TokenType.REFRESH)).isTrue();
+        // 인증에 쓰이면 안 되는 토큰이므로 access 로는 판정되지 않아야 한다
+        assertThat(provider.isTokenType(claims, TokenType.ACCESS)).isFalse();
+        assertThat(claims.get("role", String.class)).isNull();
+    }
+
+    @Test
     void 만료된_토큰은_ExpiredJwtException을_던진다() {
         // clock skew(60초)보다 확실히 과거로 만료시키기 위해 TTL 을 크게 음수로 설정
         JwtProvider provider = provider(-120_000L);
