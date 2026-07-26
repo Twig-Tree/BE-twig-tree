@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Node")
+@Tag(name = "Memo")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/nodes/{nodeId}/memos")
