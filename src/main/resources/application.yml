@@ -21,6 +21,13 @@ spring:
     baseline-version: 0
     schemas: public
 
+  # 파일 업로드 (트리 생성 입력용. 원본은 저장하지 않고 요청 처리 중에만 사용)
+  # 앱 레벨 상한(1MB)보다 넉넉히 잡아, 정상 범위 초과는 도메인 에러코드로 응답되게 한다.
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 4MB
+
 
 # 3. OpenAI (mock 모드에서는 실제 호출되지 않으므로 dummy 기본값 사용)
 openai:

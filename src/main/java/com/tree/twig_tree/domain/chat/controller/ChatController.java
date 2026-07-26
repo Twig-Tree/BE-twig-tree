@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.chat.controller;
 
+import com.tree.twig_tree.domain.chat.client.LlmProvider;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.code.ChatSuccessCode;
@@ -13,11 +14,14 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -65,6 +69,46 @@ public class ChatController {
         }
 
         TreeGenResDTO tree = chatService.generateTree(req);
+        return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
+    }
+
+    /**
+     * 파일 입력 기반 트리 생성 (multipart/form-data).
+     *
+     * <p>같은 경로를 쓰되 Content-Type 으로 분기된다. JSON 요청은 위의 핸들러가 그대로 처리한다.
+     */
+    @Operation(
+        summary = "트리 생성 요청 (파일 업로드)",
+        description = """
+            txt/md 파일을 업로드해 그 내용으로 트리를 생성합니다. `multipart/form-data` 로 요청하세요.
+
+            - `file`: txt 또는 md 파일 (최대 1MB, 본문 20,000자 이내)
+            - `message`: (선택) 추가 지시문. 예) "3단계 깊이로 정리해줘"
+            - `provider`: LLM 제공자 (OPENAI / OLLAMA)
+
+            `file` 과 `message` 는 각각 선택이지만 **둘 다 비어 있으면 400** 입니다.
+            업로드한 파일은 저장하지 않고 요청 처리 중에만 사용합니다.
+            """
+    )
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<?> generateTreeFromFile(
+        @Parameter(description = "(선택) txt/md 파일")
+        @RequestPart(value = "file", required = false) MultipartFile file,
+
+        @Parameter(description = "(선택) 추가 지시문", example = "3단계 깊이로 정리해줘")
+        @RequestParam(required = false) String message,
+
+        @Parameter(description = "LLM 제공자", schema = @Schema(allowableValues = {"OPENAI", "OLLAMA"}))
+        @RequestParam(required = false) LlmProvider provider,
+
+        @Parameter(description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않습니다.")
+        @RequestParam(required = false) String mock
+    ) {
+        if (mock != null) {
+            return mockResponse(mock);
+        }
+
+        TreeGenResDTO tree = chatService.generateTree(provider, message, file);
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
     }
 

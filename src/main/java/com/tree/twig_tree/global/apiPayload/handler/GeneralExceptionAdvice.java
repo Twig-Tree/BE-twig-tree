@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -66,6 +67,22 @@ public class GeneralExceptionAdvice {
 
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, "데이터 제약조건을 위반했습니다."));
+    }
+
+
+    /**
+     * 컨테이너 레벨 업로드 상한(spring.servlet.multipart) 초과 시 예외 처리.
+     * 이 상한은 안전망이고, 정상 범위의 초과는 각 도메인에서 더 구체적인 코드로 먼저 걸러진다.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<String>> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException e
+    ) {
+        log.warn("업로드 크기 초과: {}", e.getMessage());
+
+        BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, "업로드 가능한 파일 크기를 초과했습니다."));
     }
 
 

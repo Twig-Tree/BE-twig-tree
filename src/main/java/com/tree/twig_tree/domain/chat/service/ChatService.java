@@ -1,14 +1,17 @@
 package com.tree.twig_tree.domain.chat.service;
 
 import com.tree.twig_tree.domain.chat.client.LlmClient;
+import com.tree.twig_tree.domain.chat.client.LlmProvider;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
+import com.tree.twig_tree.domain.chat.prompt.TreePrompt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -35,24 +38,52 @@ public class ChatService {
     private final ObjectMapper objectMapper;
     private final TreeValidator treeValidator;
     private final GeneratedTreeWriter generatedTreeWriter;
+    private final DocumentTextExtractor documentTextExtractor;
 
     public TreeGenResDTO generateTree(ChatReqDTO req) {
         if (req == null || req.message() == null || req.message().isBlank()) {
             throw new ChatException(ChatErrorCode.EMPTY_MESSAGE);
         }
 
-        LlmClient client = resolveClient(req);
+        return generate(req.provider(), TreePrompt.userMessage(req.message(), null));
+    }
 
-        String json = callLlm(client, req.message());
+    /**
+     * 파일 입력을 함께 받는 트리 생성.
+     *
+     * <p>지시문과 파일 중 최소 하나는 있어야 한다. 파일은 본문만 추출해 쓰고 원본은 저장하지 않는다.
+     *
+     * @param provider LLM 제공자
+     * @param message  사용자 지시문 (선택)
+     * @param file     업로드 파일 (선택)
+     */
+    public TreeGenResDTO generateTree(LlmProvider provider, String message, MultipartFile file) {
+        boolean hasMessage = message != null && !message.isBlank();
+        boolean hasFile = file != null && !file.isEmpty();
+
+        if (!hasMessage && !hasFile) {
+            throw new ChatException(ChatErrorCode.INPUT_REQUIRED);
+        }
+
+        // 파일 검증을 LLM 호출 전에 끝내, 잘못된 입력으로 비용이 발생하지 않게 한다.
+        String documentText = hasFile ? documentTextExtractor.extract(file) : null;
+
+        return generate(provider, TreePrompt.userMessage(message, documentText));
+    }
+
+    private TreeGenResDTO generate(LlmProvider provider, String userMessage) {
+        LlmClient client = resolveClient(provider);
+
+        String json = callLlm(client, userMessage);
         LlmTreeDTO parsed = parse(json);
         treeValidator.validate(parsed);
 
         return generatedTreeWriter.save(parsed);
     }
 
-    private LlmClient resolveClient(ChatReqDTO req) {
+    private LlmClient resolveClient(LlmProvider provider) {
         return llmClients.stream()
-            .filter(c -> c.getProvider() == req.provider())
+            .filter(c -> c.getProvider() == provider)
             .findFirst()
             .orElseThrow(() -> new ChatException(ChatErrorCode.UNSUPPORTED_PROVIDER));
     }
