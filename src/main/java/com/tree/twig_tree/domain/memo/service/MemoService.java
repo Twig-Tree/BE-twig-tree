@@ -9,27 +9,31 @@ import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MemoService {
 
     private final NodeRepository nodeRepository;
 
+    @Transactional
     public MemoResDTO.GetMemo updateMemo(Long nodeId, MemoReqDTO.UpdateMemo dto) {
         Node node = validateNode(nodeId);
         node.updateMemo(dto.content());
 
-        return MemoConverter.GetMemo(node);
+        return MemoConverter.toGetMemo(node);
     }
 
     public MemoResDTO.GetMemo getMemo(Long nodeId) {
         Node node = validateNode(nodeId);
 
-        return MemoConverter.GetMemo(node);
+        return MemoConverter.toGetMemo(node);
 
     }
 
+    @Transactional
     public Void deleteMemo(Long nodeId) {
         Node node = validateNode(nodeId);
         node.updateMemo(null);
