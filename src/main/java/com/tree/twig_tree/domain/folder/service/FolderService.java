@@ -1,6 +1,7 @@
 package com.tree.twig_tree.domain.folder.service;
 
 import com.tree.twig_tree.domain.folder.converter.FolderConverter;
+import com.tree.twig_tree.domain.folder.dto.FolderProjection;
 import com.tree.twig_tree.domain.folder.dto.FolderReqDTO;
 import com.tree.twig_tree.domain.folder.dto.FolderResDTO;
 import com.tree.twig_tree.domain.folder.entity.Folder;
@@ -19,6 +20,21 @@ import java.util.List;
 public class FolderService {
 
     private final FolderRepository folderRepository;
+
+    /**
+     * 폴더 상위 경로 목록 조회
+     * @param folderId
+     * @return
+     */
+    public FolderResDTO.FolderPathList getFoldersPath(Long folderId) {
+
+        // 해당 폴더ID로 상위 연결된 부모의 폴더들을 찾기 // Recursive CTE로 한번에 조회
+        List<FolderProjection.FolderAncestorProjection> ancestors = folderRepository.findAncestorPathRaw(folderId)
+                .orElseThrow(() -> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+
+        return FolderConverter.toGetFoldersPath(ancestors);
+
+    }
 
     /**
      * 폴더 목록 조회
@@ -67,7 +83,7 @@ public class FolderService {
      */
     public FolderResDTO.GetFolder getFolder(Long folderId) {
 
-        Folder folder = folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+        Folder folder = validateFolder(folderId);
 
         return FolderConverter.toGetFolder(folder);
     }
@@ -81,7 +97,7 @@ public class FolderService {
     @Transactional
     public FolderResDTO.GetFolder updateFolder(Long folderId, FolderReqDTO.UpdateFolder dto) {
 
-        Folder folder = folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+        Folder folder = validateFolder(folderId);
 
         folder.updateName(dto.name());
 
@@ -95,11 +111,13 @@ public class FolderService {
      */
     @Transactional
     public Void deleteFolder(Long folderId) {
-        Folder folder = folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+        Folder folder = validateFolder(folderId);
         folderRepository.delete(folder);
 
         return null;
     }
 
-
+    private Folder validateFolder(Long folderId) {
+        return folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+    }
 }
