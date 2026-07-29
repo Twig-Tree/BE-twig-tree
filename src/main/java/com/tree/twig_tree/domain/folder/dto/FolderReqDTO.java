@@ -17,6 +17,7 @@ public class FolderReqDTO {
 
     public record UpdateFolder (
             @NotBlank
+            @Size(max = 15)
             String name
     ){}
 
