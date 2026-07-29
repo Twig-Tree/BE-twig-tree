@@ -29,9 +29,9 @@ public class FolderController {
      * @return
      */
     @Operation(summary = "폴더 상위 경로 조회", description = "해당 folderId를 갖는 폴더 자신을 포함하여 그 상위 경로를 조회합니다. 최상위 경로부터 순서대로 나열됩니다.")
-    @GetMapping("/path")
+    @GetMapping("/{folderId}/path")
     public ApiResponse<FolderResDTO.FolderPathList> getFoldersPath(
-            @RequestParam Long folderId
+            @PathVariable Long folderId
     ) {
         BaseSuccessCode code = FolderSuccessCode.FOLDERS_PATH_FOUND;
         return ApiResponse.onSuccess(code, folderService.getFoldersPath(folderId));
@@ -62,7 +62,8 @@ public class FolderController {
             description = "새로운 폴더를 생성합니다.<br>" +
                     "folder_parent_id가 null이면 최상위 루트에 들어갑니다.<br>" +
                     "같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다."
-    )    @PostMapping
+    )
+    @PostMapping
     public ApiResponse<FolderResDTO.GetFolder> createFolder(
             @RequestBody @Valid FolderReqDTO.CreateFolder dto
     ) {
