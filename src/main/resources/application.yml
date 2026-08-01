@@ -15,25 +15,42 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  # flyway / DB migration 이력 관리
   flyway:
     enabled: true
     baseline-on-migrate: true # 기존 DB를 V0으로 기준점을 잡고, V1부터 실행하겠다는 의미
     baseline-version: 0
     schemas: public
 
+  # Redis / 캐시 서버 (refresh token 저장 등)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
-# 3. OpenAI (mock 모드에서는 실제 호출되지 않으므로 dummy 기본값 사용)
+# JWT
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-ttl: 1800000
+  refresh-token-ttl: 1209600000
+
+# Google
+google:
+  client-ids: ${GOOGLE_CLIENT_IDS}
+
+# OpenAI (mock 모드에서는 실제 호출되지 않으므로 dummy 기본값 사용)
 openai:
   api-key: ${OPENAI_API_KEY:dummy}
   base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
   model: ${OPENAI_MODEL:gpt-4o-mini}
 
-# 4. Ollama (Local LLM, mock 모드에서는 실제 호출되지 않음)
+# Ollama (Local LLM, mock 모드에서는 실제 호출되지 않음)
 ollama:
   base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
   model: ${OLLAMA_MODEL:llama3.2}
 
-# 5. Logging & Debugging
+# Logging & Debugging
 logging:
   level:
     org.hibernate.orm.jdbc.bind: trace
