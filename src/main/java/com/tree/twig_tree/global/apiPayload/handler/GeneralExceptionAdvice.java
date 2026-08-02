@@ -8,6 +8,7 @@ import com.tree.twig_tree.global.apiPayload.util.ConstraintErrorCodeMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -23,6 +24,16 @@ public class GeneralExceptionAdvice {
     /**
      * log: 어느 핸들러에서 예외가 발생했는지 서버에 로그를 남기면 좋습니다.
      */
+
+    // 인증/인가에서 문제 발생 시 예외 처리
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthorizationDenied(
+            AuthorizationDeniedException e
+    ) {
+        BaseErrorCode code = GeneralErrorCode.FORBIDDEN;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, null));
+    }
 
     // 프로젝트에서 발생한 예외 처리
     @ExceptionHandler(ProjectException.class)
