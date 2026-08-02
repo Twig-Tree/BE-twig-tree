@@ -15,13 +15,14 @@ git checkout develop
 
 ## 2. 환경변수 파일 만들기
 
-프로젝트 루트(`compose.yaml`이 있는 위치)에 `.env` 파일을 만들고 아래 3개 값을 채웁니다.
+프로젝트 루트(`compose.yaml`이 있는 위치)에 `.env` 파일을 만들고 아래 4개 값을 채웁니다.
 **실제 값은 백엔드 팀원에게 받아주세요. 이 파일은 절대 커밋하지 마세요(.gitignore에 이미 등록됨).**
 
 ```env
 DB_PASSWORD=<백엔드팀에게 받기>
 JWT_SECRET=<백엔드팀에게 받기>
 GOOGLE_CLIENT_IDS=<백엔드팀에게 받기>
+OPENAI_API_KEY=<백엔드팀에게 받기>
 ```
 
 ## 3. 실행
