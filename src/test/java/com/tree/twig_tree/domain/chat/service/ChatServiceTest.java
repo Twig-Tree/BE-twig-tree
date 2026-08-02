@@ -6,6 +6,7 @@ import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
+import com.tree.twig_tree.domain.chat.parser.PlainTextParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +45,8 @@ class ChatServiceTest {
         lenient().when(openAiClient.getProvider()).thenReturn(LlmProvider.OPENAI);
 
         chatService = new ChatService(
-            List.of(openAiClient), objectMapper, treeValidator, writer, new DocumentTextExtractor());
+            List.of(openAiClient), objectMapper, treeValidator, writer,
+            new DocumentTextExtractor(List.of(new PlainTextParser())));
     }
 
     private MockMultipartFile file(String filename, String content) {

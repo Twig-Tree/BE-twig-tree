@@ -2,19 +2,24 @@ package com.tree.twig_tree.domain.chat.service;
 
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
+import com.tree.twig_tree.domain.chat.parser.DocumentParser;
+import com.tree.twig_tree.domain.chat.parser.PlainTextParser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DocumentTextExtractorTest {
 
-    private final DocumentTextExtractor extractor = new DocumentTextExtractor();
+    private final DocumentTextExtractor extractor =
+        new DocumentTextExtractor(List.of(new PlainTextParser()));
 
     private MultipartFile file(String filename, String content) {
         return new MockMultipartFile("file", filename, "text/plain", content.getBytes(StandardCharsets.UTF_8));
@@ -51,7 +56,13 @@ class DocumentTextExtractorTest {
     }
 
     @Test
-    @DisplayName("허용하지 않는 확장자는 UNSUPPORTED_FILE_TYPE")
+    @DisplayName("등록된 파서의 확장자를 지원 목록으로 노출한다")
+    void exposesSupportedExtensions() {
+        assertThat(extractor.supportedExtensions()).containsExactlyInAnyOrder("txt", "md");
+    }
+
+    @Test
+    @DisplayName("담당 파서가 없는 확장자는 UNSUPPORTED_FILE_TYPE")
     void unsupportedExtension() {
         assertError(() -> extractor.extract(file("report.pdf", "내용")), ChatErrorCode.UNSUPPORTED_FILE_TYPE);
     }
@@ -75,9 +86,9 @@ class DocumentTextExtractorTest {
     }
 
     @Test
-    @DisplayName("크기 상한을 넘으면 FILE_TOO_LARGE")
+    @DisplayName("크기 상한(1MB)을 넘으면 FILE_TOO_LARGE")
     void tooLarge() {
-        byte[] oversized = new byte[(int) DocumentTextExtractor.MAX_FILE_BYTES + 1];
+        byte[] oversized = new byte[(int) (1024L * 1024L) + 1];
         java.util.Arrays.fill(oversized, (byte) 'a');
 
         assertError(() -> extractor.extract(file("note.txt", oversized)), ChatErrorCode.FILE_TOO_LARGE);
@@ -113,6 +124,31 @@ class DocumentTextExtractorTest {
     @DisplayName("파일이 null 이면 FILE_EMPTY")
     void nullFile() {
         assertError(() -> extractor.extract(null), ChatErrorCode.FILE_EMPTY);
+    }
+
+    @Test
+    @DisplayName("같은 확장자를 두 파서가 주장하면 기동 시점에 막는다")
+    void rejectsDuplicateExtensionOwners() {
+        DocumentParser duplicate = new DocumentParser() {
+            @Override
+            public Set<String> supportedExtensions() {
+                return Set.of("txt");
+            }
+
+            @Override
+            public long maxBytes() {
+                return 1024L;
+            }
+
+            @Override
+            public String parse(byte[] bytes) {
+                return "";
+            }
+        };
+
+        assertThatThrownBy(() -> new DocumentTextExtractor(List.of(new PlainTextParser(), duplicate)))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("txt");
     }
 
     private void assertError(Runnable action, ChatErrorCode expected) {

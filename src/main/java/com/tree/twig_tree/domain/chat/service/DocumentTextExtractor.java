@@ -2,53 +2,71 @@ package com.tree.twig_tree.domain.chat.service;
 
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
+import com.tree.twig_tree.domain.chat.parser.DocumentParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
- * 업로드된 텍스트 파일에서 LLM 입력으로 쓸 본문을 추출한다.
+ * 업로드된 문서에서 LLM 입력으로 쓸 본문을 추출한다.
  *
- * <p>원본 파일은 저장하지 않고 요청을 처리하는 동안 메모리에서만 다룬다.
- * 파일 내용은 신뢰할 수 없는 외부 입력이므로 확장자·크기·인코딩·길이를 모두 검증한다.
+ * <p>포맷별 추출은 {@link DocumentParser} 구현체에 위임하고, 이 클래스는 공통 검증
+ * (확장자 판별 · 크기 · 본문 길이)과 파서 선택만 책임진다.
+ *
+ * <p>원본 파일은 저장하지 않고 요청을 처리하는 동안만 다룬다.
+ * 파일 내용은 신뢰할 수 없는 외부 입력이므로 확장자·크기·길이를 모두 검증한다.
  */
 @Slf4j
 @Component
 public class DocumentTextExtractor {
 
-    /** 허용 확장자. 그 외 포맷은 별도 파서가 필요하므로 현재는 막는다. */
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("txt", "md");
-
-    /** 파일 크기 상한. spring.servlet.multipart.max-file-size 보다 작게 잡아 이쪽에서 먼저 걸리게 한다. */
-    static final long MAX_FILE_BYTES = 1024L * 1024L;
-
     /** 본문 길이 상한. LLM 컨텍스트 한계와 호출 비용을 고려한 값. */
     static final int MAX_TEXT_LENGTH = 20_000;
 
-    /** UTF-8 파일 앞에 붙을 수 있는 BOM(U+FEFF). 그대로 두면 첫 글자가 깨져 보인다. */
-    private static final char BOM = 0xFEFF;
+    /** 확장자 → 담당 파서. 스프링이 주입한 구현체로부터 한 번만 만든다. */
+    private final Map<String, DocumentParser> parsersByExtension;
+
+    public DocumentTextExtractor(List<DocumentParser> parsers) {
+        Map<String, DocumentParser> index = new HashMap<>();
+        for (DocumentParser parser : parsers) {
+            for (String extension : parser.supportedExtensions()) {
+                DocumentParser previous = index.put(extension, parser);
+                if (previous != null) {
+                    throw new IllegalStateException(
+                        "확장자 %s 를 처리하는 파서가 둘 이상입니다: %s, %s"
+                            .formatted(extension, previous.getClass().getSimpleName(),
+                                parser.getClass().getSimpleName()));
+                }
+            }
+        }
+        this.parsersByExtension = Map.copyOf(index);
+    }
+
+    /** 지원 확장자 목록. 문서화·안내 문구용. */
+    public Set<String> supportedExtensions() {
+        return new TreeSet<>(parsersByExtension.keySet());
+    }
 
     public String extract(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ChatException(ChatErrorCode.FILE_EMPTY);
         }
 
-        validateExtension(file.getOriginalFilename());
+        DocumentParser parser = resolveParser(file.getOriginalFilename());
 
-        if (file.getSize() > MAX_FILE_BYTES) {
+        if (file.getSize() > parser.maxBytes()) {
             throw new ChatException(ChatErrorCode.FILE_TOO_LARGE);
         }
 
-        String text = stripBom(decodeUtf8(readBytes(file))).strip();
+        String text = parser.parse(readBytes(file)).strip();
 
         if (text.isEmpty()) {
             throw new ChatException(ChatErrorCode.FILE_EMPTY);
@@ -62,8 +80,11 @@ public class DocumentTextExtractor {
 
     /**
      * 파일명은 확장자 판별에만 쓴다. 파일을 디스크에 쓰지 않으므로 경로 탈출은 문제가 되지 않는다.
+     *
+     * <p>확장자는 실제 형식을 보장하지 않으므로, 내용이 확장자와 다르면 각 파서가 파싱 단계에서
+     * {@code FILE_PARSE_FAILED} 로 걸러낸다.
      */
-    private void validateExtension(String filename) {
+    private DocumentParser resolveParser(String filename) {
         if (filename == null) {
             throw new ChatException(ChatErrorCode.UNSUPPORTED_FILE_TYPE);
         }
@@ -74,9 +95,11 @@ public class DocumentTextExtractor {
         }
 
         String extension = filename.substring(dot + 1).toLowerCase(Locale.ROOT);
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+        DocumentParser parser = parsersByExtension.get(extension);
+        if (parser == null) {
             throw new ChatException(ChatErrorCode.UNSUPPORTED_FILE_TYPE);
         }
+        return parser;
     }
 
     private byte[] readBytes(MultipartFile file) {
@@ -86,25 +109,5 @@ public class DocumentTextExtractor {
             log.warn("업로드 파일 읽기 실패: {}", e.getMessage());
             throw new ChatException(ChatErrorCode.FILE_READ_FAILED);
         }
-    }
-
-    /**
-     * 잘못된 바이트를 대체 문자로 흘려보내지 않고 예외로 처리한다.
-     * 확장자만 txt 로 바꾼 바이너리 파일이 깨진 텍스트로 LLM 에 전달되는 것을 막는다.
-     */
-    private String decodeUtf8(byte[] bytes) {
-        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
-            .onMalformedInput(CodingErrorAction.REPORT)
-            .onUnmappableCharacter(CodingErrorAction.REPORT);
-        try {
-            return decoder.decode(ByteBuffer.wrap(bytes)).toString();
-        } catch (CharacterCodingException e) {
-            log.warn("UTF-8 디코딩 실패: {}", e.getMessage());
-            throw new ChatException(ChatErrorCode.FILE_READ_FAILED);
-        }
-    }
-
-    private String stripBom(String text) {
-        return !text.isEmpty() && text.charAt(0) == BOM ? text.substring(1) : text;
     }
 }
