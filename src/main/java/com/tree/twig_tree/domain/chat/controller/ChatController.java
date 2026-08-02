@@ -80,9 +80,11 @@ public class ChatController {
     @Operation(
         summary = "트리 생성 요청 (파일 업로드)",
         description = """
-            txt/md 파일을 업로드해 그 내용으로 트리를 생성합니다. `multipart/form-data` 로 요청하세요.
+            문서 파일을 업로드해 그 내용으로 트리를 생성합니다. `multipart/form-data` 로 요청하세요.
 
-            - `file`: txt 또는 md 파일 (최대 1MB, 본문 20,000자 이내)
+            - `file`: txt, md, pdf, docx, hwp, hwpx (평문 최대 1MB / 문서 최대 10MB, 본문 20,000자 이내)
+              - 스캔한 이미지 PDF 는 글자를 추출할 수 없어 400 입니다 (OCR 미지원)
+              - 암호가 걸린 문서도 400 입니다
             - `message`: (선택) 추가 지시문. 예) "3단계 깊이로 정리해줘"
             - `provider`: LLM 제공자 (OPENAI / OLLAMA)
 
@@ -92,7 +94,7 @@ public class ChatController {
     )
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<?> generateTreeFromFile(
-        @Parameter(description = "(선택) txt/md 파일")
+        @Parameter(description = "(선택) txt, md, pdf, docx, hwp, hwpx 파일")
         @RequestPart(value = "file", required = false) MultipartFile file,
 
         @Parameter(description = "(선택) 추가 지시문", example = "3단계 깊이로 정리해줘")

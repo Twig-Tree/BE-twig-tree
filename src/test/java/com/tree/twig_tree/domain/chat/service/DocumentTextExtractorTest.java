@@ -3,6 +3,10 @@ package com.tree.twig_tree.domain.chat.service;
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
 import com.tree.twig_tree.domain.chat.parser.DocumentParser;
+import com.tree.twig_tree.domain.chat.parser.DocxDocumentParser;
+import com.tree.twig_tree.domain.chat.parser.HwpDocumentParser;
+import com.tree.twig_tree.domain.chat.parser.HwpxDocumentParser;
+import com.tree.twig_tree.domain.chat.parser.PdfDocumentParser;
 import com.tree.twig_tree.domain.chat.parser.PlainTextParser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,8 +22,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DocumentTextExtractorTest {
 
-    private final DocumentTextExtractor extractor =
-        new DocumentTextExtractor(List.of(new PlainTextParser()));
+    private final DocumentTextExtractor extractor = new DocumentTextExtractor(List.of(
+        new PlainTextParser(),
+        new PdfDocumentParser(),
+        new DocxDocumentParser(),
+        new HwpDocumentParser(),
+        new HwpxDocumentParser()));
 
     private MultipartFile file(String filename, String content) {
         return new MockMultipartFile("file", filename, "text/plain", content.getBytes(StandardCharsets.UTF_8));
@@ -56,21 +64,34 @@ class DocumentTextExtractorTest {
     }
 
     @Test
-    @DisplayName("등록된 파서의 확장자를 지원 목록으로 노출한다")
+    @DisplayName("등록된 파서의 확장자를 모두 지원 목록으로 노출한다")
     void exposesSupportedExtensions() {
-        assertThat(extractor.supportedExtensions()).containsExactlyInAnyOrder("txt", "md");
+        assertThat(extractor.supportedExtensions())
+            .containsExactlyInAnyOrder("txt", "md", "pdf", "docx", "hwp", "hwpx");
     }
 
     @Test
     @DisplayName("담당 파서가 없는 확장자는 UNSUPPORTED_FILE_TYPE")
     void unsupportedExtension() {
-        assertError(() -> extractor.extract(file("report.pdf", "내용")), ChatErrorCode.UNSUPPORTED_FILE_TYPE);
+        assertError(() -> extractor.extract(file("sheet.xlsx", "내용")), ChatErrorCode.UNSUPPORTED_FILE_TYPE);
+    }
+
+    @Test
+    @DisplayName("구형 doc 은 지원하지 않는다 — docx 만 허용")
+    void legacyDocIsUnsupported() {
+        assertError(() -> extractor.extract(file("report.doc", "내용")), ChatErrorCode.UNSUPPORTED_FILE_TYPE);
     }
 
     @Test
     @DisplayName("확장자가 없으면 UNSUPPORTED_FILE_TYPE")
     void noExtension() {
         assertError(() -> extractor.extract(file("README", "내용")), ChatErrorCode.UNSUPPORTED_FILE_TYPE);
+    }
+
+    @Test
+    @DisplayName("확장자만 pdf 로 바꾼 텍스트 파일은 FILE_PARSE_FAILED")
+    void extensionLiesAboutContent() {
+        assertError(() -> extractor.extract(file("fake.pdf", "사실은 그냥 텍스트")), ChatErrorCode.FILE_PARSE_FAILED);
     }
 
     @Test
@@ -86,12 +107,31 @@ class DocumentTextExtractorTest {
     }
 
     @Test
-    @DisplayName("크기 상한(1MB)을 넘으면 FILE_TOO_LARGE")
-    void tooLarge() {
+    @DisplayName("평문 크기 상한(1MB)을 넘으면 FILE_TOO_LARGE")
+    void plainTextTooLarge() {
         byte[] oversized = new byte[(int) (1024L * 1024L) + 1];
         java.util.Arrays.fill(oversized, (byte) 'a');
 
         assertError(() -> extractor.extract(file("note.txt", oversized)), ChatErrorCode.FILE_TOO_LARGE);
+    }
+
+    @Test
+    @DisplayName("문서 포맷은 평문보다 큰 상한(10MB)을 쓴다")
+    void documentFormatsUseLargerLimit() {
+        byte[] twoMegabytes = new byte[2 * 1024 * 1024];
+        java.util.Arrays.fill(twoMegabytes, (byte) 'a');
+
+        // 평문이면 크기에서 걸리지만, pdf 는 상한을 통과해 파싱 단계까지 간다
+        assertError(() -> extractor.extract(file("note.txt", twoMegabytes)), ChatErrorCode.FILE_TOO_LARGE);
+        assertError(() -> extractor.extract(file("doc.pdf", twoMegabytes)), ChatErrorCode.FILE_PARSE_FAILED);
+    }
+
+    @Test
+    @DisplayName("문서 크기 상한(10MB)을 넘으면 FILE_TOO_LARGE")
+    void documentTooLarge() {
+        byte[] oversized = new byte[(int) (10L * 1024L * 1024L) + 1];
+
+        assertError(() -> extractor.extract(file("doc.pdf", oversized)), ChatErrorCode.FILE_TOO_LARGE);
     }
 
     @Test
