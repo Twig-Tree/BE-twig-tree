@@ -78,6 +78,17 @@ class TreeValidatorTest {
     }
 
     @Test
+    @DisplayName("루트가 둘 이상이면 실패한다 — DB 는 트리당 루트 하나만 허용한다")
+    void multipleRoots() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            node(1L, null, 1L),
+            node(2L, null, 2L),
+            node(3L, 1L, 1L)
+        ));
+        assertInvalid(tree);
+    }
+
+    @Test
     @DisplayName("자기 자신을 부모로 지정하면 실패한다")
     void selfReference() {
         LlmTreeDTO tree = new LlmTreeDTO(List.of(

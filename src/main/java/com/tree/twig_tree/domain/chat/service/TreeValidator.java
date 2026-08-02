@@ -36,7 +36,7 @@ public class TreeValidator {
         }
 
         Set<Long> tempIds = new HashSet<>();
-        boolean hasRoot = false;
+        int rootCount = 0;
 
         for (LlmNode node : nodes) {
             validateFields(node);
@@ -44,12 +44,17 @@ public class TreeValidator {
                 throw invalid("tempId 가 중복되었습니다: " + node.tempId());
             }
             if (node.parentTempId() == null) {
-                hasRoot = true;
+                rootCount++;
             }
         }
 
-        if (!hasRoot) {
+        // 트리당 루트는 하나뿐이다(uk_nodes_root_per_tree). 여기서 걸러내지 않으면
+        // 저장 단계에서 DB 제약 위반으로 터져 원인이 드러나지 않는다.
+        if (rootCount == 0) {
             throw invalid("루트 노드(parentTempId=null)가 없습니다.");
+        }
+        if (rootCount > 1) {
+            throw invalid("루트 노드는 하나여야 하는데 " + rootCount + "개입니다.");
         }
 
         for (LlmNode node : nodes) {

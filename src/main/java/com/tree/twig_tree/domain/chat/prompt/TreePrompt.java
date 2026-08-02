@@ -26,7 +26,7 @@ public final class TreePrompt {
               "tempId": 1,              // 1부터 시작하는 고유한 정수. 중복 금지.
               "name": "노드 이름",       // 필수. 30자 이내.
               "memo": "짧은 설명",       // 선택. 없으면 null. 100자 이내.
-              "parentTempId": null,     // 루트 노드는 null. 그 외에는 부모의 tempId.
+              "parentTempId": null,     // 루트 노드만 null. 그 외에는 부모의 tempId.
               "orderId": 1              // 같은 부모 아래에서의 순서. 1부터 시작.
             }
           ]
@@ -36,7 +36,8 @@ public final class TreePrompt {
         - 모든 텍스트는 한국어로 작성한다.
         - 노드는 최대 %d개까지만 만든다.
         - 트리 깊이는 최대 4단계로 제한한다.
-        - 루트 노드는 1개 이상 있어야 하며 parentTempId 는 null 이다.
+        - 루트 노드는 반드시 정확히 1개다. parentTempId 가 null 인 노드는 그 하나뿐이어야 한다.
+          주제가 여러 개로 보이더라도 이들을 묶는 상위 노드를 하나 만들어 루트로 삼는다.
         - parentTempId 는 반드시 같은 응답 안에 존재하는 tempId 를 가리켜야 한다.
         - 같은 부모를 가진 노드들의 orderId 는 1부터 순서대로 매긴다.
         - 순환 참조(자기 자신이나 자손을 부모로 지정)를 만들지 않는다.

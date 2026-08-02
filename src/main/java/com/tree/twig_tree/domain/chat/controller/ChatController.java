@@ -51,7 +51,7 @@ public class ChatController {
             요청 본문: `{ "message": "자료구조 트리 만들어줘", "provider": "OPENAI" }`
 
             프론트 개발용 mock:
-            - `?mock=small` (노드 5개), `?mock=empty`, `?mock=large`, `?mock=max`
+            - `?mock=small` (노드 6개), `?mock=empty`, `?mock=large`, `?mock=max`
             - `mock` 파라미터가 있으면 LLM 을 호출하지 않고 미리 정의된 트리를 반환합니다.
             """
     )
