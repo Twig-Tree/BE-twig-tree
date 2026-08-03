@@ -25,6 +25,7 @@ public class Node {
 
     private String name;
 
+    @Column(length = 500)
     private String memo;
 
     // orderId의 DB 제약사항을 flyway에 정의합니다.
