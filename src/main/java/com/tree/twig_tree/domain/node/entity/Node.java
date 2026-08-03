@@ -23,6 +23,7 @@ public class Node {
     @Column(name = "node_id")
     private Long id;
 
+    @Column(length = 30)
     private String name;
 
     @Column(length = 500)

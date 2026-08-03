@@ -22,7 +22,7 @@ public class Workspace {
     @Column(name = "workspace_id")
     private Long id;
 
-    @Column(nullable = false)
+    @Column(length = 30, nullable = false)
     private String name;
 
     // 생성일자
