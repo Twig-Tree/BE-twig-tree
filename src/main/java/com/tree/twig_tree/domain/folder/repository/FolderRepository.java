@@ -35,6 +35,6 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
     FROM folder_ancestors
     ORDER BY depth DESC
     """, nativeQuery = true)
-    Optional<List<FolderProjection.FolderAncestorProjection>> findAncestorPathRaw(@Param("folderId") Long folderId);
+    List<FolderProjection.FolderAncestorProjection> findAncestorPathRaw(@Param("folderId") Long folderId);
 
 }

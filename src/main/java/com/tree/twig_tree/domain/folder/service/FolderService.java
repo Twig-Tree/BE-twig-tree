@@ -27,10 +27,10 @@ public class FolderService {
      * @return
      */
     public FolderResDTO.FolderPathList getFoldersPath(Long folderId) {
+        validateFolder(folderId);
 
         // 해당 폴더ID로 상위 연결된 부모의 폴더들을 찾기 // Recursive CTE로 한번에 조회
-        List<FolderProjection.FolderAncestorProjection> ancestors = folderRepository.findAncestorPathRaw(folderId)
-                .orElseThrow(() -> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+        List<FolderProjection.FolderAncestorProjection> ancestors = folderRepository.findAncestorPathRaw(folderId);
 
         return FolderConverter.toGetFoldersPath(ancestors);
 
