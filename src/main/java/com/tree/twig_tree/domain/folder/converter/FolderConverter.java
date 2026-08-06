@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.folder.converter;
 
+import com.tree.twig_tree.domain.folder.dto.FolderProjection;
 import com.tree.twig_tree.domain.folder.dto.FolderResDTO;
 import com.tree.twig_tree.domain.folder.entity.Folder;
 
@@ -20,5 +21,12 @@ public class FolderConverter {
 
     }
 
-
+    // Projection -> Record 변환
+    public static FolderResDTO.FolderPathList toGetFoldersPath(List<FolderProjection.FolderAncestorProjection> ancestors) {
+        return FolderResDTO.FolderPathList.builder()
+                .path(ancestors.stream()
+                        .map(a -> new FolderResDTO.FolderPathList.FolderPathItem(a.getFolderId(), a.getName()))
+                        .toList())
+                .build();
+    }
 }
