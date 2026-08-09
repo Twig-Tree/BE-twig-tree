@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,7 +58,7 @@ public class ChatController {
     )
     @PostMapping
     public ApiResponse<?> generateTree(
-        @RequestBody(required = false) ChatReqDTO req,
+        @RequestBody(required = false) @Valid ChatReqDTO req,
         @Parameter(
             description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않고 mock 트리를 반환합니다.",
             schema = @Schema(allowableValues = {"empty", "small", "large", "max"})
@@ -85,7 +86,7 @@ public class ChatController {
             - `file`: txt, md, pdf, docx, hwp, hwpx (평문 최대 1MB / 문서 최대 10MB, 본문 20,000자 이내)
               - 스캔한 이미지 PDF 는 글자를 추출할 수 없어 400 입니다 (OCR 미지원)
               - 암호가 걸린 문서도 400 입니다
-            - `message`: (선택) 추가 지시문. 예) "3단계 깊이로 정리해줘"
+            - `message`: (선택) 추가 지시문, 500자 이내. 예) "3단계 깊이로 정리해줘"
             - `provider`: LLM 제공자 (OPENAI / OLLAMA)
 
             `file` 과 `message` 는 각각 선택이지만 **둘 다 비어 있으면 400** 입니다.
@@ -97,7 +98,7 @@ public class ChatController {
         @Parameter(description = "(선택) txt, md, pdf, docx, hwp, hwpx 파일")
         @RequestPart(value = "file", required = false) MultipartFile file,
 
-        @Parameter(description = "(선택) 추가 지시문", example = "3단계 깊이로 정리해줘")
+        @Parameter(description = "(선택) 추가 지시문. 500자 이내", example = "3단계 깊이로 정리해줘")
         @RequestParam(required = false) String message,
 
         @Parameter(description = "LLM 제공자", schema = @Schema(allowableValues = {"OPENAI", "OLLAMA"}))

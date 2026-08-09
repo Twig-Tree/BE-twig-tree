@@ -91,6 +91,33 @@ class ChatControllerRoutingTest {
     }
 
     @Test
+    @DisplayName("message 가 상한(500자)을 넘으면 서비스까지 가지 않고 400")
+    void jsonMessageTooLong() throws Exception {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        mockMvc.perform(post("/tree-request")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"" + tooLong + "\",\"provider\":\"OPENAI\"}"))
+            .andExpect(status().isBadRequest());
+
+        // LLM 호출은 물론 서비스 진입 자체가 없어야 한다
+        verify(chatService, never()).generateTree(any(ChatReqDTO.class));
+    }
+
+    @Test
+    @DisplayName("message 가 상한(500자)과 같으면 통과한다")
+    void jsonMessageAtLimit() throws Exception {
+        String atLimit = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH);
+
+        mockMvc.perform(post("/tree-request")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"" + atLimit + "\",\"provider\":\"OPENAI\"}"))
+            .andExpect(status().isOk());
+
+        verify(chatService).generateTree(any(ChatReqDTO.class));
+    }
+
+    @Test
     @DisplayName("Content-Type 없는 mock 요청도 기존대로 동작한다")
     void mockRequestWithoutContentType() throws Exception {
         mockMvc.perform(post("/tree-request").param("mock", "small"))

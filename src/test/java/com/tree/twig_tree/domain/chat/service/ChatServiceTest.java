@@ -143,6 +143,28 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("파일 업로드 경로의 지시문이 상한(500자)을 넘으면 MESSAGE_TOO_LONG")
+    void fileMessageTooLong() {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        assertError(() -> chatService.generateTree(LlmProvider.OPENAI, tooLong, file("note.md", "본문")),
+            ChatErrorCode.MESSAGE_TOO_LONG);
+
+        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("파일 업로드 경로의 지시문이 상한(500자)과 같으면 통과한다")
+    void fileMessageAtLimit() {
+        stubTreeJson();
+
+        TreeGenResDTO result = chatService.generateTree(
+            LlmProvider.OPENAI, "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH), file("note.md", "본문"));
+
+        assertThat(result.treeId()).isEqualTo(42L);
+    }
+
+    @Test
     @DisplayName("지원하지 않는 확장자면 UNSUPPORTED_FILE_TYPE")
     void unsupportedExtension() {
         assertError(() -> chatService.generateTree(LlmProvider.OPENAI, null, file("report.pdf", "내용")),

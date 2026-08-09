@@ -65,6 +65,12 @@ public class ChatService {
             throw new ChatException(ChatErrorCode.INPUT_REQUIRED);
         }
 
+        // multipart 요청은 @RequestParam 으로 받아 @Valid 를 걸 DTO 가 없으므로, JSON 경로의
+        // ChatReqDTO(@Size)와 같은 상한을 여기서 직접 적용한다.
+        if (hasMessage && message.length() > ChatReqDTO.MESSAGE_MAX_LENGTH) {
+            throw new ChatException(ChatErrorCode.MESSAGE_TOO_LONG);
+        }
+
         // 파일 검증을 LLM 호출 전에 끝내, 잘못된 입력으로 비용이 발생하지 않게 한다.
         String documentText = hasFile ? documentTextExtractor.extract(file) : null;
 
