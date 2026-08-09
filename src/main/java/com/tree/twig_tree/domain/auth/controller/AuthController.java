@@ -27,4 +27,12 @@ public class AuthController {
     public ApiResponse<AuthResDTO.TokenPair> googleLogin(@RequestBody @Valid AuthReqDTO.GoogleLogin request) {
         return ApiResponse.onSuccess(AuthSuccessCode.LOGIN_OK, authService.googleLogin(request.idToken()));
     }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "토큰 재발급",
+            description = "리프레시 토큰으로 새 access/refresh 토큰을 발급합니다. 기존 리프레시 토큰은 폐기됩니다.<br>"
+                    + "이미 폐기된 토큰이 다시 사용되면 탈취로 간주해 해당 회원의 모든 세션이 종료됩니다.")
+    public ApiResponse<AuthResDTO.TokenPair> reissue(@RequestBody @Valid AuthReqDTO.Reissue request) {
+        return ApiResponse.onSuccess(AuthSuccessCode.REFRESH_OK, authService.reissue(request.refreshToken()));
+    }
 }

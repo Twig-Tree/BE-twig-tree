@@ -8,4 +8,9 @@ public class AuthReqDTO {
             @NotBlank
             String idToken
     ) {}
+
+    public record Reissue(
+            @NotBlank
+            String refreshToken
+    ) {}
 }
