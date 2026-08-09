@@ -8,8 +8,10 @@ import com.tree.twig_tree.domain.chat.prompt.TreePrompt;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -54,6 +56,10 @@ public class TreeValidator {
             throw invalid("루트 노드는 하나여야 하는데 " + rootCount + "개입니다.");
         }
 
+        // 같은 부모 아래 형제끼리 orderId 는 겹칠 수 없다(uk_nodes_parent_order_id).
+        // 이 인덱스는 parent_id IS NOT NULL 인 행만 대상이므로 루트는 검사에서 제외한다.
+        Map<Long, Set<Long>> orderIdsByParent = new HashMap<>();
+
         for (LlmNode node : nodes) {
             Long parentId = node.parentTempId();
             if (parentId == null) {
@@ -64,6 +70,10 @@ public class TreeValidator {
             }
             if (!tempIds.contains(parentId)) {
                 throw invalid("존재하지 않는 parentTempId 를 참조합니다: " + parentId);
+            }
+            if (!orderIdsByParent.computeIfAbsent(parentId, k -> new HashSet<>()).add(node.orderId())) {
+                throw invalid("같은 부모 아래에서 orderId 가 중복되었습니다: parentTempId="
+                    + parentId + ", orderId=" + node.orderId());
             }
         }
 

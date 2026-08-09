@@ -129,6 +129,42 @@ class TreeValidatorTest {
     }
 
     @Test
+    @DisplayName("같은 부모 아래 orderId 가 겹치면 실패한다 — uk_nodes_parent_order_id")
+    void duplicateSiblingOrderId() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            node(1L, null, 1L),
+            node(2L, 1L, 1L),
+            node(3L, 1L, 1L)   // 2번과 형제인데 orderId 가 같다
+        ));
+        assertInvalid(tree);
+    }
+
+    @Test
+    @DisplayName("부모가 다르면 orderId 가 같아도 통과한다")
+    void sameOrderIdUnderDifferentParents() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            node(1L, null, 1L),
+            node(2L, 1L, 1L),
+            node(3L, 1L, 2L),
+            node(4L, 2L, 1L),  // 2번의 자식
+            node(5L, 3L, 1L)   // 3번의 자식 — 4번과 형제가 아니므로 orderId 중복이 아니다
+        ));
+
+        assertThatCode(() -> validator.validate(tree)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("루트는 orderId 중복 검사 대상이 아니다 — 인덱스가 parent_id IS NOT NULL 조건부다")
+    void rootIsExemptFromOrderIdCheck() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            node(1L, null, 1L),
+            node(2L, 1L, 1L)   // 루트와 orderId 가 같지만 형제가 아니다
+        ));
+
+        assertThatCode(() -> validator.validate(tree)).doesNotThrowAnyException();
+    }
+
+    @Test
     @DisplayName("이름이 상한(30자)과 같으면 통과한다 — nodes.name VARCHAR(30)")
     void nameAtLimit() {
         LlmTreeDTO tree = new LlmTreeDTO(List.of(
