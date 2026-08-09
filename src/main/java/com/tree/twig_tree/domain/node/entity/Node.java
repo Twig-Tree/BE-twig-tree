@@ -23,8 +23,10 @@ public class Node {
     @Column(name = "node_id")
     private Long id;
 
+    @Column(length = 30)
     private String name;
 
+    @Column(length = 500)
     private String memo;
 
     // orderId의 DB 제약사항을 flyway에 정의합니다.
@@ -52,9 +54,11 @@ public class Node {
      */
     // 노드 이름 수정
     public void updateName(String newName) {
-        if (newName == null || newName.trim().isEmpty()) {
-            throw new IllegalArgumentException("노드 제목은 공백일 수 없습니다.");
-        }
         this.name = newName;
+    }
+
+    // 메모 수정
+    public void updateMemo(String newContent) {
+        this.memo = newContent;
     }
 }

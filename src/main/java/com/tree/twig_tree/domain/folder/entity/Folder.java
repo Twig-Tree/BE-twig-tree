@@ -23,7 +23,7 @@ public class Folder {
     @Column(name = "folder_id")
     private Long id;
 
-    @Column(nullable = false)
+    @Column(length = 30, nullable = false)
     private String name;
 
     // 사용자 ID
