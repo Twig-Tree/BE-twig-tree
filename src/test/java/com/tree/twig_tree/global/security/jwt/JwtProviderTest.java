@@ -46,7 +46,7 @@ class JwtProviderTest {
     @Test
     void 리프레시_토큰은_typ가_REFRESH이고_role이_없다() {
         JwtProvider provider = provider(60_000L);
-        Claims claims = provider.parseClaims(provider.createRefreshToken(42L));
+        Claims claims = provider.parseClaims(provider.createRefreshToken(42L).token());
 
         assertThat(provider.isTokenType(claims, TokenType.REFRESH)).isTrue();
         // 인증에 쓰이면 안 되는 토큰이므로 access 로는 판정되지 않아야 한다

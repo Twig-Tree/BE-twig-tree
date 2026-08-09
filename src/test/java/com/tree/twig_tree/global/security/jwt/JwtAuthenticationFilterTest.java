@@ -48,7 +48,7 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void 리프레시_토큰으로는_인증되지_않는다() throws Exception {
-        MockHttpServletRequest request = requestWith(jwtProvider.createRefreshToken(42L));
+        MockHttpServletRequest request = requestWith(jwtProvider.createRefreshToken(42L).token());
         FilterChain chain = new MockFilterChain();
 
         filter.doFilter(request, new MockHttpServletResponse(), chain);

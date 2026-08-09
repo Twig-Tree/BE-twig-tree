@@ -6,6 +6,7 @@ import com.tree.twig_tree.domain.member.converter.MemberConverter;
 import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.global.security.jwt.JwtProvider;
+import com.tree.twig_tree.global.security.jwt.RefreshTokenStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ public class AuthService {
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final MemberService memberService;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenStore refreshTokenStore;
 
     /**
      * 구글 로그인: ID 토큰 검증 -> 회원 조회/자동가입 -> 자체 토큰 발급.
@@ -30,13 +32,18 @@ public class AuthService {
                 userInfo.profileImage()
         );
 
+        return issueTokens(member);
+    }
+
+    private AuthResDTO.TokenPair issueTokens(Member member) {
         String accessToken = jwtProvider.createAccessToken(member.getId(), member.getRole());
-        String refreshToken = jwtProvider.createRefreshToken(member.getId());
-        // TODO Phase 5: refreshToken의 jti를 Redis에 저장 (로테이션/로그아웃 지원)
+        JwtProvider.IssuedToken refreshToken = jwtProvider.createRefreshToken(member.getId());
+
+        refreshTokenStore.save(member.getId(), refreshToken.jti());
 
         return AuthResDTO.TokenPair.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
+                .refreshToken(refreshToken.token())
                 .member(MemberConverter.toMe(member))
                 .build();
     }

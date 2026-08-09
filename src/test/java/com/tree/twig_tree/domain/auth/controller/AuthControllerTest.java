@@ -20,7 +20,7 @@ class AuthControllerTest {
      * 테스트가 실패하게 된다.
      */
     private final MockMvc mockMvc = MockMvcBuilders
-            .standaloneSetup(new AuthController(new AuthService(null, null, null)))
+            .standaloneSetup(new AuthController(new AuthService(null, null, null, null)))
             .setControllerAdvice(new GeneralExceptionAdvice())
             .build();
 
