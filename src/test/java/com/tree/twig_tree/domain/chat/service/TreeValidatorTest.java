@@ -129,6 +129,42 @@ class TreeValidatorTest {
     }
 
     @Test
+    @DisplayName("이름이 상한(30자)과 같으면 통과한다 — nodes.name VARCHAR(30)")
+    void nameAtLimit() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            new LlmNode(1L, "가".repeat(30), null, null, 1L)
+        ));
+        assertThatCode(() -> validator.validate(tree)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("이름이 상한(30자)을 넘으면 저장 전에 실패한다")
+    void nameOverLimit() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            new LlmNode(1L, "가".repeat(31), null, null, 1L)
+        ));
+        assertInvalid(tree);
+    }
+
+    @Test
+    @DisplayName("메모가 상한(500자)과 같으면 통과한다 — nodes.memo VARCHAR(500)")
+    void memoAtLimit() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            new LlmNode(1L, "루트", "가".repeat(500), null, 1L)
+        ));
+        assertThatCode(() -> validator.validate(tree)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("메모가 상한(500자)을 넘으면 저장 전에 실패한다")
+    void memoOverLimit() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            new LlmNode(1L, "루트", "가".repeat(501), null, 1L)
+        ));
+        assertInvalid(tree);
+    }
+
+    @Test
     @DisplayName("노드 수 상한(100)을 초과하면 실패한다")
     void tooManyNodes() {
         List<LlmNode> nodes = IntStream.rangeClosed(1, 101)

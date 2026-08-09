@@ -22,9 +22,6 @@ import java.util.Set;
 @Component
 public class TreeValidator {
 
-    /** name/memo 컬럼은 VARCHAR(255) 이므로 초과 시 저장에서 실패한다(V1 마이그레이션). */
-    private static final int TEXT_MAX_LENGTH = 255;
-
     public void validate(LlmTreeDTO tree) {
         if (tree == null || tree.nodes() == null || tree.nodes().isEmpty()) {
             throw invalid("노드가 비어 있습니다.");
@@ -80,11 +77,15 @@ public class TreeValidator {
         if (node.name() == null || node.name().isBlank()) {
             throw invalid("이름이 비어 있는 노드가 있습니다: tempId=" + node.tempId());
         }
-        if (node.name().length() > TEXT_MAX_LENGTH) {
-            throw invalid("이름이 너무 깁니다: tempId=" + node.tempId());
+        // 길이 상한은 nodes 컬럼 정의를 그대로 반영한다(V7). 여기서 걸러내지 않으면
+        // 저장 단계에서 DB 제약 위반으로 터져 502 대신 무관한 에러가 노출된다.
+        if (node.name().length() > TreePrompt.NAME_MAX_LENGTH) {
+            throw invalid("이름이 " + TreePrompt.NAME_MAX_LENGTH + "자를 초과했습니다: tempId="
+                + node.tempId() + ", length=" + node.name().length());
         }
-        if (node.memo() != null && node.memo().length() > TEXT_MAX_LENGTH) {
-            throw invalid("메모가 너무 깁니다: tempId=" + node.tempId());
+        if (node.memo() != null && node.memo().length() > TreePrompt.MEMO_MAX_LENGTH) {
+            throw invalid("메모가 " + TreePrompt.MEMO_MAX_LENGTH + "자를 초과했습니다: tempId="
+                + node.tempId() + ", length=" + node.memo().length());
         }
         if (node.orderId() == null) {
             throw invalid("orderId 가 없는 노드가 있습니다: tempId=" + node.tempId());
