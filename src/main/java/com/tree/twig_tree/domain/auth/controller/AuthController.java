@@ -35,4 +35,13 @@ public class AuthController {
     public ApiResponse<AuthResDTO.TokenPair> reissue(@RequestBody @Valid AuthReqDTO.Reissue request) {
         return ApiResponse.onSuccess(AuthSuccessCode.REFRESH_OK, authService.reissue(request.refreshToken()));
     }
+
+    @PostMapping("/logout")
+    @Operation(summary = "로그아웃",
+            description = "리프레시 토큰을 폐기해 해당 세션을 종료합니다.<br>"
+                    + "이미 발급된 액세스 토큰은 만료(최대 30분)까지 유효합니다.")
+    public ApiResponse<Void> logout(@RequestBody @Valid AuthReqDTO.Logout request) {
+        authService.logout(request.refreshToken());
+        return ApiResponse.onSuccess(AuthSuccessCode.LOGOUT_OK, null);
+    }
 }

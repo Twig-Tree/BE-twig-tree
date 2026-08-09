@@ -69,6 +69,22 @@ public class AuthService {
         return issueTokens(member);
     }
 
+    /**
+     * 로그아웃: 해당 세션의 refresh 토큰만 폐기한다.
+     * 이미 발급된 access 토큰은 만료까지 유효하다.
+     */
+    public void logout(String refreshToken) {
+        Claims claims;
+        try {
+            claims = parseRefreshToken(refreshToken);
+        } catch (AuthException e) {
+            // 알아볼 수 없는 토큰이면 지울 것도 없다. 클라이언트는 어차피 토큰을 버리므로 성공으로 응답한다
+            return;
+        }
+
+        refreshTokenStore.delete(jwtProvider.getMemberId(claims), claims.getId());
+    }
+
     private AuthResDTO.TokenPair issueTokens(Member member) {
         String accessToken = jwtProvider.createAccessToken(member.getId(), member.getRole());
         JwtProvider.IssuedToken refreshToken = jwtProvider.createRefreshToken(member.getId());

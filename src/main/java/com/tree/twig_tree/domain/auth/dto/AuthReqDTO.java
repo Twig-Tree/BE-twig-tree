@@ -13,4 +13,9 @@ public class AuthReqDTO {
             @NotBlank
             String refreshToken
     ) {}
+
+    public record Logout(
+            @NotBlank
+            String refreshToken
+    ) {}
 }
