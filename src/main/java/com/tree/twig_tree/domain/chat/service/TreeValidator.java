@@ -77,7 +77,13 @@ public class TreeValidator {
             }
         }
 
-        validateNoCycle(nodes);
+        Map<Long, Long> parentOf = new HashMap<>();
+        for (LlmNode node : nodes) {
+            parentOf.put(node.tempId(), node.parentTempId());
+        }
+
+        validateNoCycle(nodes, parentOf);
+        validateDepth(nodes, parentOf);
     }
 
     private void validateFields(LlmNode node) {
@@ -106,12 +112,7 @@ public class TreeValidator {
      * 각 노드에서 부모를 따라 루트까지 올라가며 순환을 탐지한다.
      * 방문 횟수가 전체 노드 수를 넘으면 순환으로 판단한다.
      */
-    private void validateNoCycle(List<LlmNode> nodes) {
-        java.util.Map<Long, Long> parentOf = new java.util.HashMap<>();
-        for (LlmNode node : nodes) {
-            parentOf.put(node.tempId(), node.parentTempId());
-        }
-
+    private void validateNoCycle(List<LlmNode> nodes, Map<Long, Long> parentOf) {
         int maxSteps = nodes.size();
         for (LlmNode node : nodes) {
             Long current = node.parentTempId();
@@ -121,6 +122,24 @@ public class TreeValidator {
                     throw invalid("순환 참조가 감지되었습니다: tempId=" + node.tempId());
                 }
                 current = parentOf.get(current);
+            }
+        }
+    }
+
+    /**
+     * 루트를 1단계로 세어 각 노드의 깊이가 상한을 넘지 않는지 확인한다.
+     *
+     * <p>프롬프트만으로는 깊이가 강제되지 않으므로(모델이 지키지 않아도 응답은 유효한 JSON 이다)
+     * 여기서 상한을 실제로 막는다. 순환 검증을 통과한 뒤이므로 부모를 따라 올라가면 반드시 끝난다.
+     */
+    private void validateDepth(List<LlmNode> nodes, Map<Long, Long> parentOf) {
+        for (LlmNode node : nodes) {
+            int depth = 1;
+            for (Long parent = node.parentTempId(); parent != null; parent = parentOf.get(parent)) {
+                if (++depth > TreePrompt.MAX_DEPTH) {
+                    throw invalid("트리 깊이가 상한(" + TreePrompt.MAX_DEPTH + "단계)을 초과했습니다: tempId="
+                        + node.tempId());
+                }
             }
         }
     }

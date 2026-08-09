@@ -22,6 +22,14 @@ public final class TreePrompt {
     public static final int NAME_MAX_LENGTH = 30;
     public static final int MEMO_MAX_LENGTH = 500;
 
+    /**
+     * 트리 깊이 상한(루트가 1단계). 목표치가 아니라 상한이며, 하드 강제는 TreeValidator 가 한다.
+     *
+     * <p>프롬프트에 "최대 4단계"라고만 쓰면 모델이 이를 목표로 읽어 어떤 주제든 4단계를 채우므로,
+     * 상한이라는 점과 얕아도 된다는 점을 규칙에 함께 명시한다.
+     */
+    public static final int MAX_DEPTH = 4;
+
     public static final String SYSTEM = """
         너는 학습 주제를 계층형 트리(마인드맵)로 분해하는 도우미다.
         사용자가 준 주제를 이해하기 좋은 순서로 하위 개념으로 나눠서 트리를 만든다.
@@ -44,13 +52,19 @@ public final class TreePrompt {
         - 모든 텍스트는 한국어로 작성한다.
         - 노드는 최대 %d개까지만 만든다.
         - name 은 개념을 가리키는 짧은 키워드로 쓴다. 문장으로 풀어 쓰지 않는다.
-        - 트리 깊이는 최대 4단계로 제한한다.
+        - 트리 깊이는 루트를 1단계로 세어 최대 %d단계까지 허용한다. 이는 채워야 할 목표가 아니라 상한이다.
+          주제가 단순하면 2~3단계에서 끝내고, 사용자가 깊이를 지정하면 그 깊이를 따른다.
+        - 자식이 하나뿐인 노드를 만들지 않는다. 어떤 노드를 나눴다면 그 자식은 반드시 2개 이상이어야 하고,
+          나눌 것이 하나뿐이면 나누지 말고 부모에 바로 붙인다.
+          나쁜 예: 어패류 > "어패류 종류" > 생선   (가운데가 아무것도 하지 않는 껍데기다)
+          좋은 예: 어패류 > 생선, 조개
+        - 실제로 나눌 하위 개념이 없으면 거기서 멈춘다.
         - 루트 노드는 반드시 정확히 1개다. parentTempId 가 null 인 노드는 그 하나뿐이어야 한다.
           주제가 여러 개로 보이더라도 이들을 묶는 상위 노드를 하나 만들어 루트로 삼는다.
         - parentTempId 는 반드시 같은 응답 안에 존재하는 tempId 를 가리켜야 한다.
         - 같은 부모를 가진 노드들의 orderId 는 1부터 순서대로 매긴다.
         - 순환 참조(자기 자신이나 자손을 부모로 지정)를 만들지 않는다.
-        """.formatted(NAME_MAX_LENGTH, MEMO_MAX_LENGTH, MAX_NODES);
+        """.formatted(NAME_MAX_LENGTH, MEMO_MAX_LENGTH, MAX_NODES, MAX_DEPTH);
 
     /**
      * 업로드된 문서를 감싸는 틀.

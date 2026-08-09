@@ -201,6 +201,45 @@ class TreeValidatorTest {
     }
 
     @Test
+    @DisplayName("깊이 상한(4단계)과 같으면 통과한다 — 루트가 1단계")
+    void depthAtLimit() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            node(1L, null, 1L),   // 1단계
+            node(2L, 1L, 1L),     // 2단계
+            node(3L, 2L, 1L),     // 3단계
+            node(4L, 3L, 1L)      // 4단계
+        ));
+
+        assertThatCode(() -> validator.validate(tree)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("깊이 상한(4단계)을 넘으면 실패한다 — 프롬프트가 지켜지지 않아도 저장되지 않게")
+    void depthOverLimit() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            node(1L, null, 1L),
+            node(2L, 1L, 1L),
+            node(3L, 2L, 1L),
+            node(4L, 3L, 1L),
+            node(5L, 4L, 1L)      // 5단계
+        ));
+
+        assertInvalid(tree);
+    }
+
+    @Test
+    @DisplayName("얕은 트리는 그대로 통과한다 — 깊이는 상한일 뿐 목표치가 아니다")
+    void shallowTreeIsAccepted() {
+        LlmTreeDTO tree = new LlmTreeDTO(List.of(
+            node(1L, null, 1L),
+            node(2L, 1L, 1L),
+            node(3L, 1L, 2L)
+        ));
+
+        assertThatCode(() -> validator.validate(tree)).doesNotThrowAnyException();
+    }
+
+    @Test
     @DisplayName("노드 수 상한(100)을 초과하면 실패한다")
     void tooManyNodes() {
         List<LlmNode> nodes = IntStream.rangeClosed(1, 101)
