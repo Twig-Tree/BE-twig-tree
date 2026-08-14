@@ -45,6 +45,8 @@ services:
       REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=40.0"
     ports:
       - "8080:8080"
