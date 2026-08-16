@@ -13,7 +13,7 @@ public enum TreeSuccessCode implements BaseSuccessCode {
     TREES_FOUND(HttpStatus.OK, "TREE200-2", "성공적으로 트리 목록을 조회했습니다."),
     TREE_CREATED(HttpStatus.CREATED, "TREE201-1", "성공적으로 트리를 추가했습니다."),
     TREE_UPDATED(HttpStatus.OK, "TREE200-3", "성공적으로 트리 정보를 수정했습니다."),
-    TREE_DELETED(HttpStatus.NO_CONTENT, "TREE204-1", "성공적으로 트리를 삭제했습니다.");
+    TREE_DELETED(HttpStatus.OK, "TREE200-4", "성공적으로 트리를 삭제했습니다.");
 
 
     private final HttpStatus status;

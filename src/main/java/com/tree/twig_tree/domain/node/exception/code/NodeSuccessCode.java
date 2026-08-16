@@ -13,7 +13,7 @@ public enum NodeSuccessCode implements BaseSuccessCode {
     NODES_FOUND(HttpStatus.OK, "NODE200-2", "성공적으로 노드 목록을 조회했습니다."),
     NODE_CREATED(HttpStatus.CREATED, "NODE201-1", "성공적으로 노드를 추가했습니다."),
     NODE_UPDATED(HttpStatus.OK, "NODE200-3", "성공적으로 노드 정보를 수정했습니다."),
-    NODE_DELETED(HttpStatus.NO_CONTENT, "NODE204-1", "성공적으로 노드를 삭제했습니다.");
+    NODE_DELETED(HttpStatus.OK, "NODE200-4", "성공적으로 노드를 삭제했습니다.");
 
     private final HttpStatus status;
     private final String code;
