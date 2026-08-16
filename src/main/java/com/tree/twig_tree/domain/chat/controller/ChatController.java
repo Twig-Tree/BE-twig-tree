@@ -99,6 +99,10 @@ public class ChatController {
             업로드한 파일은 저장하지 않고 요청 처리 중에만 사용합니다.
             """
     )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201",
+            content = @Content(schema = @Schema(implementation = TreeGenResDTO.class))
+    )
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Object>> generateTreeFromFile(
         @Parameter(description = "(선택) txt, md, pdf, docx, hwp, hwpx 파일")
