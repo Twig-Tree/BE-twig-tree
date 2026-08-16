@@ -9,6 +9,7 @@ import com.tree.twig_tree.global.apiPayload.code.GeneralSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class TreeController {
      */
     @GetMapping
     @Operation(summary = "모든 트리 조회", description = "모든 트리를 조회합니다.")
-    public ApiResponse<List<TreeResDTO.TreeId>> getAllTrees() {
+    public ResponseEntity<ApiResponse<List<TreeResDTO.TreeId>>> getAllTrees() {
         BaseSuccessCode code = TreeSuccessCode.TREES_FOUND;
         return ApiResponse.onSuccess(code, treeService.getAllTrees());
     }
@@ -38,7 +39,7 @@ public class TreeController {
      */
     @Operation(summary = "새로운 트리 생성", description = "새로운 트리를 생성합니다.")
     @PostMapping
-    public ApiResponse<TreeResDTO.TreeId> createTree() {
+    public ResponseEntity<ApiResponse<TreeResDTO.TreeId>> createTree() {
         BaseSuccessCode code = TreeSuccessCode.TREE_CREATED;
         return ApiResponse.onSuccess(code, treeService.createTree());
     }
@@ -49,7 +50,7 @@ public class TreeController {
      */
     @Operation(summary = "트리 삭제", description = "트리를 삭제합니다.")
     @DeleteMapping("/{treeId}")
-    public ApiResponse<Void> deleteTree(@PathVariable Long treeId) {
+    public ResponseEntity<ApiResponse<Void>> deleteTree(@PathVariable Long treeId) {
         BaseSuccessCode code = TreeSuccessCode.TREE_DELETED;
         treeService.deleteTree(treeId);
         return ApiResponse.onSuccess(code, null);

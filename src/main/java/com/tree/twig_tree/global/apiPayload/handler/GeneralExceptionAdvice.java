@@ -31,8 +31,7 @@ public class GeneralExceptionAdvice {
             AuthorizationDeniedException e
     ) {
         BaseErrorCode code = GeneralErrorCode.FORBIDDEN;
-        return ResponseEntity.status(code.getStatus())
-                .body(ApiResponse.onFailure(code, null));
+        return ApiResponse.onFailure(code, null);
     }
 
     // 프로젝트에서 발생한 예외 처리
@@ -43,8 +42,8 @@ public class GeneralExceptionAdvice {
         log.error("ProjectException: {}", e.getMessage());
 
         BaseErrorCode errorCode = e.getErrorCode();
-        return ResponseEntity.status(errorCode.getStatus())
-                .body(ApiResponse.onFailure(errorCode, null));
+        return ApiResponse.onFailure(errorCode, null);
+
     }
 
     // @Validation 검증 실패 예외 처리
@@ -60,8 +59,7 @@ public class GeneralExceptionAdvice {
         });
 
         BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
-        return ResponseEntity.status(code.getStatus())
-                .body(ApiResponse.onFailure(code, errors));
+        return ApiResponse.onFailure(code, errors);
     }
 
 
@@ -76,8 +74,7 @@ public class GeneralExceptionAdvice {
         // 도메인 별 제약조건 에러코드 매핑
         BaseErrorCode code = ConstraintErrorCodeMapper.getErrorCode(e);
 
-        return ResponseEntity.status(code.getStatus())
-                .body(ApiResponse.onFailure(code, "데이터 제약조건을 위반했습니다."));
+        return ApiResponse.onFailure(code, "데이터 제약조건을 위반했습니다.");
     }
 
 
@@ -92,8 +89,8 @@ public class GeneralExceptionAdvice {
         log.warn("업로드 크기 초과: {}", e.getMessage());
 
         BaseErrorCode code = GeneralErrorCode.BAD_REQUEST;
-        return ResponseEntity.status(code.getStatus())
-                .body(ApiResponse.onFailure(code, "업로드 가능한 파일 크기를 초과했습니다."));
+        return ApiResponse.onFailure(code, "업로드 가능한 파일 크기를 초과했습니다.");
+
     }
 
 
@@ -105,11 +102,7 @@ public class GeneralExceptionAdvice {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
 
         BaseErrorCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
-        return ResponseEntity.status(code.getStatus())
-                .body(ApiResponse.onFailure(
-                                code,
-                                ex.getMessage() // TODO: 개발 환경에서만 제공하고, 운영 환경에서는 제거해야합니다.
-                        )
-                );
+        return ApiResponse.onFailure(code, ex.getMessage()); // TODO: 개발 환경에서만 제공하고, 운영 환경에서는 제거해야합니다.
+
     }
 }

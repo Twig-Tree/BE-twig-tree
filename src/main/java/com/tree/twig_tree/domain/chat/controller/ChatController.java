@@ -11,11 +11,13 @@ import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
 import com.tree.twig_tree.global.mock.MockResponseLoader;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,8 +58,12 @@ public class ChatController {
             - `mock` 파라미터가 있으면 LLM 을 호출하지 않고 미리 정의된 트리를 반환합니다.
             """
     )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201",
+            content = @Content(schema = @Schema(implementation = TreeGenResDTO.class))
+    )
     @PostMapping
-    public ApiResponse<?> generateTree(
+    public ResponseEntity<ApiResponse<Object>> generateTree(
         @RequestBody(required = false) @Valid ChatReqDTO req,
         @Parameter(
             description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않고 mock 트리를 반환합니다.",
@@ -94,7 +100,7 @@ public class ChatController {
             """
     )
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<?> generateTreeFromFile(
+    public ResponseEntity<ApiResponse<Object>> generateTreeFromFile(
         @Parameter(description = "(선택) txt, md, pdf, docx, hwp, hwpx 파일")
         @RequestPart(value = "file", required = false) MultipartFile file,
 
@@ -115,7 +121,7 @@ public class ChatController {
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
     }
 
-    private ApiResponse<JsonNode> mockResponse(String scenario) {
+    private ResponseEntity<ApiResponse<Object>> mockResponse(String scenario) {
         validateScenario(scenario);
         JsonNode treeData = mockResponseLoader.load(MOCK_PATH_PREFIX + scenario + MOCK_PATH_SUFFIX);
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, treeData);

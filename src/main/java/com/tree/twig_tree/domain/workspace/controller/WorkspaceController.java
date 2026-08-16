@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +31,7 @@ public class WorkspaceController {
     @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.<br>"
             + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
     @GetMapping
-    public ApiResponse<List<WorkspaceResDTO.GetWorkspace>> getWorkspaces(
+    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getWorkspaces(
             @RequestParam(required = false) Long folderId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
@@ -44,7 +45,7 @@ public class WorkspaceController {
      */
     @Operation(summary = "새로운 워크스페이스 생성", description = "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스가 생성됩니다.")
     @PostMapping
-    public ApiResponse<WorkspaceResDTO.GetWorkspace> createWorkspace(
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> createWorkspace(
             @RequestBody @Valid WorkspaceReqDTO.CreateWorkspace dto
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_CREATED;
@@ -58,7 +59,7 @@ public class WorkspaceController {
      */
     @Operation(summary = "워크스페이스 조회", description = "")
     @GetMapping("/{workspaceId}")
-    public ApiResponse<WorkspaceResDTO.GetWorkspace> getWorkspace(
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> getWorkspace(
             @PathVariable Long workspaceId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_FOUND;
@@ -72,7 +73,7 @@ public class WorkspaceController {
      */
     @Operation(summary = "워크스페이스 이름 수정", description = "")
     @PatchMapping("/{workspaceId}")
-    public ApiResponse<WorkspaceResDTO.GetWorkspace> updateWorkspace(
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> updateWorkspace(
             @PathVariable Long workspaceId,
             @RequestBody @Valid WorkspaceReqDTO.UpdateWorkspace dto
     ) {
@@ -87,7 +88,7 @@ public class WorkspaceController {
      */
     @Operation(summary = "워크스페이스 삭제", description = "")
     @DeleteMapping("/{workspaceId}")
-    public ApiResponse<Void> deleteWorkspace(
+    public ResponseEntity<ApiResponse<Void>> deleteWorkspace(
             @PathVariable Long workspaceId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_DELETED;

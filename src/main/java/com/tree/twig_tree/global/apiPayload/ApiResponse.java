@@ -6,6 +6,7 @@ import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.http.ResponseEntity;
 
 @Getter
 @AllArgsConstructor
@@ -25,13 +26,15 @@ public class ApiResponse<T> {
     private T data;
 
     // 성공한 경우
-    public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T data) {
-        return new ApiResponse<>(true, code.getCode(), code.getMessage(), data );
+    public static <T> ResponseEntity<ApiResponse<T>> onSuccess(BaseSuccessCode code, T data) {
+        return ResponseEntity.status(code.getStatus())
+                .body(new ApiResponse<>(true, code.getCode(), code.getMessage(), data));
     }
 
     // 실패한 경우
-    public static <T> ApiResponse<T> onFailure(BaseErrorCode code, T data) {
-        return new ApiResponse<>(false, code.getCode(), code.getMessage(), data );
+    public static <T> ResponseEntity<ApiResponse<T>> onFailure(BaseErrorCode code, T data) {
+        return ResponseEntity.status(code.getStatus())
+                .body(new ApiResponse<>(false, code.getCode(), code.getMessage(), data));
     }
 
 
