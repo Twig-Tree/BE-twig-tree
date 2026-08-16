@@ -99,10 +99,10 @@ public class GeneralExceptionAdvice {
     public ResponseEntity<ApiResponse<String>> handleException(
             Exception ex
     ) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        log.error("정의되지 않은 예외: {}", ex.getMessage(), ex);
 
         BaseErrorCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
-        return ApiResponse.onFailure(code, ex.getMessage()); // TODO: 개발 환경에서만 제공하고, 운영 환경에서는 제거해야합니다.
+        return ApiResponse.onFailure(code, null);
 
     }
 }
