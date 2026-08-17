@@ -14,9 +14,5 @@ public class WorkspaceResDTO {
             Long workspaceId,
             String name,
             Long folderId
-
-            // TODO:
-            // 생성일자
-            // 수정일자
     ){}
 }

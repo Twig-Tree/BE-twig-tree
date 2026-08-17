@@ -1,6 +1,7 @@
 package com.tree.twig_tree.domain.tree.entity;
 
 import com.tree.twig_tree.domain.node.entity.Node;
+import com.tree.twig_tree.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "trees")
-public class Tree {
+public class Tree extends BaseEntity {
 
     @Column(name = "tree_id")
     @Id

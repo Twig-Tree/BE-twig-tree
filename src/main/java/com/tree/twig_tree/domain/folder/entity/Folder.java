@@ -1,6 +1,7 @@
 package com.tree.twig_tree.domain.folder.entity;
 
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
+import com.tree.twig_tree.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "folders")
-public class Folder {
+public class Folder extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

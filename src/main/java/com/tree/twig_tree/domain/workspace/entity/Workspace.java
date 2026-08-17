@@ -1,6 +1,7 @@
 package com.tree.twig_tree.domain.workspace.entity;
 
 import com.tree.twig_tree.domain.folder.entity.Folder;
+import com.tree.twig_tree.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "workspaces")
-public class Workspace {
+public class Workspace extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,12 +25,6 @@ public class Workspace {
 
     @Column(length = 30, nullable = false)
     private String name;
-
-    // 생성일자
-    //private LocalDateTime createAt;
-
-    // 수정일자
-    //private LocalDateTime updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "folder_id", nullable = true)
