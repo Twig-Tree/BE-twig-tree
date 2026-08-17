@@ -13,8 +13,11 @@ import com.tree.twig_tree.global.security.jwt.RefreshTokenStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -123,6 +126,42 @@ class AuthServiceTokenLifecycleTest {
     }
 
     @Test
+    void 회전_유예는_반복_재사용으로_연장되지_않는다() {
+        String stolen = issuedRefreshToken();
+        authService.reissue(stolen);                            // 최초 회전. 여기서부터 유예 10초
+
+        store.elapse(Duration.ofSeconds(9));
+        assertThat(authService.reissue(stolen)).isNotNull();    // 아직 유예 안이므로 통과한다
+
+        // 위 재발급이 만료를 19초로 미뤄서는 안 된다. 유예는 최초 회전 시점 기준으로 끝나야 한다
+        store.elapse(Duration.ofSeconds(2));
+
+        assertThatThrownBy(() -> authService.reissue(stolen))
+                .isInstanceOf(AuthException.class)
+                .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                        .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
+    }
+
+    @Test
+    void 반복_재사용해도_결국_탐지되어_회원_세션이_모두_끊긴다() {
+        String stolen = issuedRefreshToken();
+        String desktop = issuedRefreshToken();
+        String desktopJti = jwtProvider.parseClaims(desktop).getId();
+
+        authService.reissue(stolen);
+
+        // 유예가 끊기기 전에 계속 들이밀어 만료를 미루려는 시도
+        for (int i = 0; i < 3; i++) {
+            store.elapse(Duration.ofSeconds(2));
+            authService.reissue(stolen);
+        }
+        store.elapse(Duration.ofSeconds(5));                    // 최초 회전으로부터 11초
+
+        assertThatThrownBy(() -> authService.reissue(stolen)).isInstanceOf(AuthException.class);
+        assertThat(store.exists(MEMBER_ID, desktopJti)).isFalse();
+    }
+
+    @Test
     void 액세스_토큰으로는_재발급되지_않는다() {
         String accessToken = jwtProvider.createAccessToken(MEMBER_ID, Role.ROLE_USER);
 
@@ -170,46 +209,68 @@ class AuthServiceTokenLifecycleTest {
     }
 
     /**
-     * 인메모리 대역. markRotated 는 "유예 기간 동안 살아있다"를,
-     * elapseGrace 는 그 기간이 지난 시점을 표현한다.
+     * 인메모리 대역. 실제 Redis 처럼 키마다 만료 시각을 들고 있고, 가상 시계를 앞으로 돌려
+     * 유예 기간이 흐른 상황을 만든다. 회전을 단순한 플래그로 두면 "만료를 다시 미루는지"
+     * 를 표현할 수 없어 유예 연장 버그가 대역에서 재현되지 않는다.
      */
     private static class FakeRefreshTokenStore implements RefreshTokenStore {
 
-        private final Set<String> active = new HashSet<>();
+        /** 실제 구현의 ROTATION_GRACE 와 같은 값. */
+        private static final Duration GRACE = Duration.ofSeconds(10);
+
+        private static final Duration REFRESH_TTL = Duration.ofDays(14);
+
+        private final Map<String, Long> expiresAt = new HashMap<>();
         private final Set<String> rotated = new HashSet<>();
+
+        private long now = 0L;
 
         @Override
         public void save(Long memberId, String jti) {
-            active.add(key(memberId, jti));
+            expiresAt.put(key(memberId, jti), now + REFRESH_TTL.toMillis());
         }
 
         @Override
         public boolean exists(Long memberId, String jti) {
-            return active.contains(key(memberId, jti));
+            Long deadline = expiresAt.get(key(memberId, jti));
+            return deadline != null && deadline > now;
         }
 
         @Override
         public void markRotated(Long memberId, String jti) {
-            rotated.add(key(memberId, jti));
+            String key = key(memberId, jti);
+            if (!exists(memberId, jti)) {
+                return;
+            }
+            if (!rotated.add(key)) {
+                // 이미 회전된 jti. 유예는 최초 회전 시점 기준이므로 만료를 다시 미루지 않는다
+                return;
+            }
+            expiresAt.put(key, now + GRACE.toMillis());
         }
 
         @Override
         public void delete(Long memberId, String jti) {
-            active.remove(key(memberId, jti));
-            rotated.remove(key(memberId, jti));
+            String key = key(memberId, jti);
+            expiresAt.remove(key);
+            rotated.remove(key);
         }
 
         @Override
         public void deleteAll(Long memberId) {
             String prefix = memberId + ":";
-            active.removeIf(k -> k.startsWith(prefix));
+            expiresAt.keySet().removeIf(k -> k.startsWith(prefix));
             rotated.removeIf(k -> k.startsWith(prefix));
+        }
+
+        /** 가상 시계를 앞으로 돌린다. */
+        void elapse(Duration duration) {
+            now += duration.toMillis();
         }
 
         /** 회전 유예 기간이 만료된 상황을 만든다. */
         void elapseGrace() {
-            active.removeAll(rotated);
-            rotated.clear();
+            elapse(GRACE.plusMillis(1));
         }
 
         private String key(Long memberId, String jti) {
