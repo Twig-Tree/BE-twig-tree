@@ -25,6 +25,7 @@ public class SecurityConfig {
     private static final String[] PERMIT_ALL_PATTERNS = {
             "/auth/google",
             "/auth/refresh",
+            "/auth/logout",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",

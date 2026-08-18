@@ -34,26 +34,38 @@ public class JwtProvider {
     }
 
     public String createAccessToken(Long memberId, Role role) {
-        return buildToken(memberId, TokenType.ACCESS, jwtProperties.accessTokenTtl())
+        return buildToken(memberId, TokenType.ACCESS, jwtProperties.accessTokenTtl(), newJti())
                 .claim(ROLE_CLAIM, role.name())
                 .compact();
     }
 
-    public String createRefreshToken(Long memberId) {
-        return buildToken(memberId, TokenType.REFRESH, jwtProperties.refreshTokenTtl())
+    /**
+     * refresh 토큰은 발급 사실을 저장소에 남겨야 하므로 jti 를 함께 돌려준다.
+     * 발급 직후 토큰을 다시 파싱해 jti 를 꺼내는 것을 피하기 위함이다.
+     */
+    public IssuedToken createRefreshToken(Long memberId) {
+        String jti = newJti();
+        String token = buildToken(memberId, TokenType.REFRESH, jwtProperties.refreshTokenTtl(), jti)
                 .compact();
+        return new IssuedToken(token, jti);
     }
 
-    private JwtBuilder buildToken(Long memberId, TokenType tokenType, long ttlMillis) {
+    private String newJti() {
+        return UUID.randomUUID().toString();
+    }
+
+    private JwtBuilder buildToken(Long memberId, TokenType tokenType, long ttlMillis, String jti) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(String.valueOf(memberId))
-                .id(UUID.randomUUID().toString())
+                .id(jti)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + ttlMillis))
                 .claim(TOKEN_TYPE_CLAIM, tokenType.name())
                 .signWith(key);
     }
+
+    public record IssuedToken(String token, String jti) {}
 
     // jwt token 으로부터 claim 추출
     public Claims parseClaims(String token) {
