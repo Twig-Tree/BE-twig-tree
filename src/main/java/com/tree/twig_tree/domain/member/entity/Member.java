@@ -2,14 +2,12 @@ package com.tree.twig_tree.domain.member.entity;
 
 import com.tree.twig_tree.domain.member.entity.enums.Provider;
 import com.tree.twig_tree.domain.member.entity.enums.Role;
+import com.tree.twig_tree.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -23,7 +21,7 @@ import java.time.LocalDateTime;
                 columnNames = {"provider", "provider_id"}
         )
 )
-public class Member {
+public class Member extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,10 +48,6 @@ public class Member {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false)
     private Role role;
-
-    @UpdateTimestamp
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
 
     // 로그인 시마다 구글 프로필 최신화
     public void updateProfile(String name, String profileImage) {
