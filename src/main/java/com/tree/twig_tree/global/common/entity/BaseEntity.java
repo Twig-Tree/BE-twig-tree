@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity {
 
     @CreatedDate // 저장 이벤트가 발생 시 현재 시각으로 저장
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate // 수정 이벤트가 발생 시 현재 시각으로 저장
