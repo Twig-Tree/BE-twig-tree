@@ -9,8 +9,7 @@ import java.util.List;
 @Repository
 public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
 
-    List<Workspace> findAllByFolder_Id(Long folderId);
-    List<Workspace> findAllByFolderIsNull();
-
+    List<Workspace> findAllByFolder_IdOrderByUpdatedAtDesc(Long folderId);
+    List<Workspace> findAllByFolderIsNullOrderByUpdatedAtDesc();
 
 }

@@ -38,9 +38,9 @@ public class WorkspaceService {
 
         List<Workspace> workspaceList;
         if (folderId == null) {
-            workspaceList = workspaceRepository.findAllByFolderIsNull();
+            workspaceList = workspaceRepository.findAllByFolderIsNullOrderByUpdatedAtDesc();
         } else {
-            workspaceList = workspaceRepository.findAllByFolder_Id(folderId);
+            workspaceList = workspaceRepository.findAllByFolder_IdOrderByUpdatedAtDesc(folderId);
         }
 
         return WorkspaceConverter.toGetWorkspaces(workspaceList);
