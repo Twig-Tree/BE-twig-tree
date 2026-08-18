@@ -61,7 +61,7 @@ class ChatControllerRoutingTest {
                 .file(file)
                 .param("message", "3단계로 정리해줘")
                 .param("provider", "OPENAI"))
-            .andExpect(status().isOk());
+            .andExpect(status().isCreated());
 
         verify(chatService).generateTree(eq(LlmProvider.OPENAI), eq("3단계로 정리해줘"), any(MultipartFile.class));
         verify(chatService, never()).generateTree(any(ChatReqDTO.class));
@@ -73,7 +73,7 @@ class ChatControllerRoutingTest {
         mockMvc.perform(multipart("/tree-request")
                 .param("message", "트리 만들어줘")
                 .param("provider", "OPENAI"))
-            .andExpect(status().isOk());
+            .andExpect(status().isCreated());
 
         verify(chatService).generateTree(eq(LlmProvider.OPENAI), eq("트리 만들어줘"), any());
     }
@@ -84,7 +84,7 @@ class ChatControllerRoutingTest {
         mockMvc.perform(post("/tree-request")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"트리 만들어줘\",\"provider\":\"OPENAI\"}"))
-            .andExpect(status().isOk());
+            .andExpect(status().isCreated());
 
         verify(chatService).generateTree(any(ChatReqDTO.class));
         verify(chatService, never()).generateTree(any(), any(), any());
@@ -112,7 +112,7 @@ class ChatControllerRoutingTest {
         mockMvc.perform(post("/tree-request")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"" + atLimit + "\",\"provider\":\"OPENAI\"}"))
-            .andExpect(status().isOk());
+            .andExpect(status().isCreated());
 
         verify(chatService).generateTree(any(ChatReqDTO.class));
     }
@@ -121,7 +121,7 @@ class ChatControllerRoutingTest {
     @DisplayName("Content-Type 없는 mock 요청도 기존대로 동작한다")
     void mockRequestWithoutContentType() throws Exception {
         mockMvc.perform(post("/tree-request").param("mock", "small"))
-            .andExpect(status().isOk());
+            .andExpect(status().isCreated());
 
         verify(mockResponseLoader).load("mocks/chat/tree-small.json");
         verify(chatService, never()).generateTree(any(ChatReqDTO.class));
