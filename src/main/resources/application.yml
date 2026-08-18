@@ -35,6 +35,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      timeout: 2s          # 커맨드 응답 대기
+      connect-timeout: 1s  # 연결 수립 대기
 
 # JWT
 jwt:
