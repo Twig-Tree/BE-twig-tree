@@ -92,6 +92,7 @@ public class WorkspaceService {
         Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
 
         workspace.updateName(name);
+        workspaceRepository.flush();
 
         return WorkspaceConverter.toGetWorkspace(workspace);
     }
