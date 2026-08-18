@@ -3,6 +3,7 @@ package com.tree.twig_tree.global.security;
 import com.tree.twig_tree.global.security.handler.JwtAccessDeniedHandler;
 import com.tree.twig_tree.global.security.handler.JwtAuthenticationEntryPoint;
 import com.tree.twig_tree.global.security.jwt.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,9 +48,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .authorizeHttpRequests(auth -> auth
+                        // 오류 페이지로의 내부 디스패치까지 인가 대상이 되면, 예외의 실제 원인 대신
+                        // 401 이 나가 디버깅이 불가능해진다. 외부에서 직접 부를 수 있는 경로가 아니다.
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(PERMIT_ALL_PATTERNS).permitAll()
-                        // TODO: 개발 편의를 위해 임시 전체 개방. 배포 전 authenticated()로 복원
-                        .anyRequest().permitAll())
+                        .anyRequest().authenticated())
 
                 // 거부 판정 시 응답 작성자 지정
                 .exceptionHandling(handler -> handler
