@@ -1,6 +1,7 @@
 package com.tree.twig_tree.domain.workspace.entity;
 
 import com.tree.twig_tree.domain.folder.entity.Folder;
+import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -37,5 +38,8 @@ public class Workspace extends BaseEntity {
         }
         this.name = newName;
     }
+
+    @OneToOne(mappedBy = "workspace", cascade = CascadeType.REMOVE) // 워크스페이스 삭제 시 트리도 삭제됨
+    private Tree tree;
 
 }
