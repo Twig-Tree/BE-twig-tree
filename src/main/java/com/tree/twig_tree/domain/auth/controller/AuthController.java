@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +25,7 @@ public class AuthController {
 
     @PostMapping("/google")
     @Operation(summary = "구글 로그인", description = "구글 ID 토큰을 검증하고 자체 JWT(access/refresh)를 발급합니다. 첫 로그인 시 자동 가입됩니다.")
-    public ApiResponse<AuthResDTO.TokenPair> googleLogin(@RequestBody @Valid AuthReqDTO.GoogleLogin request) {
+    public ResponseEntity<ApiResponse<AuthResDTO.TokenPair>> googleLogin(@RequestBody @Valid AuthReqDTO.GoogleLogin request) {
         return ApiResponse.onSuccess(AuthSuccessCode.LOGIN_OK, authService.googleLogin(request.idToken()));
     }
 

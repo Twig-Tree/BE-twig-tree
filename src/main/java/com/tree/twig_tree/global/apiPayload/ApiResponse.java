@@ -6,6 +6,7 @@ import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.http.ResponseEntity;
 
 @Getter
 @AllArgsConstructor
@@ -24,14 +25,22 @@ public class ApiResponse<T> {
     @JsonProperty("data")
     private T data;
 
-    // 성공한 경우
-    public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T data) {
-        return new ApiResponse<>(true, code.getCode(), code.getMessage(), data );
+    // body만 필요한 경우 (예: HttpServletResponse에 직접 쓰는 security handler)
+    public static <T> ApiResponse<T> success(BaseSuccessCode code, T data) {
+        return new ApiResponse<>(true, code.getCode(), code.getMessage(), data);
     }
 
-    // 실패한 경우
-    public static <T> ApiResponse<T> onFailure(BaseErrorCode code, T data) {
-        return new ApiResponse<>(false, code.getCode(), code.getMessage(), data );
+    public static <T> ApiResponse<T> failure(BaseErrorCode code, T data) {
+        return new ApiResponse<>(false, code.getCode(), code.getMessage(), data);
+    }
+
+    // 컨트롤러에서 상태코드까지 함께 반환하는 경우
+    public static <T> ResponseEntity<ApiResponse<T>> onSuccess(BaseSuccessCode code, T data) {
+        return ResponseEntity.status(code.getStatus()).body(success(code, data));
+    }
+
+    public static <T> ResponseEntity<ApiResponse<T>> onFailure(BaseErrorCode code, T data) {
+        return ResponseEntity.status(code.getStatus()).body(failure(code, data));
     }
 
 
