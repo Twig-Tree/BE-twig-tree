@@ -1,0 +1,12 @@
+# 로컬 개발 전용 설정. `docker compose up` 시 compose.yaml 과 함께 자동으로 병합된다.
+# DB/Redis를 호스트에서 직접 들여다볼 수 있도록 포트를 열어둔다.
+# 배포 시에는 -f 로 파일을 명시하므로 이 파일은 적용되지 않는다. (docs/SETUP.md 참고)
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"

@@ -1,0 +1,49 @@
+# 배포(OCI) 전용 오버라이드. 단독으로는 동작하지 않는다.
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+#
+# 인스턴스가 1GB(VM.Standard.E2.1.Micro)이므로 컨테이너 총합을 800m 로 잡아
+# OS/dockerd 몫 약 200m 를 남긴다. 스왑은 문서 파싱 등 일시적 스파이크용이며,
+# 상시로 밀리지 않도록 한도를 보수적으로 설정한다.
+
+services:
+  db:
+    # 기본 shared_buffers(128MB)는 이 한도에 비해 과하다.
+    # HikariCP 기본 풀이 10 이므로 20 이면 충분하다. 실측 유휴 34MiB.
+    command: postgres -c shared_buffers=48MB -c max_connections=20
+    mem_limit: 176m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    # refresh token 만 저장하므로 24mb 면 충분하다(실측 유휴 5MiB).
+    # 토큰이 조용히 사라지면 로그아웃으로 이어지므로 eviction 은 끈다.
+    command: redis-server --maxmemory 24mb --maxmemory-policy noeviction
+    mem_limit: 48m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # 힙을 비율(MaxRAMPercentage)로 주면 안 된다. JVM 의 컨테이너 한도 인식이
+      # 실패하면 호스트 RAM 기준으로 힙을 잡아, 한도를 계속 치면서 스왑으로 밀린다.
+      # (실측: mem_limit 512m 인데 JVM 은 최대 힙을 3.83G 로 인식 → 247MB 스왑)
+      # 절대값으로 못 박아 인식 성공 여부와 무관하게 동일하게 동작시킨다.
+      # 메타스페이스는 상한을 두지 않는다. 실측 커밋량이 91.6MB(NMT 기준)라
+      # 어설픈 상한은 첫 요청에서 OutOfMemoryError: Metaspace 로 이어진다.
+      # 총량은 아래 mem_limit 이 막아준다.
+      JAVA_TOOL_OPTIONS: >-
+        -Xms128m -Xmx256m
+        -XX:MaxDirectMemorySize=48m
+    mem_limit: 576m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
