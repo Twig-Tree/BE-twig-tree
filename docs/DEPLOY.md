@@ -43,25 +43,50 @@ docker compose -f compose.yaml -f compose.prod.yaml logs -f app
 
 ## 4. 리소스 배분
 
-인스턴스가 1GB(VM.Standard.E2.1.Micro)라 컨테이너 총합을 800m 로 묶고 OS · dockerd 몫 약 200m 를 남깁니다. 아래 수치는 추정이 아니라 프로덕션 조합을 실제로 띄워 측정한 값입니다.
+인스턴스가 1GB(VM.Standard.E2.1.Micro)라 컨테이너 총합을 800m 로 묶습니다. 아래는 추정이 아니라 실제로 띄워 측정한 값이며, 실서버 열은 2026-08-19 배포 직후 워밍업(swagger · api-docs · 인증 필요 API 각 5회)을 마친 상태입니다.
 
-| 서비스 | mem_limit | 유휴 실측 | 비고 |
-|---|---|---|---|
-| db | 176m | 33MiB | `shared_buffers=48MB`, `max_connections=20` (HikariCP 기본 풀 10) |
-| redis | 48m | 5MiB | `maxmemory 24mb`, eviction 없음 (refresh token 유실 방지) |
-| app | 576m | 472MiB | 힙 상한 256m 고정 |
+| 서비스 | mem_limit | 실서버 실측 | 로컬 실측 | 비고 |
+|---|---|---|---|---|
+| db | 176m | 11MiB | 33MiB | `shared_buffers=48MB`, `max_connections=20` (HikariCP 기본 풀 10) |
+| redis | 48m | 2MiB | 5MiB | `maxmemory 24mb`, eviction 없음 (refresh token 유실 방지) |
+| app | 576m | 297MiB | 472MiB | 힙 상한 256m 고정 |
+
+로컬(Docker Desktop / WSL2)이 더 크게 나오는 것은 cgroup 통계에 잡히는 범위와 워밍업 정도가 달라서입니다. 한도 산정은 큰 쪽인 로컬 값을 기준으로 잡았으므로 실서버에서는 여유가 더 있습니다.
+
+### OS 몫을 200m 로 보면 안 됩니다
+
+Ubuntu 이미지는 snapd · unattended-upgrades 등을 기본으로 돌려서 생각보다 무겁습니다. 실측:
+
+```
+Mem: 954Mi total, 690Mi used, 263Mi available    # 컨테이너 합계는 310MiB
+```
+
+즉 **OS · dockerd 가 약 390MiB** 를 씁니다. 컨테이너 한도 총합 800m 를 다 쓰면 1190m 가 되어 954Mi 를 넘기므로, 한도는 어디까지나 상한이지 목표치가 아닙니다. 한도를 올리기 전에 `free -h` 의 available 을 먼저 보세요.
+
+메모리가 더 필요하면 컨테이너 한도를 올리기보다 OS 쪽을 덜어내는 편이 효과적입니다(1GB 머신에서 snapd 정리 등).
+
+### 배포 전후 (2026-08-19)
+
+6월 배포본은 `MaxRAMPercentage` 를 쓰고 있어서, 두 달 내내 스왑에 밀린 채 돌고 있었습니다.
+
+| | 배포 전 | 배포 후(워밍업 완료) |
+|---|---|---|
+| 스왑 사용 | 464Mi | 350Mi |
+| app | 한도 600m, 상시 스왑 | 297MiB / 576m |
+
+워밍업 전(343Mi)과 후(350Mi)의 스왑이 사실상 같다는 점이 중요합니다. 요청을 처리하면서 새로 밀려난 것이 없다는 뜻입니다. 남은 350Mi 는 빌드 중 밀려난 시스템 프로세스 몫이라 해당 프로세스가 깨어나기 전까지 그대로 남습니다.
 
 ### 힙은 비율로 주면 안 됩니다
 
 `-XX:MaxRAMPercentage` 는 JVM 이 컨테이너 메모리 한도를 인식한다는 전제에서만 동작합니다. 실측 결과 이 환경에서는 인식이 실패해서, `mem_limit: 512m` 인 컨테이너 안에서 JVM 이 최대 힙을 **3.83G**(호스트 RAM 기준)로 잡았습니다. 그 결과 cgroup 한도를 2144회 치면서 247MB 가 스왑으로 밀려나 상시 스래싱 상태였습니다.
 
-그래서 `-Xms128m -Xmx256m` 으로 절대값을 못 박았습니다. 인식 성공 여부와 무관하게 동일하게 동작하며, 이 설정에서 스왑 사용량과 한도 접촉 횟수가 모두 0 이 됐습니다.
+그래서 `-Xms128m -Xmx256m` 으로 절대값을 못 박았습니다. 인식 성공 여부와 무관하게 동일하게 동작합니다. 로컬 검증에서는 이 설정으로 컨테이너 스왑과 한도 접촉이 모두 0 이 됐고, 실서버에서도 워밍업 중 스왑이 늘지 않았습니다(위 배포 전후 참고).
 
 메타스페이스에는 **상한을 두지 않았습니다.** 실측 커밋량이 91.6MB(NMT 기준)라 96m 로 잡았을 때 첫 요청 처리 중 `OutOfMemoryError: Metaspace` 로 요청 스레드가 죽었습니다. 총량은 `mem_limit` 이 막아주므로 굳이 이중으로 조일 필요가 없습니다.
 
 ### 알려진 한계
 
-유휴 472MiB / 576m 이라 여유가 약 100MB 입니다. **10MB 문서(PDF · DOCX · HWP · HWPX) 파싱 시 POI · PDFBox 클래스가 추가로 로드되고 힙 사용도 올라가므로, 이 여유를 넘겨 스왑에 들어갈 수 있습니다.** 힙이 256m 로 묶여 있어 컨테이너가 OOM Kill 되기보다 요청 단위 `OutOfMemoryError` 로 실패할 가능성이 높습니다(컨테이너는 살아남음).
+실서버 기준 297MiB / 576m 로 한도까지 279MiB, 호스트 available 263Mi 가 남습니다. **10MB 문서(PDF · DOCX · HWP · HWPX) 파싱 시 POI · PDFBox 클래스가 추가로 로드되고 힙 사용도 올라가므로, 이 여유를 넘기면 스왑에 들어갑니다.** 힙이 256m 로 묶여 있어 컨테이너가 OOM Kill 되기보다 요청 단위 `OutOfMemoryError` 로 실패할 가능성이 높습니다(컨테이너는 살아남음).
 
 이 스택(Postgres + Redis + Spring Boot + 문서 파서)이 1GB 에서 편하게 돌아가는 구성은 아닙니다. 문서 파싱을 실제로 쓰기 시작하면 **OCI Always Free 의 Ampere A1 shape(4 OCPU / 24GB)으로 옮기는 것**이 근본적인 해결입니다. 같은 무료 한도이고, `Dockerfile` 이 소스에서 빌드하므로 ARM 에서도 그대로 동작합니다.
 
