@@ -7,6 +7,8 @@ import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
+import com.tree.twig_tree.domain.workspace.entity.Workspace;
+import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 검증이 끝난 LLM 트리 DTO 를 실제 Tree/Node 엔티티로 저장한다.
@@ -28,12 +31,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GeneratedTreeWriter {
 
+    private static final int WORKSPACE_NAME_MAX_LENGTH = 30;
+    private static final String DEFAULT_WORKSPACE_BASE_NAME = "제목 없음";
+
     private final TreeRepository treeRepository;
     private final NodeRepository nodeRepository;
+    private final WorkspaceRepository workspaceRepository;
 
     @Transactional
     public TreeGenResDTO save(LlmTreeDTO llmTree) {
-        Tree tree = treeRepository.save(Tree.builder().build());
+        Workspace workspace = createWorkspace(llmTree);
+        Tree tree = treeRepository.save(Tree.builder().workspace(workspace).build());
 
         List<LlmNode> nodes = llmTree.nodes();
 
@@ -85,5 +93,34 @@ public class GeneratedTreeWriter {
             .treeId(tree.getId())
             .nodes(resNodes)
             .build();
+    }
+
+    /**
+     * 채팅으로 생성된 트리를 담을 워크스페이스를 자동으로 만든다.
+     *
+     * <p>최상위 워크스페이스는 이름이 유니크해야 하므로(uk_workspace_root_name),
+     * 임시 이름으로 먼저 저장해 id를 발급받은 뒤 그 id로 최종 이름을 확정한다.
+     */
+    private Workspace createWorkspace(LlmTreeDTO llmTree) {
+        Workspace workspace = Workspace.builder()
+            .name("tmp-" + UUID.randomUUID().toString().substring(0, 8))
+            .build();
+        workspaceRepository.save(workspace);
+
+        workspace.updateName(buildWorkspaceName(llmTree, workspace.getId()));
+        return workspace;
+    }
+
+    private String buildWorkspaceName(LlmTreeDTO llmTree, Long workspaceId) {
+        String rootName = llmTree.nodes().stream()
+            .filter(node -> node.parentTempId() == null)
+            .map(LlmNode::name)
+            .findFirst()
+            .orElse(DEFAULT_WORKSPACE_BASE_NAME);
+
+        String suffix = " #" + workspaceId;
+        int maxBaseLength = WORKSPACE_NAME_MAX_LENGTH - suffix.length();
+        String base = rootName.length() > maxBaseLength ? rootName.substring(0, maxBaseLength) : rootName;
+        return base + suffix;
     }
 }
