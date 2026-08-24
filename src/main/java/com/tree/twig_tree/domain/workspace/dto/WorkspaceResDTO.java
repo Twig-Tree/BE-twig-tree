@@ -13,6 +13,7 @@ public class WorkspaceResDTO {
     public record GetWorkspace (
             Long workspaceId,
             String name,
-            Long folderId
+            Long folderId,
+            Long treeId
     ){}
 }
