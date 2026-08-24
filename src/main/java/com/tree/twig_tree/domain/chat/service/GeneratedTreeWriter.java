@@ -91,6 +91,7 @@ public class GeneratedTreeWriter {
 
         return TreeGenResDTO.builder()
             .treeId(tree.getId())
+            .workspaceId(workspace.getId())
             .nodes(resNodes)
             .build();
     }

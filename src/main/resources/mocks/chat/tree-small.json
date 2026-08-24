@@ -1,5 +1,6 @@
 {
   "treeId": 12,
+  "workspaceId": 12,
   "nodes": [
     { "nodeId": 1, "name": "컴퓨터 사이언스", "memo": "전공 기초 개념 묶음",         "parentId": null, "orderId": 1 },
     { "nodeId": 2, "name": "자료구조",       "memo": "데이터를 조직하고 저장하는 방법", "parentId": 1, "orderId": 1 },

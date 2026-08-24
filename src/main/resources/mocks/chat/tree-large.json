@@ -1,5 +1,6 @@
 {
   "treeId": 34,
+  "workspaceId": 34,
   "nodes": [
     { "nodeId": 51, "name": "컴퓨터 사이언스", "memo": "전공 기초 영역 전체",         "parentId": null, "orderId": 1 },
 
