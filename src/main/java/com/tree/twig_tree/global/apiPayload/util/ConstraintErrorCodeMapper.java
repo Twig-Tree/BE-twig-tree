@@ -2,6 +2,7 @@ package com.tree.twig_tree.global.apiPayload.util;
 
 import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
+import com.tree.twig_tree.domain.tree.exception.code.TreeErrorCode;
 import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
@@ -21,7 +22,8 @@ public final class ConstraintErrorCodeMapper {
             "uk_folder_root_name", FolderErrorCode.DUPLICATE_FOLDER_NAME,
             "uk_folder_parent_name", FolderErrorCode.DUPLICATE_FOLDER_NAME,
             "uk_workspace_root_name", WorkspaceErrorCode.DUPLICATE_WORKSPACE_NAME,
-            "uk_workspace_folder_name", WorkspaceErrorCode.DUPLICATE_WORKSPACE_NAME
+            "uk_workspace_folder_name", WorkspaceErrorCode.DUPLICATE_WORKSPACE_NAME,
+            "uk_trees_workspace", TreeErrorCode.TREE_ALREADY_EXISTS
             // 새 도메인 제약조건 추가될 때 여기만 추가
     );
 
