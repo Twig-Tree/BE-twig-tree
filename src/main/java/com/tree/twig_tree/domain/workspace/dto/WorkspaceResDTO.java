@@ -2,6 +2,8 @@ package com.tree.twig_tree.domain.workspace.dto;
 
 import lombok.Builder;
 
+import java.time.LocalDateTime;
+
 public class WorkspaceResDTO {
 
     @Builder
@@ -14,6 +16,7 @@ public class WorkspaceResDTO {
             Long workspaceId,
             String name,
             Long folderId,
-            Long treeId
+            Long treeId,
+            LocalDateTime updatedAt
     ){}
 }

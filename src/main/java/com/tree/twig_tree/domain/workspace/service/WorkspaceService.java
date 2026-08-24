@@ -43,9 +43,9 @@ public class WorkspaceService {
 
         List<Workspace> workspaceList;
         if (folderId == null) {
-            workspaceList = workspaceRepository.findAllByFolderIsNull();
+            workspaceList = workspaceRepository.findAllByFolderIsNullOrderByUpdatedAtDesc();
         } else {
-            workspaceList = workspaceRepository.findAllByFolder_Id(folderId);
+            workspaceList = workspaceRepository.findAllByFolder_IdOrderByUpdatedAtDesc(folderId);
         }
 
         Map<Long, Long> treeIdByWorkspaceId = treeRepository.findAllByWorkspaceIn(workspaceList).stream()
@@ -103,6 +103,7 @@ public class WorkspaceService {
         Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
 
         workspace.updateName(name);
+        workspaceRepository.flush();
 
         Long treeId = treeRepository.findByWorkspace(workspace).map(Tree::getId).orElse(null);
 

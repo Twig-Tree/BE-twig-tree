@@ -20,6 +20,7 @@ public class WorkspaceConverter {
                 .workspaceId(workspace.getId())
                 .name(workspace.getName())
                 .folderId(workspace.getFolder() != null ? workspace.getFolder().getId() : null)
+                .updatedAt(workspace.getUpdatedAt())
                 .treeId(treeId)
                 .build();
     }

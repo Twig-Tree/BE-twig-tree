@@ -24,11 +24,11 @@ public class WorkspaceController {
     private final WorkspaceService workspaceService;
 
     /**
-     * 특정 폴더 내 워크스페이스 목록 조회
+     * 특정 폴더 내 워크스페이스 목록 조회 (최신순)
      * @param folderId (null 가능) 이 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.
      * @return
      */
-    @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.<br>"
+    @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 updatedAt 기준 최신순으로 조회합니다.<br>"
             + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getWorkspaces(
