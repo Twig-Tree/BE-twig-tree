@@ -11,11 +11,16 @@ DO $$
 DECLARE
     orphan_tree RECORD;
     new_workspace_id BIGINT;
+    base_name TEXT;
 BEGIN
     FOR orphan_tree IN SELECT tree_id FROM trees WHERE workspace_id IS NULL LOOP
-        -- 최상위 워크스페이스는 이름이 유니크해야 하므로 tree_id를 붙여 충돌을 피한다.
+        -- 최상위 워크스페이스는 이름이 유니크해야 한다(uk_workspace_root_name).
+        -- tree_id만으로는 사용자가 이미 같은 이름의 워크스페이스를 만들어뒀을 경우 충돌할 수 있으므로,
+        -- 랜덤 접미사를 붙여 충돌 가능성을 사실상 없앤다.
+        base_name := left('Untitled #' || orphan_tree.tree_id, 18);
+
         INSERT INTO workspaces (name)
-        VALUES ('Untitled #' || orphan_tree.tree_id)
+        VALUES (base_name || '-' || substr(md5(random()::text || clock_timestamp()::text), 1, 10))
         RETURNING workspace_id INTO new_workspace_id;
 
         UPDATE trees SET workspace_id = new_workspace_id WHERE tree_id = orphan_tree.tree_id;
