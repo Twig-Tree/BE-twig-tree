@@ -1,6 +1,7 @@
 # 백엔드 로컬 실행 가이드
 
 Docker만 설치돼 있으면 됩니다. Java/Gradle 설치는 필요 없습니다.
+(아래 **방법 B**로 앱을 직접 실행할 때만 Java 17이 추가로 필요합니다. 백엔드 개발자용입니다.)
 
 ## 1. 사전 준비
 
@@ -15,7 +16,13 @@ git checkout develop
 
 ## 2. 환경변수 파일 만들기
 
-프로젝트 루트(`compose.yaml`이 있는 위치)에 `.env` 파일을 만들고 아래 4개 값을 채웁니다.
+프로젝트 루트(`compose.yaml`이 있는 위치)에서 템플릿을 복사합니다.
+
+```bash
+cp .env.example .env
+```
+
+그다음 아래 4개 값을 채웁니다. 나머지 항목은 기본값 그대로 두면 됩니다.
 **실제 값은 백엔드 팀원에게 받아주세요. 이 파일은 절대 커밋하지 마세요(.gitignore에 이미 등록됨).**
 
 ```env
@@ -25,7 +32,17 @@ GOOGLE_CLIENT_IDS=<백엔드팀에게 받기>
 OPENAI_API_KEY=<백엔드팀에게 받기>
 ```
 
+값에 `#`가 들어가면 따옴표로 감싸세요. 공백 뒤의 `#`부터는 주석으로 잘립니다(`docker compose`와 `bootRun` 모두 동일). 비밀번호에 `#`가 있는 경우가 흔하니 주의하세요.
+
+```env
+DB_PASSWORD="p@ss #1"
+```
+
 ## 3. 실행
+
+방법이 두 가지입니다. 프론트 개발자나 서버만 띄우면 되는 분은 **방법 A**만 보시면 됩니다.
+
+### 방법 A. 전부 Docker로 (기본)
 
 ```bash
 docker compose up --build
@@ -41,6 +58,27 @@ docker compose up --build
 
 - 첫 실행은 Gradle 빌드 때문에 몇 분 걸립니다. 이후엔 캐시로 빨라집니다.
 - DB 테이블은 Flyway 마이그레이션으로 자동 생성되므로 따로 만질 것 없습니다.
+
+### 방법 B. DB/Redis만 Docker, 앱은 직접 실행 (백엔드 개발자용)
+
+앱 코드를 자주 고칠 때는 매번 이미지를 다시 빌드하는 게 느립니다. 이럴 땐 DB/Redis만 컨테이너로 띄우고 앱은 Gradle로 실행하세요. **Java 17**이 필요합니다.
+
+```bash
+docker compose up -d db redis
+```
+
+```bash
+./gradlew bootRun
+```
+
+`build.gradle`이 루트의 `.env`를 자동으로 찾아 주입하므로, IDE 실행 설정에 환경변수를 손으로 넣을 필요가 없습니다.
+
+- 이 방법은 `.env`에 `DB_URL`, `DB_USERNAME`까지 있어야 합니다. `.env.example`을 복사했다면 기본값 그대로 두면 됩니다.
+- 내 로컬에서만 값을 바꾸고 싶으면 `.env.local`을 만드세요. `.env`보다 우선하고 커밋되지 않습니다.
+- 셸 환경변수가 `.env`보다 항상 우선합니다. 한 번만 다르게 띄우려면 이렇게 쓰세요.
+  ```bash
+  DB_URL=jdbc:postgresql://localhost:5433/twigtree-db ./gradlew bootRun
+  ```
 
 ## 4. 실행 확인
 
@@ -71,3 +109,5 @@ docker compose down -v
 - **포트 충돌 (5432 / 6379 / 8080 already in use)**: 로컬에 이미 PostgreSQL/Redis/다른 서버가 떠 있는 경우입니다. 해당 프로그램을 종료하고 다시 실행하세요.
 - **app 컨테이너가 바로 죽음**: `.env`의 3개 값이 모두 채워져 있는지 확인하세요. 로그는 `docker compose logs app`으로 볼 수 있습니다.
 - **코드가 바뀌었는데 반영이 안 됨**: 최신 코드를 pull 받은 뒤 `docker compose up --build`로 다시 빌드해야 합니다(`--build` 없이 up만 하면 이전 이미지 그대로 실행됨).
+- **(방법 B) `Illegal base64 character` 등 엉뚱한 메시지로 부팅 실패**: 십중팔구 `.env`가 없거나 값이 비어 있는 경우입니다. 값이 비면 Spring이 `${JWT_SECRET}` 같은 문자열을 그대로 넘겨서 원인과 무관한 에러가 납니다. 실행 로그 맨 위의 `[env]` 경고 줄을 먼저 보세요. 어떤 키가 비었는지 찍어줍니다.
+- **(방법 B) `Connection to localhost:5432 refused`**: DB 컨테이너가 안 떠 있는 경우입니다. `docker compose up -d db redis`로 먼저 띄우세요.
