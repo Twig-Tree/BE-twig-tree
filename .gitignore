@@ -39,5 +39,6 @@ out/
 ## mac os
 .DS_Store
 
-## 환경파일
+## 환경파일 (.env.example 은 템플릿이므로 커밋한다)
 .env
+.env.local
