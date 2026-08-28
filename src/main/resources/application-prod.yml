@@ -1,0 +1,13 @@
+# 배포 환경 오버라이드. compose.prod.yaml 이 SPRING_PROFILES_ACTIVE=prod 로 활성화한다.
+# 개발용 SQL 로깅은 1GB 인스턴스에서 디스크와 CPU를 모두 갉아먹으므로 끈다.
+
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    org.hibernate.orm.jdbc.bind: info

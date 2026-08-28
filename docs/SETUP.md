@@ -107,7 +107,11 @@ docker compose down -v
 ## 자주 겪는 문제
 
 - **포트 충돌 (5432 / 6379 / 8080 already in use)**: 로컬에 이미 PostgreSQL/Redis/다른 서버가 떠 있는 경우입니다. 해당 프로그램을 종료하고 다시 실행하세요.
-- **app 컨테이너가 바로 죽음**: `.env`의 3개 값이 모두 채워져 있는지 확인하세요. 로그는 `docker compose logs app`으로 볼 수 있습니다.
+- **app 컨테이너가 바로 죽음**: `.env`의 4개 값이 모두 채워져 있는지 확인하세요. 로그는 `docker compose logs app`으로 볼 수 있습니다.
 - **코드가 바뀌었는데 반영이 안 됨**: 최신 코드를 pull 받은 뒤 `docker compose up --build`로 다시 빌드해야 합니다(`--build` 없이 up만 하면 이전 이미지 그대로 실행됨).
 - **(방법 B) `Illegal base64 character` 등 엉뚱한 메시지로 부팅 실패**: 십중팔구 `.env`가 없거나 값이 비어 있는 경우입니다. 값이 비면 Spring이 `${JWT_SECRET}` 같은 문자열을 그대로 넘겨서 원인과 무관한 에러가 납니다. 실행 로그 맨 위의 `[env]` 경고 줄을 먼저 보세요. 어떤 키가 비었는지 찍어줍니다.
 - **(방법 B) `Connection to localhost:5432 refused`**: DB 컨테이너가 안 떠 있는 경우입니다. `docker compose up -d db redis`로 먼저 띄우세요.
+
+## 배포
+
+OCI 인스턴스 배포 절차는 [DEPLOY.md](DEPLOY.md)를 참고하세요. 로컬 실행과는 다른 compose 파일 조합을 사용합니다.

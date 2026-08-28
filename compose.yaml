@@ -3,8 +3,6 @@ name: twigtree
 services:
   db:
     image: postgres:16
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: twigtree-db
       POSTGRES_USER: twigtree123
@@ -21,8 +19,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
