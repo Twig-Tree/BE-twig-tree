@@ -24,8 +24,8 @@ public class TreeService {
     private final TreeRepository treeRepository;
     private final WorkspaceRepository workspaceRepository;
 
+    // TODO: 사용자가 생성한 모든 트리만 조회하도록 제한
     /**
-     * @TODO: 사용자가 생성한 모든 트리만 조회하도록 제한
      * 모든 트리 조회
      * @return List<Tree>
      */
