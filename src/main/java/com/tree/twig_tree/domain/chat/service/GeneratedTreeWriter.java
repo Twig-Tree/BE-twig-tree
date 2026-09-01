@@ -3,6 +3,8 @@ package com.tree.twig_tree.domain.chat.service;
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO;
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO.LlmNode;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
+import com.tree.twig_tree.domain.chat.exception.ChatException;
+import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
 import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
@@ -10,6 +12,8 @@ import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +31,7 @@ import java.util.UUID;
  * <p>부모가 먼저 persist 되어야 자식의 FK(parent_id)가 잡히므로, 루트부터 BFS 순서로 저장한다.
  * LLM 호출은 이 트랜잭션 밖에서 이뤄지도록 오케스트레이션(ChatService)에서 분리한다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeneratedTreeWriter {
@@ -38,8 +43,22 @@ public class GeneratedTreeWriter {
     private final NodeRepository nodeRepository;
     private final WorkspaceRepository workspaceRepository;
 
+    /**
+     * LLM 호출이 이미 끝난 뒤(=비용이 이미 발생한 뒤) 호출되므로, 저장 과정에서 나는
+     * DB 제약조건 위반(예: 워크스페이스 이름 충돌)이 워크스페이스/트리 도메인 에러코드로 그대로
+     * 새 나가지 않도록 채팅 도메인 에러로 감싼다. 프론트가 "트리 생성 요청"의 에러로 해석할 수 있게 하기 위함.
+     */
     @Transactional
     public TreeGenResDTO save(LlmTreeDTO llmTree) {
+        try {
+            return doSave(llmTree);
+        } catch (DataIntegrityViolationException e) {
+            log.error("생성된 트리 저장 실패", e);
+            throw new ChatException(ChatErrorCode.TREE_SAVE_FAILED);
+        }
+    }
+
+    private TreeGenResDTO doSave(LlmTreeDTO llmTree) {
         Workspace workspace = createWorkspace(llmTree);
         Tree tree = treeRepository.save(Tree.builder().workspace(workspace).build());
 
@@ -112,6 +131,8 @@ public class GeneratedTreeWriter {
         return workspace;
     }
 
+    // workspaceId만으로는 사용자가 우연히 똑같은 문자열(예: "자료구조 #12")로 워크스페이스를
+    // 직접 만들어뒀을 때 충돌할 수 있으므로, 랜덤 접미사를 더해 사실상 충돌을 없앤다.
     private String buildWorkspaceName(LlmTreeDTO llmTree, Long workspaceId) {
         String rootName = llmTree.nodes().stream()
             .filter(node -> node.parentTempId() == null)
@@ -119,7 +140,7 @@ public class GeneratedTreeWriter {
             .findFirst()
             .orElse(DEFAULT_WORKSPACE_BASE_NAME);
 
-        String suffix = " #" + workspaceId;
+        String suffix = " #" + workspaceId + "-" + UUID.randomUUID().toString().substring(0, 6);
         int maxBaseLength = WORKSPACE_NAME_MAX_LENGTH - suffix.length();
         String base = rootName.length() > maxBaseLength ? rootName.substring(0, maxBaseLength) : rootName;
         return base + suffix;
