@@ -131,8 +131,6 @@ public class GeneratedTreeWriter {
         return workspace;
     }
 
-    // workspaceId만으로는 사용자가 우연히 똑같은 문자열(예: "자료구조 #12")로 워크스페이스를
-    // 직접 만들어뒀을 때 충돌할 수 있으므로, 랜덤 접미사를 더해 사실상 충돌을 없앤다.
     private String buildWorkspaceName(LlmTreeDTO llmTree, Long workspaceId) {
         String rootName = llmTree.nodes().stream()
             .filter(node -> node.parentTempId() == null)
@@ -140,7 +138,7 @@ public class GeneratedTreeWriter {
             .findFirst()
             .orElse(DEFAULT_WORKSPACE_BASE_NAME);
 
-        String suffix = " #" + workspaceId + "-" + UUID.randomUUID().toString().substring(0, 6);
+        String suffix = " #" + workspaceId;
         int maxBaseLength = WORKSPACE_NAME_MAX_LENGTH - suffix.length();
         String base = rootName.length() > maxBaseLength ? rootName.substring(0, maxBaseLength) : rootName;
         return base + suffix;
