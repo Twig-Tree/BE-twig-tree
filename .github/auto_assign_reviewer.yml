@@ -1,0 +1,11 @@
+# PR 작성자는 리뷰어 후보에서 자동 제외됩니다.
+addReviewers: true
+addAssignees: false
+
+# 리뷰어 후보 목록
+reviewers:
+  - sophia22001
+  - Emithen
+
+# 몇 명을 배정할지
+numberOfReviewers: 1
