@@ -34,11 +34,18 @@ jobs:
             if (!type) return;
 
             const prefix = `[${type}]`;
-            if (title.startsWith(prefix)) return; // 이미 붙어있으면 중복 방지
+
+            // 제목에 이미 타입 prefix가 붙어있으면(브랜치와 다른 타입이어도) 떼어낸다.
+            // 같은 타입이면 그대로 종료, 다른 타입이면 교체해서 [Fix] [Feat] ... 처럼 중첩되지 않게 한다.
+            const existingPrefixPattern = new RegExp(`^\\[(${Object.values(typeMap).join('|')})\\]\\s*`);
+            const existingMatch = title.match(existingPrefixPattern);
+            if (existingMatch && existingMatch[1] === type) return;
+
+            const bareTitle = existingMatch ? title.slice(existingMatch[0].length) : title;
 
             await github.rest.pulls.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
-              title: `${prefix} ${title}`
+              title: `${prefix} ${bareTitle}`
             });
