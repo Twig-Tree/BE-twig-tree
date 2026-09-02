@@ -1,6 +1,7 @@
 package com.tree.twig_tree.domain.workspace.entity;
 
 import com.tree.twig_tree.domain.folder.entity.Folder;
+import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -27,6 +28,10 @@ public class Workspace extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "folder_id", nullable = true)
     private Folder folder;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
     /**
      * 기본 메서드

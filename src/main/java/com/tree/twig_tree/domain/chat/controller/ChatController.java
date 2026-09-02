@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,6 +65,7 @@ public class ChatController {
     )
     @PostMapping
     public ResponseEntity<ApiResponse<Object>> generateTree(
+        @AuthenticationPrincipal Long memberId,
         @RequestBody(required = false) @Valid ChatReqDTO req,
         @Parameter(
             description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않고 mock 트리를 반환합니다.",
@@ -75,7 +77,7 @@ public class ChatController {
             return mockResponse(mock);
         }
 
-        TreeGenResDTO tree = chatService.generateTree(req);
+        TreeGenResDTO tree = chatService.generateTree(memberId, req);
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
     }
 
@@ -105,6 +107,8 @@ public class ChatController {
     )
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Object>> generateTreeFromFile(
+        @AuthenticationPrincipal Long memberId,
+
         @Parameter(description = "(선택) txt, md, pdf, docx, hwp, hwpx 파일")
         @RequestPart(value = "file", required = false) MultipartFile file,
 
@@ -121,7 +125,7 @@ public class ChatController {
             return mockResponse(mock);
         }
 
-        TreeGenResDTO tree = chatService.generateTree(provider, message, file);
+        TreeGenResDTO tree = chatService.generateTree(memberId, provider, message, file);
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
     }
 

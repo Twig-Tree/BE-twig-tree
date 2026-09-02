@@ -40,12 +40,12 @@ public class ChatService {
     private final GeneratedTreeWriter generatedTreeWriter;
     private final DocumentTextExtractor documentTextExtractor;
 
-    public TreeGenResDTO generateTree(ChatReqDTO req) {
+    public TreeGenResDTO generateTree(Long memberId, ChatReqDTO req) {
         if (req == null || req.message() == null || req.message().isBlank()) {
             throw new ChatException(ChatErrorCode.EMPTY_MESSAGE);
         }
 
-        return generate(req.provider(), TreePrompt.userMessage(req.message(), null));
+        return generate(memberId, req.provider(), TreePrompt.userMessage(req.message(), null));
     }
 
     /**
@@ -57,7 +57,7 @@ public class ChatService {
      * @param message  사용자 지시문 (선택)
      * @param file     업로드 파일 (선택)
      */
-    public TreeGenResDTO generateTree(LlmProvider provider, String message, MultipartFile file) {
+    public TreeGenResDTO generateTree(Long memberId, LlmProvider provider, String message, MultipartFile file) {
         boolean hasMessage = message != null && !message.isBlank();
         boolean hasFile = file != null && !file.isEmpty();
 
@@ -74,17 +74,17 @@ public class ChatService {
         // 파일 검증을 LLM 호출 전에 끝내, 잘못된 입력으로 비용이 발생하지 않게 한다.
         String documentText = hasFile ? documentTextExtractor.extract(file) : null;
 
-        return generate(provider, TreePrompt.userMessage(message, documentText));
+        return generate(memberId, provider, TreePrompt.userMessage(message, documentText));
     }
 
-    private TreeGenResDTO generate(LlmProvider provider, String userMessage) {
+    private TreeGenResDTO generate(Long memberId, LlmProvider provider, String userMessage) {
         LlmClient client = resolveClient(provider);
 
         String json = callLlm(client, userMessage);
         LlmTreeDTO parsed = parse(json);
         treeValidator.validate(parsed);
 
-        return generatedTreeWriter.save(parsed);
+        return generatedTreeWriter.save(memberId, parsed);
     }
 
     private LlmClient resolveClient(LlmProvider provider) {

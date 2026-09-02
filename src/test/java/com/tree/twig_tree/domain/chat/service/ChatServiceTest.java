@@ -30,6 +30,8 @@ import static org.mockito.Mockito.when;
 
 class ChatServiceTest {
 
+    private static final Long MEMBER_ID = 1L;
+
     private LlmClient openAiClient;
     private TreeValidator treeValidator;
     private GeneratedTreeWriter writer;
@@ -60,14 +62,14 @@ class ChatServiceTest {
     @Test
     @DisplayName("메시지가 비어 있으면 EMPTY_MESSAGE")
     void emptyMessage() {
-        assertError(() -> chatService.generateTree(req("  ", LlmProvider.OPENAI)),
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("  ", LlmProvider.OPENAI)),
             ChatErrorCode.EMPTY_MESSAGE);
     }
 
     @Test
     @DisplayName("지원하지 않는 provider 면 UNSUPPORTED_PROVIDER")
     void unsupportedProvider() {
-        assertError(() -> chatService.generateTree(req("트리 만들어줘", LlmProvider.OLLAMA)),
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OLLAMA)),
             ChatErrorCode.UNSUPPORTED_PROVIDER);
     }
 
@@ -76,7 +78,7 @@ class ChatServiceTest {
     void invalidJson() {
         when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(Mono.just("이건 JSON 이 아님"));
 
-        assertError(() -> chatService.generateTree(req("트리 만들어줘", LlmProvider.OPENAI)),
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OPENAI)),
             ChatErrorCode.LLM_RESPONSE_INVALID);
     }
 
@@ -88,7 +90,7 @@ class ChatServiceTest {
         doThrow(new ChatException(ChatErrorCode.LLM_RESPONSE_INVALID))
             .when(treeValidator).validate(org.mockito.ArgumentMatchers.any());
 
-        assertError(() -> chatService.generateTree(req("트리 만들어줘", LlmProvider.OPENAI)),
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OPENAI)),
             ChatErrorCode.LLM_RESPONSE_INVALID);
     }
 
@@ -103,9 +105,9 @@ class ChatServiceTest {
         when(openAiClient.generateTreeJson("자료구조 트리 만들어줘")).thenReturn(Mono.just(json));
 
         TreeGenResDTO expected = TreeGenResDTO.builder().treeId(42L).nodes(List.of()).build();
-        when(writer.save(org.mockito.ArgumentMatchers.any())).thenReturn(expected);
+        when(writer.save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(expected);
 
-        TreeGenResDTO result = chatService.generateTree(req("자료구조 트리 만들어줘", LlmProvider.OPENAI));
+        TreeGenResDTO result = chatService.generateTree(MEMBER_ID, req("자료구조 트리 만들어줘", LlmProvider.OPENAI));
 
         assertThat(result.treeId()).isEqualTo(42L);
     }
@@ -113,7 +115,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("메시지와 파일이 모두 없으면 INPUT_REQUIRED")
     void fileAndMessageBothMissing() {
-        assertError(() -> chatService.generateTree(LlmProvider.OPENAI, "  ", null),
+        assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, "  ", null),
             ChatErrorCode.INPUT_REQUIRED);
     }
 
@@ -123,7 +125,7 @@ class ChatServiceTest {
         stubTreeJson();
 
         TreeGenResDTO result = chatService.generateTree(
-            LlmProvider.OPENAI, null, file("note.md", "이분탐색은 정렬된 배열에서 값을 찾는 알고리즘이다."));
+            MEMBER_ID, LlmProvider.OPENAI, null, file("note.md", "이분탐색은 정렬된 배열에서 값을 찾는 알고리즘이다."));
 
         assertThat(result.treeId()).isEqualTo(42L);
         // 파일 본문과 기본 지시문이 함께 프롬프트에 실려야 한다
@@ -135,7 +137,7 @@ class ChatServiceTest {
     void fileWithInstruction() {
         stubTreeJson();
 
-        chatService.generateTree(LlmProvider.OPENAI, "3단계로 정리해줘", file("note.txt", "트리 자료구조 정리"));
+        chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, "3단계로 정리해줘", file("note.txt", "트리 자료구조 정리"));
 
         assertThat(capturedPrompt())
             .contains("트리 자료구조 정리")
@@ -147,7 +149,7 @@ class ChatServiceTest {
     void fileMessageTooLong() {
         String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
 
-        assertError(() -> chatService.generateTree(LlmProvider.OPENAI, tooLong, file("note.md", "본문")),
+        assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, tooLong, file("note.md", "본문")),
             ChatErrorCode.MESSAGE_TOO_LONG);
 
         verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
@@ -159,7 +161,7 @@ class ChatServiceTest {
         stubTreeJson();
 
         TreeGenResDTO result = chatService.generateTree(
-            LlmProvider.OPENAI, "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH), file("note.md", "본문"));
+            MEMBER_ID, LlmProvider.OPENAI, "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH), file("note.md", "본문"));
 
         assertThat(result.treeId()).isEqualTo(42L);
     }
@@ -167,14 +169,14 @@ class ChatServiceTest {
     @Test
     @DisplayName("지원하지 않는 확장자면 UNSUPPORTED_FILE_TYPE")
     void unsupportedExtension() {
-        assertError(() -> chatService.generateTree(LlmProvider.OPENAI, null, file("report.pdf", "내용")),
+        assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, null, file("report.pdf", "내용")),
             ChatErrorCode.UNSUPPORTED_FILE_TYPE);
     }
 
     @Test
     @DisplayName("파일 검증 실패 시 LLM 을 호출하지 않는다")
     void invalidFileDoesNotCallLlm() {
-        assertError(() -> chatService.generateTree(LlmProvider.OPENAI, null, file("a.exe", "내용")),
+        assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, null, file("a.exe", "내용")),
             ChatErrorCode.UNSUPPORTED_FILE_TYPE);
 
         verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
@@ -186,7 +188,7 @@ class ChatServiceTest {
             """;
         when(openAiClient.generateTreeJson(org.mockito.ArgumentMatchers.anyString()))
             .thenReturn(Mono.just(json));
-        when(writer.save(org.mockito.ArgumentMatchers.any()))
+        when(writer.save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
             .thenReturn(TreeGenResDTO.builder().treeId(42L).nodes(List.of()).build());
     }
 
