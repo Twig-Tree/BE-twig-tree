@@ -4,6 +4,7 @@ import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO;
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO.LlmNode;
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
+import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
@@ -36,10 +37,12 @@ class GeneratedTreeWriterCollisionTest {
     private NodeRepository nodeRepository;
     @Mock
     private WorkspaceRepository workspaceRepository;
+    @Mock
+    private MemberService memberService;
 
     @Test
     void 워크스페이스_저장중_제약조건_위반이_TREE_SAVE_FAILED로_변환된다() {
-        GeneratedTreeWriter writer = new GeneratedTreeWriter(treeRepository, nodeRepository, workspaceRepository);
+        GeneratedTreeWriter writer = new GeneratedTreeWriter(treeRepository, nodeRepository, workspaceRepository, memberService);
 
         when(workspaceRepository.save(any(Workspace.class)))
             .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint \"uk_workspace_root_name\""));
@@ -48,7 +51,7 @@ class GeneratedTreeWriterCollisionTest {
             new LlmNode(1L, "루트", null, null, 1L)
         ));
 
-        assertThatThrownBy(() -> writer.save(tree))
+        assertThatThrownBy(() -> writer.save(1L, tree))
             .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(ChatException.class))
             .extracting(ChatException::getErrorCode)
             .isEqualTo(ChatErrorCode.TREE_SAVE_FAILED);
