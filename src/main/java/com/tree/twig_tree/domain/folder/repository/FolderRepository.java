@@ -13,10 +13,10 @@ import java.util.Optional;
 @Repository
 public interface FolderRepository extends JpaRepository<Folder, Long> {
     // null이 아닌 어떤 parent_id를 갖는 폴더들 조회
-    List<Folder> findAllByParent(Folder parent);
+    List<Folder> findAllByParentAndMember_Id(Folder parent, Long member_id);
 
     // 최상위 루트에 있는 폴더들 조회
-    List<Folder> findAllByParentIsNull();
+    List<Folder> findAllByParentIsNullAndMember_Id(Long memberId);
 
     // 해당 폴더 (자신 포함) + 상위 폴더들 목록을 한번에 조회
     @Query(value = """

@@ -8,6 +8,8 @@ import com.tree.twig_tree.domain.folder.entity.Folder;
 import com.tree.twig_tree.domain.folder.exception.FolderException;
 import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.folder.repository.FolderRepository;
+import com.tree.twig_tree.domain.member.entity.Member;
+import com.tree.twig_tree.domain.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import java.util.List;
 public class FolderService {
 
     private final FolderRepository folderRepository;
+    private final MemberService memberService;
 
     /**
      * 폴더 상위 경로 목록 조회
@@ -45,11 +48,11 @@ public class FolderService {
     public List<FolderResDTO.GetFolder> getFolders(Long memberId, Long folderParentId) {
         List<Folder> folders;
         if (folderParentId == null) {
-            folders = folderRepository.findAllByParentIsNull();
+            folders = folderRepository.findAllByParentIsNullAndMember_Id(memberId);
         } else {
             Folder parent = folderRepository.findById(folderParentId).orElseThrow(()->new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
             validateFolderOwner(memberId, parent);
-            folders = folderRepository.findAllByParent(parent);
+            folders = folderRepository.findAllByParentAndMember_Id(parent, memberId);
         }
 
         return FolderConverter.toGetFolders(folders);
@@ -61,16 +64,20 @@ public class FolderService {
      * @return
      */
     @Transactional
-    public FolderResDTO.GetFolder createFolder(FolderReqDTO.CreateFolder dto) {
+    public FolderResDTO.GetFolder createFolder(Long memberId, FolderReqDTO.CreateFolder dto) {
 
         Folder parent = null;
         if (dto.folderParentId() != null) {
             parent = folderRepository.findById(dto.folderParentId()).orElseThrow(() -> new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
+            validateFolderOwner(memberId, parent);
         }
+
+        Member member = memberService.getById(memberId);
 
         Folder newFolder = Folder.builder()
                 .parent(parent)
                 .name(dto.name())
+                .member(member)
                 .build();
 
         folderRepository.save(newFolder);
@@ -127,7 +134,7 @@ public class FolderService {
     }
 
     private void validateFolderOwner(Long memberId, Folder folder) {
-        if (folder.getMember().getId().equals(memberId)) {
+        if (!folder.getMember().getId().equals(memberId)) {
             throw new FolderException(FolderErrorCode.FOLDER_ACCESS_DENIED);
         }
     }

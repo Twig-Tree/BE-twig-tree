@@ -43,8 +43,8 @@ public class Folder extends BaseEntity {
     @Builder.Default
     private List<Workspace> workspaces = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
     /**

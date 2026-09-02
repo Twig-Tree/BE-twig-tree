@@ -69,10 +69,11 @@ public class FolderController {
     )
     @PostMapping
     public ResponseEntity<ApiResponse<FolderResDTO.GetFolder>> createFolder(
+            @AuthenticationPrincipal Long memberId,
             @RequestBody @Valid FolderReqDTO.CreateFolder dto
     ) {
         BaseSuccessCode code = FolderSuccessCode.FOLDER_CREATED;
-        return ApiResponse.onSuccess(code, folderService.createFolder(dto));
+        return ApiResponse.onSuccess(code, folderService.createFolder(memberId, dto));
     }
 
     @Operation(summary = "폴더 조회", description = "")
