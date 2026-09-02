@@ -24,7 +24,7 @@ public class WorkspaceController {
     private final WorkspaceService workspaceService;
 
     /**
-     * 모든 워크스페이스 목록 최신순 조회 (특정 폴더 기준 아님)
+     * 전체 워크스페이스 목록 최신순 조회 (특정 폴더 기준 아님)
      * Recent 탭, Dashboard 탭의 최신 목록에서 사용됩니다.
      * @return
      */
