@@ -1,16 +1,16 @@
-feature:
+"✨ feature":
   - head-branch: ['^feat/']
 
-bugfix:
+"🐛 bug/error":
   - head-branch: ['^fix/']
 
-refactor:
+"♻️ refactor":
   - head-branch: ['^refactor/']
 
-chore:
+"⚙️ chore":
   - head-branch: ['^chore/']
 
-docs:
+"📝 documentation":
   - head-branch: ['^docs/']
 
 hotfix:
