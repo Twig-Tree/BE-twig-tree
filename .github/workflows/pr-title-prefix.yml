@@ -1,0 +1,44 @@
+name: Auto Prefix PR Title
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  prefix-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add type prefix to PR title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const title = context.payload.pull_request.title;
+
+            const typeMap = {
+              feat: 'Feat',
+              fix: 'Fix',
+              refactor: 'Refactor',
+              chore: 'Chore',
+              docs: 'Docs',
+              hotfix: 'Hotfix',
+              test: 'Test'
+            };
+
+            const match = branch.match(/^([a-z]+)\//);
+            if (!match) return;
+
+            const type = typeMap[match[1]];
+            if (!type) return;
+
+            const prefix = `[${type}]`;
+            if (title.startsWith(prefix)) return; // 이미 붙어있으면 중복 방지
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              title: `${prefix} ${title}`
+            });
