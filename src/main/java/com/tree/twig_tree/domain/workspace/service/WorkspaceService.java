@@ -36,9 +36,8 @@ public class WorkspaceService {
      * @return
      */
     public List<WorkspaceResDTO.GetWorkspace> getWorkspaces(Long folderId) {
-
-        if (folderId != null && !folderRepository.existsById(folderId)) {
-            throw new FolderException(FolderErrorCode.FOLDER_NOT_FOUND);
+        if (folderId != null) {
+            validateFolder(folderId);
         }
 
         List<Workspace> workspaceList;
@@ -61,11 +60,10 @@ public class WorkspaceService {
      */
     @Transactional
     public WorkspaceResDTO.GetWorkspace createWorkspace(WorkspaceReqDTO.CreateWorkspace dto) {
-
-        // 폴더가 있는지 확인
+        // 워크스페이스를 생성할 폴더 위치가 있는지 확인
         Folder folder = null;
         if (dto.folderId() != null) {
-            folder = folderRepository.findById(dto.folderId()).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+            folder = validateFolder(dto.folderId());
         }
 
         Workspace workspace = Workspace.builder()
@@ -85,8 +83,7 @@ public class WorkspaceService {
      * @return
      */
     public WorkspaceResDTO.GetWorkspace getWorkspace(Long workspaceId) {
-
-        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+        Workspace workspace = validateWorkspace(workspaceId);
 
         Long treeId = treeRepository.findByWorkspace(workspace).map(Tree::getId).orElse(null);
 
@@ -100,8 +97,7 @@ public class WorkspaceService {
      */
     @Transactional
     public WorkspaceResDTO.GetWorkspace updateWorkspace(Long workspaceId, String name) {
-        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
-
+        Workspace workspace = validateWorkspace(workspaceId);
         workspace.updateName(name);
         workspaceRepository.flush();
 
@@ -117,9 +113,20 @@ public class WorkspaceService {
      */
     @Transactional
     public Void deleteWorkspace(Long workspaceId) {
-        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
-
+        Workspace workspace = validateWorkspace(workspaceId);
         workspaceRepository.delete(workspace);
         return null;
+    }
+
+    // 검증 함수
+
+    private Workspace validateWorkspace(Long workspaceId) {
+        return workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+    }
+
+    private Folder validateFolder(Long folderId) {
+        return folderRepository.findById(folderId)
+                .orElseThrow(() -> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
     }
 }
