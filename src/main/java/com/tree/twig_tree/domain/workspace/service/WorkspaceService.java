@@ -31,11 +31,23 @@ public class WorkspaceService {
     private final TreeRepository treeRepository;
 
     /**
-     * 특정 폴더 내의 워크스페이스 목록 조회
+     * 전체 워크스페이스 최신순 조회
+     * @return
+     */
+    public List<WorkspaceResDTO.GetWorkspace> getAllWorkspaces() {
+        List<Workspace> workspaceList = workspaceRepository.findAllByOrderByUpdatedAtDesc();
+        Map<Long, Long> treeIdByWorkspaceId = treeRepository.findAllByWorkspaceIn(workspaceList).stream()
+                .collect(Collectors.toMap(tree -> tree.getWorkspace().getId(), Tree::getId));
+
+        return WorkspaceConverter.toGetWorkspaces(workspaceList ,treeIdByWorkspaceId);
+    }
+
+    /**
+     * 특정 폴더 기준 워크스페이스 목록 최신순 조회
      * @param folderId null이면 폴더에 속하지 않는 최상위 워크스페이스
      * @return
      */
-    public List<WorkspaceResDTO.GetWorkspace> getWorkspaces(Long folderId) {
+    public List<WorkspaceResDTO.GetWorkspace> getWorkspacesByFolder(Long folderId) {
 
         if (folderId != null && !folderRepository.existsById(folderId)) {
             throw new FolderException(FolderErrorCode.FOLDER_NOT_FOUND);
