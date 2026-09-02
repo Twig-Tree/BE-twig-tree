@@ -139,7 +139,7 @@ public class NodeService {
 
     private void validateNodeInTree(Node node, Long treeId) {
         if (!node.getTree().getId().equals(treeId)) {
-            throw new NodeException(NodeErrorCode.NODE_NOT_INCLUDED_IN_TREE);
+            throw new NodeException(NodeErrorCode.NODE_NOT_IN_TREE);
         }
     }
 

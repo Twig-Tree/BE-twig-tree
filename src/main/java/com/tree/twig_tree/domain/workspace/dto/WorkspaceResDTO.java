@@ -16,6 +16,7 @@ public class WorkspaceResDTO {
             Long workspaceId,
             String name,
             Long folderId,
+            Long treeId,
             LocalDateTime updatedAt
     ){}
 }

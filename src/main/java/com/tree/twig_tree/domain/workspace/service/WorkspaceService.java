@@ -4,6 +4,8 @@ import com.tree.twig_tree.domain.folder.entity.Folder;
 import com.tree.twig_tree.domain.folder.exception.FolderException;
 import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.folder.repository.FolderRepository;
+import com.tree.twig_tree.domain.tree.entity.Tree;
+import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.converter.WorkspaceConverter;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceReqDTO;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceResDTO;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +28,7 @@ public class WorkspaceService {
 
     private final FolderRepository folderRepository;
     private final WorkspaceRepository workspaceRepository;
+    private final TreeRepository treeRepository;
 
     /**
      * 특정 폴더 내의 워크스페이스 목록 조회
@@ -43,7 +48,10 @@ public class WorkspaceService {
             workspaceList = workspaceRepository.findAllByFolder_IdOrderByUpdatedAtDesc(folderId);
         }
 
-        return WorkspaceConverter.toGetWorkspaces(workspaceList);
+        Map<Long, Long> treeIdByWorkspaceId = treeRepository.findAllByWorkspaceIn(workspaceList).stream()
+                .collect(Collectors.toMap(tree -> tree.getWorkspace().getId(), Tree::getId));
+
+        return WorkspaceConverter.toGetWorkspaces(workspaceList, treeIdByWorkspaceId);
     }
 
     /**
@@ -67,7 +75,8 @@ public class WorkspaceService {
 
         workspaceRepository.save(workspace);
 
-        return WorkspaceConverter.toGetWorkspace(workspace);
+        // 생성 직후 워크스페이스에는 트리가 있을 수 없음 -> null
+        return WorkspaceConverter.toGetWorkspace(workspace, null);
     }
 
     /**
@@ -79,7 +88,9 @@ public class WorkspaceService {
 
         Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
 
-        return WorkspaceConverter.toGetWorkspace(workspace);
+        Long treeId = treeRepository.findByWorkspace(workspace).map(Tree::getId).orElse(null);
+
+        return WorkspaceConverter.toGetWorkspace(workspace, treeId);
     }
 
     /**
@@ -94,7 +105,9 @@ public class WorkspaceService {
         workspace.updateName(name);
         workspaceRepository.flush();
 
-        return WorkspaceConverter.toGetWorkspace(workspace);
+        Long treeId = treeRepository.findByWorkspace(workspace).map(Tree::getId).orElse(null);
+
+        return WorkspaceConverter.toGetWorkspace(workspace, treeId);
     }
 
     /**

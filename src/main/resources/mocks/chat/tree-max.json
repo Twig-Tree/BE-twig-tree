@@ -1,5 +1,6 @@
 {
   "treeId": 55,
+  "workspaceId": 55,
   "nodes": [
     { "nodeId": 1,   "name": "웹 개발 풀스택", "memo": "프론트엔드부터 백엔드, 인프라, 보안까지 아우르는 전체 영역", "parentId": null, "orderId": 1 },
 

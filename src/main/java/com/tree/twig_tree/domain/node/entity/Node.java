@@ -45,7 +45,7 @@ public class Node extends BaseEntity {
     @Builder.Default // @Builder 사용 시 필드 기본값이 무시되므로 초기화가 필요합니다.
     private List<Node> children = new ArrayList<>();
 
-    // Node가 연관관계의 주입입니다.
+    // Node가 연관관계의 주인입니다.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tree_id")
     private Tree tree;
