@@ -26,8 +26,9 @@ public class FolderService {
      * @param folderId
      * @return
      */
-    public FolderResDTO.FolderPathList getFoldersPath(Long folderId) {
-        validateFolder(folderId);
+    public FolderResDTO.FolderPathList getFoldersPath(Long memberId, Long folderId) {
+        Folder folder = validateFolder(folderId);
+        validateFolderOwner(memberId, folder);
 
         // 해당 폴더ID로 상위 연결된 부모의 폴더들을 찾기 // Recursive CTE로 한번에 조회
         List<FolderProjection.FolderAncestorProjection> ancestors = folderRepository.findAncestorPathRaw(folderId);
@@ -41,12 +42,13 @@ public class FolderService {
      * @param folderParentId
      * @return
      */
-    public List<FolderResDTO.GetFolder> getFolders(Long folderParentId) {
+    public List<FolderResDTO.GetFolder> getFolders(Long memberId, Long folderParentId) {
         List<Folder> folders;
         if (folderParentId == null) {
             folders = folderRepository.findAllByParentIsNull();
         } else {
             Folder parent = folderRepository.findById(folderParentId).orElseThrow(()->new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
+            validateFolderOwner(memberId, parent);
             folders = folderRepository.findAllByParent(parent);
         }
 
@@ -81,9 +83,9 @@ public class FolderService {
      * @param folderId
      * @return
      */
-    public FolderResDTO.GetFolder getFolder(Long folderId) {
-
+    public FolderResDTO.GetFolder getFolder(Long memberId, Long folderId) {
         Folder folder = validateFolder(folderId);
+        validateFolderOwner(memberId, folder);
 
         return FolderConverter.toGetFolder(folder);
     }
@@ -95,9 +97,9 @@ public class FolderService {
      * @return
      */
     @Transactional
-    public FolderResDTO.GetFolder updateFolder(Long folderId, FolderReqDTO.UpdateFolder dto) {
-
+    public FolderResDTO.GetFolder updateFolder(Long memberId, Long folderId, FolderReqDTO.UpdateFolder dto) {
         Folder folder = validateFolder(folderId);
+        validateFolderOwner(memberId, folder);
 
         folder.updateName(dto.name());
 
@@ -110,14 +112,23 @@ public class FolderService {
      * @return
      */
     @Transactional
-    public Void deleteFolder(Long folderId) {
+    public Void deleteFolder(Long memberId, Long folderId) {
         Folder folder = validateFolder(folderId);
-        folderRepository.delete(folder);
+        validateFolderOwner(memberId, folder);
 
+        folderRepository.delete(folder);
         return null;
     }
 
+    // 검증 함수
+
     private Folder validateFolder(Long folderId) {
         return folderRepository.findById(folderId).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+    }
+
+    private void validateFolderOwner(Long memberId, Folder folder) {
+        if (folder.getMember().getId().equals(memberId)) {
+            throw new FolderException(FolderErrorCode.FOLDER_ACCESS_DENIED);
+        }
     }
 }
