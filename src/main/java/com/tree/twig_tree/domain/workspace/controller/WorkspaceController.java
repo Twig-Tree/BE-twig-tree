@@ -24,18 +24,31 @@ public class WorkspaceController {
     private final WorkspaceService workspaceService;
 
     /**
-     * 특정 폴더 내 워크스페이스 목록 조회 (최신순)
+     * 전체 워크스페이스 목록 최신순 조회 (특정 폴더 기준 아님)
+     * Recent 탭, Dashboard 탭의 최신 목록에서 사용됩니다.
+     * @return
+     */
+    @Operation(summary = "전체 워크스페이스 목록 최신순 조회", description = "폴더에 속한 것과 관계없이 전체 워크스페이스 목록을 최신순으로 조회합니다.")
+    @GetMapping("/recent")
+    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getAllWorkspaces() {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
+        return ApiResponse.onSuccess(code, workspaceService.getAllWorkspaces());
+    }
+
+    /**
+     * 특정 폴더 내 워크스페이스 목록 최신순 조회
+     * Directory 탭에서 사용됩니다.
      * @param folderId (null 가능) 이 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.
      * @return
      */
-    @Operation(summary = "특정 폴더 내 워크스페이스 목록 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 updatedAt 기준 최신순으로 조회합니다.<br>"
+    @Operation(summary = "특정 폴더 기준 워크스페이스 목록 최신순 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 updatedAt 기준 최신순으로 조회합니다.<br>"
             + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getWorkspaces(
+    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getWorkspacesByFolder(
             @RequestParam(required = false) Long folderId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
-        return ApiResponse.onSuccess(code, workspaceService.getWorkspaces(folderId));
+        return ApiResponse.onSuccess(code, workspaceService.getWorkspacesByFolder(folderId));
     }
 
     /**
