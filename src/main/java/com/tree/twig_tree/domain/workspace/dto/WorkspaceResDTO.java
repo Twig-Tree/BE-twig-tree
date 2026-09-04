@@ -1,9 +1,8 @@
 package com.tree.twig_tree.domain.workspace.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class WorkspaceResDTO {
 
@@ -19,9 +18,9 @@ public class WorkspaceResDTO {
             Long folderId,
             Long treeId,
 
-            // 값 자체는 UTC 기준 LocalDateTime(서버 타임존을 UTC로 고정함, TwigTreeApplication 참고).
-            // 브라우저가 오프셋 없는 문자열을 로컬 시간대로 잘못 해석하지 않도록 'Z'를 명시적으로 붙여 내려준다.
-            @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-            LocalDateTime updatedAt
+            // 저장값은 UTC(LocalDateTime, 서버 타임존 UTC 고정 - TwigTreeApplication 참고)이며,
+            // WorkspaceConverter 에서 KST(+09:00) 오프셋을 명시한 OffsetDateTime 으로 변환해 내려준다.
+            // 예: 2026-09-04T15:00:00+09:00 (ISO-8601, 오프셋이 있어 클라이언트가 명확하게 해석 가능)
+            OffsetDateTime updatedAt
     ){}
 }
