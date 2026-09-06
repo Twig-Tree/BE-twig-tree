@@ -4,6 +4,8 @@ import com.tree.twig_tree.domain.folder.entity.Folder;
 import com.tree.twig_tree.domain.folder.exception.FolderException;
 import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.folder.repository.FolderRepository;
+import com.tree.twig_tree.domain.member.entity.Member;
+import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.converter.WorkspaceConverter;
@@ -29,13 +31,14 @@ public class WorkspaceService {
     private final FolderRepository folderRepository;
     private final WorkspaceRepository workspaceRepository;
     private final TreeRepository treeRepository;
+    private final MemberService memberService;
 
     /**
-     * 전체 워크스페이스 최신순 조회
+     * 본인 소유 전체 워크스페이스 최신순 조회
      * @return
      */
-    public List<WorkspaceResDTO.GetWorkspace> getAllWorkspaces() {
-        List<Workspace> workspaceList = workspaceRepository.findAllByOrderByUpdatedAtDesc();
+    public List<WorkspaceResDTO.GetWorkspace> getAllWorkspaces(Long memberId) {
+        List<Workspace> workspaceList = workspaceRepository.findAllByMember_IdOrderByUpdatedAtDesc(memberId);
         Map<Long, Long> treeIdByWorkspaceId = treeRepository.findAllByWorkspaceIn(workspaceList).stream()
                 .collect(Collectors.toMap(tree -> tree.getWorkspace().getId(), Tree::getId));
 
@@ -47,17 +50,17 @@ public class WorkspaceService {
      * @param folderId null이면 폴더에 속하지 않는 최상위 워크스페이스
      * @return
      */
-    public List<WorkspaceResDTO.GetWorkspace> getWorkspacesByFolder(Long folderId) {
-
-        if (folderId != null && !folderRepository.existsById(folderId)) {
-            throw new FolderException(FolderErrorCode.FOLDER_NOT_FOUND);
+    public List<WorkspaceResDTO.GetWorkspace> getWorkspacesByFolder(Long memberId, Long folderId) {
+        if (folderId != null) {
+            Folder folder = validateFolder(folderId);
+            validateFolderOwner(memberId, folder);
         }
 
         List<Workspace> workspaceList;
         if (folderId == null) {
-            workspaceList = workspaceRepository.findAllByFolderIsNullOrderByUpdatedAtDesc();
+            workspaceList = workspaceRepository.findAllByFolderIsNullAndMember_IdOrderByUpdatedAtDesc(memberId);
         } else {
-            workspaceList = workspaceRepository.findAllByFolder_IdOrderByUpdatedAtDesc(folderId);
+            workspaceList = workspaceRepository.findAllByFolder_IdAndMember_IdOrderByUpdatedAtDesc(folderId, memberId);
         }
 
         Map<Long, Long> treeIdByWorkspaceId = treeRepository.findAllByWorkspaceIn(workspaceList).stream()
@@ -72,17 +75,20 @@ public class WorkspaceService {
      * @return
      */
     @Transactional
-    public WorkspaceResDTO.GetWorkspace createWorkspace(WorkspaceReqDTO.CreateWorkspace dto) {
-
-        // 폴더가 있는지 확인
+    public WorkspaceResDTO.GetWorkspace createWorkspace(Long memberId, WorkspaceReqDTO.CreateWorkspace dto) {
+        // 워크스페이스를 생성할 폴더 위치가 있는지 확인
         Folder folder = null;
         if (dto.folderId() != null) {
-            folder = folderRepository.findById(dto.folderId()).orElseThrow(()-> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+            folder = validateFolder(dto.folderId());
+            validateFolderOwner(memberId, folder);
         }
+
+        Member member = memberService.getById(memberId);
 
         Workspace workspace = Workspace.builder()
                 .name(dto.name())
                 .folder(folder)
+                .member(member)
                 .build();
 
         workspaceRepository.save(workspace);
@@ -96,9 +102,9 @@ public class WorkspaceService {
      * @param workspaceId
      * @return
      */
-    public WorkspaceResDTO.GetWorkspace getWorkspace(Long workspaceId) {
-
-        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+    public WorkspaceResDTO.GetWorkspace getWorkspace(Long memberId, Long workspaceId) {
+        Workspace workspace = validateWorkspace(workspaceId);
+        validateWorkspaceOwner(memberId, workspace);
 
         Long treeId = treeRepository.findByWorkspace(workspace).map(Tree::getId).orElse(null);
 
@@ -111,8 +117,9 @@ public class WorkspaceService {
      * @return
      */
     @Transactional
-    public WorkspaceResDTO.GetWorkspace updateWorkspace(Long workspaceId, String name) {
-        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+    public WorkspaceResDTO.GetWorkspace updateWorkspace(Long memberId, Long workspaceId, String name) {
+        Workspace workspace = validateWorkspace(workspaceId);
+        validateWorkspaceOwner(memberId, workspace);
 
         workspace.updateName(name);
         workspaceRepository.flush();
@@ -128,10 +135,35 @@ public class WorkspaceService {
      * @return
      */
     @Transactional
-    public Void deleteWorkspace(Long workspaceId) {
-        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(()->new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+    public Void deleteWorkspace(Long memberId, Long workspaceId) {
+        Workspace workspace = validateWorkspace(workspaceId);
+        validateWorkspaceOwner(memberId, workspace);
 
         workspaceRepository.delete(workspace);
         return null;
+    }
+
+    // 검증 함수
+
+    private Workspace validateWorkspace(Long workspaceId) {
+        return workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+    }
+
+    private Folder validateFolder(Long folderId) {
+        return folderRepository.findById(folderId)
+                .orElseThrow(() -> new FolderException(FolderErrorCode.FOLDER_NOT_FOUND));
+    }
+
+    private void validateFolderOwner(Long memberId, Folder folder) {
+        if (!folder.getMember().getId().equals(memberId)) {
+            throw new FolderException(FolderErrorCode.FOLDER_ACCESS_DENIED);
+        }
+    }
+
+    private void validateWorkspaceOwner(Long memberId, Workspace workspace) {
+        if (!workspace.getMember().getId().equals(memberId)) {
+            throw new WorkspaceException(WorkspaceErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
     }
 }

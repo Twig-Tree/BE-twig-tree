@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,9 +31,11 @@ public class WorkspaceController {
      */
     @Operation(summary = "전체 워크스페이스 목록 최신순 조회", description = "폴더에 속한 것과 관계없이 전체 워크스페이스 목록을 최신순으로 조회합니다.")
     @GetMapping("/recent")
-    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getAllWorkspaces() {
+    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getAllWorkspaces(
+            @AuthenticationPrincipal Long memberId
+    ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
-        return ApiResponse.onSuccess(code, workspaceService.getAllWorkspaces());
+        return ApiResponse.onSuccess(code, workspaceService.getAllWorkspaces(memberId));
     }
 
     /**
@@ -45,10 +48,11 @@ public class WorkspaceController {
             + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getWorkspacesByFolder(
+            @AuthenticationPrincipal Long memberId,
             @RequestParam(required = false) Long folderId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
-        return ApiResponse.onSuccess(code, workspaceService.getWorkspacesByFolder(folderId));
+        return ApiResponse.onSuccess(code, workspaceService.getWorkspacesByFolder(memberId, folderId));
     }
 
     /**
@@ -59,10 +63,11 @@ public class WorkspaceController {
     @Operation(summary = "새로운 워크스페이스 생성", description = "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스가 생성됩니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> createWorkspace(
+            @AuthenticationPrincipal Long memberId,
             @RequestBody @Valid WorkspaceReqDTO.CreateWorkspace dto
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_CREATED;
-        return ApiResponse.onSuccess(code, workspaceService.createWorkspace(dto));
+        return ApiResponse.onSuccess(code, workspaceService.createWorkspace(memberId, dto));
     }
 
     /**
@@ -73,10 +78,11 @@ public class WorkspaceController {
     @Operation(summary = "워크스페이스 조회", description = "")
     @GetMapping("/{workspaceId}")
     public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> getWorkspace(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long workspaceId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_FOUND;
-        return ApiResponse.onSuccess(code, workspaceService.getWorkspace(workspaceId));
+        return ApiResponse.onSuccess(code, workspaceService.getWorkspace(memberId, workspaceId));
     }
 
     /**
@@ -87,11 +93,12 @@ public class WorkspaceController {
     @Operation(summary = "워크스페이스 이름 수정", description = "")
     @PatchMapping("/{workspaceId}")
     public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> updateWorkspace(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long workspaceId,
             @RequestBody @Valid WorkspaceReqDTO.UpdateWorkspace dto
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_UPDATED;
-        return ApiResponse.onSuccess(code, workspaceService.updateWorkspace(workspaceId, dto.name()));
+        return ApiResponse.onSuccess(code, workspaceService.updateWorkspace(memberId, workspaceId, dto.name()));
     }
 
     /**
@@ -102,9 +109,10 @@ public class WorkspaceController {
     @Operation(summary = "워크스페이스 삭제", description = "")
     @DeleteMapping("/{workspaceId}")
     public ResponseEntity<ApiResponse<Void>> deleteWorkspace(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long workspaceId
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_DELETED;
-        return ApiResponse.onSuccess(code, workspaceService.deleteWorkspace(workspaceId));
+        return ApiResponse.onSuccess(code, workspaceService.deleteWorkspace(memberId, workspaceId));
     }
 }

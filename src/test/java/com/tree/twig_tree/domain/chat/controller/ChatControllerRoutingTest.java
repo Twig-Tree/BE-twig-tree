@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,11 +44,12 @@ class ChatControllerRoutingTest {
         mockResponseLoader = mock(MockResponseLoader.class);
         mockMvc = MockMvcBuilders
             .standaloneSetup(new ChatController(chatService, mockResponseLoader))
+            .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
             .build();
 
-        when(chatService.generateTree(any(ChatReqDTO.class)))
+        when(chatService.generateTree(any(), any(ChatReqDTO.class)))
             .thenReturn(TreeGenResDTO.builder().treeId(1L).nodes(List.of()).build());
-        when(chatService.generateTree(any(), any(), any()))
+        when(chatService.generateTree(any(), any(), any(), any()))
             .thenReturn(TreeGenResDTO.builder().treeId(2L).nodes(List.of()).build());
     }
 
@@ -63,8 +65,8 @@ class ChatControllerRoutingTest {
                 .param("provider", "OPENAI"))
             .andExpect(status().isCreated());
 
-        verify(chatService).generateTree(eq(LlmProvider.OPENAI), eq("3단계로 정리해줘"), any(MultipartFile.class));
-        verify(chatService, never()).generateTree(any(ChatReqDTO.class));
+        verify(chatService).generateTree(any(), eq(LlmProvider.OPENAI), eq("3단계로 정리해줘"), any(MultipartFile.class));
+        verify(chatService, never()).generateTree(any(), any(ChatReqDTO.class));
     }
 
     @Test
@@ -75,7 +77,7 @@ class ChatControllerRoutingTest {
                 .param("provider", "OPENAI"))
             .andExpect(status().isCreated());
 
-        verify(chatService).generateTree(eq(LlmProvider.OPENAI), eq("트리 만들어줘"), any());
+        verify(chatService).generateTree(any(), eq(LlmProvider.OPENAI), eq("트리 만들어줘"), any());
     }
 
     @Test
@@ -86,8 +88,8 @@ class ChatControllerRoutingTest {
                 .content("{\"message\":\"트리 만들어줘\",\"provider\":\"OPENAI\"}"))
             .andExpect(status().isCreated());
 
-        verify(chatService).generateTree(any(ChatReqDTO.class));
-        verify(chatService, never()).generateTree(any(), any(), any());
+        verify(chatService).generateTree(any(), any(ChatReqDTO.class));
+        verify(chatService, never()).generateTree(any(), any(), any(), any());
     }
 
     @Test
@@ -101,7 +103,7 @@ class ChatControllerRoutingTest {
             .andExpect(status().isBadRequest());
 
         // LLM 호출은 물론 서비스 진입 자체가 없어야 한다
-        verify(chatService, never()).generateTree(any(ChatReqDTO.class));
+        verify(chatService, never()).generateTree(any(), any(ChatReqDTO.class));
     }
 
     @Test
@@ -114,7 +116,7 @@ class ChatControllerRoutingTest {
                 .content("{\"message\":\"" + atLimit + "\",\"provider\":\"OPENAI\"}"))
             .andExpect(status().isCreated());
 
-        verify(chatService).generateTree(any(ChatReqDTO.class));
+        verify(chatService).generateTree(any(), any(ChatReqDTO.class));
     }
 
     @Test
@@ -124,7 +126,7 @@ class ChatControllerRoutingTest {
             .andExpect(status().isCreated());
 
         verify(mockResponseLoader).load("mocks/chat/tree-small.json");
-        verify(chatService, never()).generateTree(any(ChatReqDTO.class));
-        verify(chatService, never()).generateTree(any(), any(), any());
+        verify(chatService, never()).generateTree(any(), any(ChatReqDTO.class));
+        verify(chatService, never()).generateTree(any(), any(), any(), any());
     }
 }

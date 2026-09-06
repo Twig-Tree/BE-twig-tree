@@ -5,6 +5,8 @@ import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO.LlmNode;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
+import com.tree.twig_tree.domain.member.entity.Member;
+import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
@@ -42,6 +44,7 @@ public class GeneratedTreeWriter {
     private final TreeRepository treeRepository;
     private final NodeRepository nodeRepository;
     private final WorkspaceRepository workspaceRepository;
+    private final MemberService memberService;
 
     /**
      * LLM 호출이 이미 끝난 뒤(=비용이 이미 발생한 뒤) 호출되므로, 저장 과정에서 나는
@@ -49,17 +52,17 @@ public class GeneratedTreeWriter {
      * 새 나가지 않도록 채팅 도메인 에러로 감싼다. 프론트가 "트리 생성 요청"의 에러로 해석할 수 있게 하기 위함.
      */
     @Transactional
-    public TreeGenResDTO save(LlmTreeDTO llmTree) {
+    public TreeGenResDTO save(Long memberId, LlmTreeDTO llmTree) {
         try {
-            return doSave(llmTree);
+            return doSave(memberId, llmTree);
         } catch (DataIntegrityViolationException e) {
             log.error("생성된 트리 저장 실패", e);
             throw new ChatException(ChatErrorCode.TREE_SAVE_FAILED);
         }
     }
 
-    private TreeGenResDTO doSave(LlmTreeDTO llmTree) {
-        Workspace workspace = createWorkspace(llmTree);
+    private TreeGenResDTO doSave(Long memberId, LlmTreeDTO llmTree) {
+        Workspace workspace = createWorkspace(memberId, llmTree);
         Tree tree = treeRepository.save(Tree.builder().workspace(workspace).build());
 
         List<LlmNode> nodes = llmTree.nodes();
@@ -121,9 +124,12 @@ public class GeneratedTreeWriter {
      * <p>최상위 워크스페이스는 이름이 유니크해야 하므로(uk_workspace_root_name),
      * 임시 이름으로 먼저 저장해 id를 발급받은 뒤 그 id로 최종 이름을 확정한다.
      */
-    private Workspace createWorkspace(LlmTreeDTO llmTree) {
+    private Workspace createWorkspace(Long memberId, LlmTreeDTO llmTree) {
+        Member member = memberService.getById(memberId);
+
         Workspace workspace = Workspace.builder()
             .name("tmp-" + UUID.randomUUID().toString().substring(0, 8))
+            .member(member)
             .build();
         workspaceRepository.save(workspace);
 

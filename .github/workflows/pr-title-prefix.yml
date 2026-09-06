@@ -1,0 +1,51 @@
+name: Auto Prefix PR Title
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  prefix-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add type prefix to PR title
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const title = context.payload.pull_request.title;
+
+            const typeMap = {
+              feat: 'Feat',
+              fix: 'Fix',
+              refactor: 'Refactor',
+              chore: 'Chore',
+              docs: 'Docs',
+              hotfix: 'Hotfix',
+              test: 'Test'
+            };
+
+            const match = branch.match(/^([a-z]+)\//);
+            if (!match) return;
+
+            const type = typeMap[match[1]];
+            if (!type) return;
+
+            const prefix = `[${type}]`;
+
+            // 제목에 이미 타입 prefix가 붙어있으면(브랜치와 다른 타입이어도) 떼어낸다.
+            // 같은 타입이면 그대로 종료, 다른 타입이면 교체해서 [Fix] [Feat] ... 처럼 중첩되지 않게 한다.
+            const existingPrefixPattern = new RegExp(`^\\[(${Object.values(typeMap).join('|')})\\]\\s*`);
+            const existingMatch = title.match(existingPrefixPattern);
+            if (existingMatch && existingMatch[1] === type) return;
+
+            const bareTitle = existingMatch ? title.slice(existingMatch[0].length) : title;
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              title: `${prefix} ${bareTitle}`
+            });
