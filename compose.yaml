@@ -4,7 +4,6 @@ services:
   db:
     image: postgres:16
     environment:
-      TZ: UTC
       POSTGRES_DB: twigtree-db
       POSTGRES_USER: twigtree123
       POSTGRES_PASSWORD: ${DB_PASSWORD}
