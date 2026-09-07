@@ -15,3 +15,11 @@ logging:
 server:
   # Caddy가 전달한 X-Forwarded-Proto 등을 처리해 원래 HTTPS 요청을 인식한다.
   forward-headers-strategy: native
+
+auth:
+  cookie:
+    secure: true
+
+cors:
+  allowed-origins:
+    - https://app.twig-tree.com

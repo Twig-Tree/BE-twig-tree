@@ -88,11 +88,12 @@ docker compose up -d db redis
 ## 5. 프론트 개발 시 알아둘 것
 
 - **CORS**: `http://localhost:3000` 만 허용됩니다(credentials 허용). 프론트 개발 서버를 3000 포트로 띄워주세요. 다른 포트가 필요하면 백엔드팀에 요청.
-- **인증 방식**: JWT Bearer 토큰
-  - 인증 없이 호출 가능: `POST /auth/google`, `POST /auth/refresh`, Swagger 경로
-  - 그 외 모든 API는 `Authorization: Bearer <accessToken>` 헤더 필요
-  - Access Token 유효기간 30분, Refresh Token 14일
-- 로그인 흐름: 구글 로그인 → `POST /auth/google`로 구글 토큰 전달 → 서비스 access/refresh 토큰 발급
+- **인증 방식**: Access Token은 응답 JSON으로 받아 메모리에 보관하고, Refresh Token은 HttpOnly 쿠키로 관리합니다.
+  - 일반 API는 `Authorization: Bearer <accessToken>` 헤더가 필요합니다.
+  - `GET /auth/csrf`로 CSRF 토큰을 받은 뒤 로그인·재발급·로그아웃 POST에 `X-XSRF-TOKEN` 헤더를 보냅니다.
+  - 인증 API에는 `credentials: 'include'`를 적용합니다. 재발급·로그아웃 요청 본문에는 Refresh Token을 보내지 않습니다.
+  - Access Token 유효기간 30분, Refresh Token 14일입니다.
+- 응답 형식, 새로고침 복원, 동시 재발급 및 오류 처리는 [AUTH.md](AUTH.md)를 참고하세요.
 
 ## 6. 종료 / 초기화
 

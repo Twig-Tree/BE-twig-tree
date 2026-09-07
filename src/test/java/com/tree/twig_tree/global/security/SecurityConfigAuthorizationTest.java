@@ -6,6 +6,7 @@ import com.tree.twig_tree.global.security.handler.JwtAuthenticationEntryPoint;
 import com.tree.twig_tree.global.security.jwt.JwtAuthenticationFilter;
 import com.tree.twig_tree.global.security.jwt.JwtProperties;
 import com.tree.twig_tree.global.security.jwt.JwtProvider;
+import com.tree.twig_tree.global.security.cookie.AuthCookieProperties;
 import jakarta.servlet.DispatcherType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,10 +26,14 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Base64;
+import java.util.List;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,6 +65,16 @@ class SecurityConfigAuthorizationTest {
     @EnableWebMvc
     @Configuration
     static class TestConfig {
+
+        @Bean
+        AuthCookieProperties authCookieProperties() {
+            return new AuthCookieProperties(true);
+        }
+
+        @Bean
+        CorsProperties corsProperties() {
+            return new CorsProperties(List.of("https://app.twig-tree.com"));
+        }
 
         @Bean
         JwtProperties jwtProperties() {
@@ -112,7 +127,7 @@ class SecurityConfigAuthorizationTest {
     @ValueSource(strings = {"/auth/google", "/auth/refresh", "/auth/logout"})
     void 로그인_경로는_토큰_없이_열려_있다(String path) throws Exception {
         // 토큰을 받기 위한 경로이므로 인증을 요구하면 로그인 자체가 불가능해진다
-        mockMvc.perform(post(path))
+        mockMvc.perform(post(path).with(csrf()))
                 .andExpect(status().isNotFound()); // 인가는 통과하고 핸들러가 없어 404
     }
 
@@ -151,5 +166,44 @@ class SecurityConfigAuthorizationTest {
         mockMvc.perform(get("/trees").header("Authorization", "Bearer " + refreshToken))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH401-3"));
+    }
+
+    @Test
+    void allowedPreflightPassesWithoutAuthentication() throws Exception {
+        mockMvc.perform(options("/auth/refresh")
+                        .header("Origin", "https://app.twig-tree.com")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "Content-Type,Authorization,X-XSRF-TOKEN"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://app.twig-tree.com"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"))
+                .andExpect(header().exists("Access-Control-Allow-Headers"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"http://localhost:3000", "https://untrusted.example", "https://app.twig-tree.com.evil.example"})
+    void productionRejectsUnlistedOrigins(String origin) throws Exception {
+        mockMvc.perform(options("/auth/refresh")
+                        .header("Origin", origin)
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+    }
+
+    @Test
+    void unlistedRequestHeaderIsRejected() throws Exception {
+        mockMvc.perform(options("/auth/refresh")
+                        .header("Origin", "https://app.twig-tree.com")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "X-Unapproved"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void authenticationErrorStillIncludesCorsHeaders() throws Exception {
+        mockMvc.perform(get("/members/me").header("Origin", "https://app.twig-tree.com"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://app.twig-tree.com"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
     }
 }
