@@ -34,11 +34,23 @@ public class WorkspaceService {
     private final MemberService memberService;
 
     /**
-     * 특정 폴더 내의 워크스페이스 목록 조회
+     * 본인 소유 전체 워크스페이스 최신순 조회
+     * @return
+     */
+    public List<WorkspaceResDTO.GetWorkspace> getAllWorkspaces(Long memberId) {
+        List<Workspace> workspaceList = workspaceRepository.findAllByMember_IdOrderByUpdatedAtDesc(memberId);
+        Map<Long, Long> treeIdByWorkspaceId = treeRepository.findAllByWorkspaceIn(workspaceList).stream()
+                .collect(Collectors.toMap(tree -> tree.getWorkspace().getId(), Tree::getId));
+
+        return WorkspaceConverter.toGetWorkspaces(workspaceList ,treeIdByWorkspaceId);
+    }
+
+    /**
+     * 특정 폴더 기준 워크스페이스 목록 최신순 조회
      * @param folderId null이면 폴더에 속하지 않는 최상위 워크스페이스
      * @return
      */
-    public List<WorkspaceResDTO.GetWorkspace> getWorkspaces(Long memberId, Long folderId) {
+    public List<WorkspaceResDTO.GetWorkspace> getWorkspacesByFolder(Long memberId, Long folderId) {
         if (folderId != null) {
             Folder folder = validateFolder(folderId);
             validateFolderOwner(memberId, folder);
