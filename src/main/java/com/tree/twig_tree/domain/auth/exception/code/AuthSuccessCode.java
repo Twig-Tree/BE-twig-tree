@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum AuthSuccessCode implements BaseSuccessCode {
 
     LOGIN_OK(HttpStatus.OK, "AUTH200-1", "성공적으로 로그인했습니다."),
+    CSRF_OK(HttpStatus.OK, "AUTH200-4", "CSRF 토큰을 발급했습니다."),
     REFRESH_OK(HttpStatus.OK, "AUTH200-2", "성공적으로 토큰을 재발급했습니다."),
     LOGOUT_OK(HttpStatus.OK, "AUTH200-3", "성공적으로 로그아웃했습니다.");
 

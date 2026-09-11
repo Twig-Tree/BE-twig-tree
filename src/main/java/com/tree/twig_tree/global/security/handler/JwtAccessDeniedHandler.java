@@ -1,6 +1,8 @@
 package com.tree.twig_tree.global.security.handler;
 
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
+import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
+import com.tree.twig_tree.domain.auth.exception.code.AuthErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -8,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -27,7 +30,8 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
             AccessDeniedException accessDeniedException
     ) throws IOException {
 
-        GeneralErrorCode errorCode = GeneralErrorCode.FORBIDDEN;
+        BaseErrorCode errorCode = accessDeniedException instanceof CsrfException
+                ? AuthErrorCode.INVALID_CSRF_TOKEN : GeneralErrorCode.FORBIDDEN;
         response.setStatus(errorCode.getStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());

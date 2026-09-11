@@ -63,3 +63,11 @@ ollama:
 logging:
   level:
     org.hibernate.orm.jdbc.bind: trace
+# 로컬 HTTP 개발용. 운영에서는 application-prod.yml에서 Secure를 활성화한다.
+auth:
+  cookie:
+    secure: false
+
+cors:
+  allowed-origins:
+    - http://localhost:3000
