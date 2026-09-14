@@ -5,8 +5,6 @@ import lombok.Builder;
 
 public class AuthResDTO {
 
-    public record Csrf(String token, String headerName) {}
-
     public record TokenResponse(
             String accessToken,
             MemberResDTO.Me member

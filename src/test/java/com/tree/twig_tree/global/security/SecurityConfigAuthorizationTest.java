@@ -29,7 +29,6 @@ import java.util.Base64;
 import java.util.List;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -52,6 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(classes = {
         SecurityConfigAuthorizationTest.TestConfig.class,
         SecurityConfig.class,
+        AuthOriginFilter.class,
         JwtAuthenticationFilter.class,
         JwtProvider.class,
         JwtAuthenticationEntryPoint.class,
@@ -73,7 +73,7 @@ class SecurityConfigAuthorizationTest {
 
         @Bean
         CorsProperties corsProperties() {
-            return new CorsProperties(List.of("https://app.twig-tree.com"));
+            return new CorsProperties(List.of("https://app.twig-tree.com", "https://api.twig-tree.com"));
         }
 
         @Bean
@@ -127,7 +127,7 @@ class SecurityConfigAuthorizationTest {
     @ValueSource(strings = {"/auth/google", "/auth/refresh", "/auth/logout"})
     void 로그인_경로는_토큰_없이_열려_있다(String path) throws Exception {
         // 토큰을 받기 위한 경로이므로 인증을 요구하면 로그인 자체가 불가능해진다
-        mockMvc.perform(post(path).with(csrf()))
+        mockMvc.perform(post(path).header("Origin", "https://app.twig-tree.com"))
                 .andExpect(status().isNotFound()); // 인가는 통과하고 핸들러가 없어 404
     }
 
@@ -173,7 +173,7 @@ class SecurityConfigAuthorizationTest {
         mockMvc.perform(options("/auth/refresh")
                         .header("Origin", "https://app.twig-tree.com")
                         .header("Access-Control-Request-Method", "POST")
-                        .header("Access-Control-Request-Headers", "Content-Type,Authorization,X-XSRF-TOKEN"))
+                        .header("Access-Control-Request-Headers", "Content-Type,Authorization"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "https://app.twig-tree.com"))
                 .andExpect(header().string("Access-Control-Allow-Credentials", "true"))
