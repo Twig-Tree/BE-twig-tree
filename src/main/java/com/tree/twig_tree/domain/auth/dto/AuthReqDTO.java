@@ -9,13 +9,4 @@ public class AuthReqDTO {
             String idToken
     ) {}
 
-    public record Reissue(
-            @NotBlank
-            String refreshToken
-    ) {}
-
-    public record Logout(
-            @NotBlank
-            String refreshToken
-    ) {}
 }
