@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# AWS EC2(Ubuntu 24.04 LTS / x86_64) 초기 세팅.
+# AWS EC2(Ubuntu 24.04 LTS / amd64 · arm64) 초기 세팅.
 #
 # 사용법: 인스턴스에 SSM 으로 접속한 뒤 ubuntu 사용자로 실행한다.
 #
@@ -40,8 +40,22 @@ if [[ "${VERSION_ID:-}" != "24.04" ]]; then
 	[[ "$answer" == "y" ]] || exit 1
 fi
 
+# AWS CLI 는 아키텍처마다 아티팩트가 다르다. 시스템을 건드리기 전에 먼저
+# 해석해서, 지원하지 않는 아키텍처면 아무것도 바꾸지 않은 채로 멈춘다.
+# (x86_64 URL 을 그대로 쓰면 ARM 에서 설치는 성공하고 실행에서 깨진다.)
+DPKG_ARCH=$(dpkg --print-architecture)
+case "$DPKG_ARCH" in
+	amd64) AWSCLI_ARCH=x86_64 ;;
+	arm64) AWSCLI_ARCH=aarch64 ;;
+	*)
+		echo "지원하지 않는 아키텍처입니다: ${DPKG_ARCH}" >&2
+		echo "해당하는 AWS CLI 아티팩트가 없어 진행할 수 없습니다." >&2
+		exit 1
+		;;
+esac
+
 echo "OS       : ${PRETTY_NAME}"
-echo "아키텍처 : $(dpkg --print-architecture)"
+echo "아키텍처 : ${DPKG_ARCH} (AWS CLI: ${AWSCLI_ARCH})"
 echo "메모리   : $(free -h | awk '/^Mem:/ {print $2}')"
 echo "디스크   : $(df -h / | awk 'NR==2 {print $2}')"
 
@@ -90,22 +104,26 @@ sudo apt-get install -y -qq \
 
 # ── 4. Docker ────────────────────────────────────────────────
 log "Docker CE 설치"
-if command -v docker >/dev/null 2>&1; then
-	echo "이미 설치됨: $(docker --version)"
-else
-	sudo install -m 0755 -d /etc/apt/keyrings
-	curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
-		sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-	sudo chmod a+r /etc/apt/keyrings/docker.gpg
+# 설치 여부를 `command -v docker` 로 판단하지 않는다. 그 조건은 우분투 기본
+# 패키지(docker.io)나 CLI 만 깔려 있어도 참이 되어, docker-ce 와
+# compose plugin 설치를 통째로 건너뛴다. 그러면 아래 검증의
+# `docker compose version` 에서 스크립트가 죽는다.
+#
+# apt 자체가 멱등하므로 조건 없이 매번 그대로 실행한다. 이미 최신이면
+# apt-get install 은 아무것도 하지 않는다.
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
+	sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" |
-		sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+echo "deb [arch=${DPKG_ARCH} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" |
+	sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 
-	sudo apt-get update -qq
-	sudo apt-get install -y -qq \
-		docker-ce docker-ce-cli containerd.io \
-		docker-buildx-plugin docker-compose-plugin
-fi
+sudo apt-get update -qq
+sudo apt-get install -y -qq \
+	docker-ce docker-ce-cli containerd.io \
+	docker-buildx-plugin docker-compose-plugin
+echo "$(docker --version)"
 
 # ── 5. Docker 데몬 설정 ──────────────────────────────────────
 log "Docker 데몬 설정"
@@ -146,7 +164,7 @@ if command -v aws >/dev/null 2>&1 && aws --version 2>&1 | grep -q 'aws-cli/2'; t
 	echo "이미 설치됨: $(aws --version 2>&1)"
 else
 	tmp=$(mktemp -d)
-	curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "$tmp/awscliv2.zip"
+	curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip" -o "$tmp/awscliv2.zip"
 	unzip -q "$tmp/awscliv2.zip" -d "$tmp"
 	sudo "$tmp/aws/install" --update
 	rm -rf "$tmp"
@@ -177,10 +195,13 @@ fi
 echo
 echo "--- IAM 인스턴스 프로파일 ---"
 # IMDSv2 토큰 방식. Ubuntu 24.04 AMI 는 IMDSv2 를 요구한다.
-token=$(curl -fsS -X PUT "http://169.254.169.254/latest/api/token" \
+# 메타데이터 엔드포인트는 EC2 밖에서 응답이 없으므로 타임아웃을 짧게 준다.
+token=$(curl -fsS --connect-timeout 1 --max-time 3 \
+	-X PUT "http://169.254.169.254/latest/api/token" \
 	-H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || true)
 if [[ -n "$token" ]]; then
-	role=$(curl -fsS -H "X-aws-ec2-metadata-token: $token" \
+	role=$(curl -fsS --connect-timeout 1 --max-time 3 \
+		-H "X-aws-ec2-metadata-token: $token" \
 		"http://169.254.169.254/latest/meta-data/iam/security-credentials/" 2>/dev/null || true)
 	if [[ -n "$role" ]]; then
 		echo "연결된 역할: $role"
@@ -188,6 +209,12 @@ if [[ -n "$token" ]]; then
 		warn "인스턴스 프로파일이 붙어 있지 않습니다. ECR pull 과 Parameter Store 접근이 실패합니다."
 		echo "    콘솔에서 인스턴스 > 작업 > 보안 > IAM 역할 수정 으로 지금 붙일 수 있습니다."
 	fi
+else
+	# 여기서 조용히 넘어가면, 프로파일을 확인하라고 만든 섹션이 아무 출력 없이
+	# 지나가 "확인됨"으로 오해된다. 검증 실패를 명시한다.
+	warn "IMDSv2 토큰을 받지 못해 IAM 인스턴스 프로파일을 확인하지 못했습니다 (검증 미완료)."
+	echo "    EC2 인스턴스가 아니거나 메타데이터 접근이 막힌 환경일 수 있습니다."
+	echo "    EC2 라면 배포 전에 반드시 역할 연결 여부를 직접 확인하세요."
 fi
 
 echo
