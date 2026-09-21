@@ -1,6 +1,7 @@
 package com.tree.twig_tree.global.apiPayload.swagger;
 
 import com.tree.twig_tree.domain.auth.controller.AuthController;
+import com.tree.twig_tree.domain.chat.controller.ChatController;
 import com.tree.twig_tree.domain.node.controller.NodeController;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.Content;
@@ -54,6 +55,22 @@ class ErrorCodeOperationCustomizerTest {
         assertThat(exampleKeys(responses, "401")).containsExactly("AUTH401-1");
         assertThat(responses.get("403")).isNull();
         assertThat(exampleKeys(responses, "500")).contains("COMMON500-1");
+    }
+
+    @Test
+    @DisplayName("@Valid 파라미터가 없는 메서드도 명시적으로 추가한 mock 검증 에러코드가 노출된다")
+    void explicitDomainErrorCodeIsExposedWithoutValidParameter() throws NoSuchMethodException {
+        Method method = ChatController.class.getMethod(
+                "generateTreeFromFile", Long.class,
+                org.springframework.web.multipart.MultipartFile.class, String.class,
+                com.tree.twig_tree.domain.chat.client.LlmProvider.class, String.class);
+        Operation operation = customize(ChatController.class, null, method);
+
+        ApiResponses responses = operation.getResponses();
+
+        // mock 시나리오 검증 실패(ChatErrorCode.INVALID_MOCK_SCENARIO)는 @Valid 파라미터로는 감지되지 않으므로
+        // 컨트롤러에 명시적으로 붙인 CHAT400-12 가 노출되어야 한다.
+        assertThat(exampleKeys(responses, "400")).contains("CHAT400-12");
     }
 
     private Operation customize(Class<?> controllerType, Object bean, Method method) {
