@@ -30,6 +30,8 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -115,6 +117,15 @@ class AuthOriginIntegrationTest {
     void missingOriginIsRejectedEvenWithBearer(String path) throws Exception {
         mockMvc.perform(post(path).secure(true)
                         .header("Authorization", "Bearer " + jwtProvider.createAccessToken(1L, Role.ROLE_USER)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("COMMON403-1"));
+        verifyNoInteractions(authService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/auth/%67oogle", "/auth/%72efresh", "/auth/%6cogout"})
+    void encodedAuthPathCannotBypassOriginValidation(String path) throws Exception {
+        mockMvc.perform(post(URI.create(path)).secure(true))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("COMMON403-1"));
         verifyNoInteractions(authService);
