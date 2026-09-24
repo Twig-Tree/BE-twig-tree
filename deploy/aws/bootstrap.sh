@@ -164,10 +164,61 @@ if command -v aws >/dev/null 2>&1 && aws --version 2>&1 | grep -q 'aws-cli/2'; t
 	echo "이미 설치됨: $(aws --version 2>&1)"
 else
 	tmp=$(mktemp -d)
-	curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip" -o "$tmp/awscliv2.zip"
+	trap 'rm -rf "$tmp"' EXIT
+	awscli_url="https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip"
+	curl -fsSL "$awscli_url" -o "$tmp/awscliv2.zip"
+	curl -fsSL "${awscli_url}.sig" -o "$tmp/awscliv2.zip.sig"
+
+	# AWS 공식 문서에 게시된 AWS CLI Team 공개 키를 별도 신뢰 기준으로 둔다.
+	# 다운로드한 서명이 이 키로 검증된 경우에만 installer 를 실행한다.
+	cat >"$tmp/aws-cli-public-key.asc" <<'EOF'
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBF2Cr7UBEADJZHcgusOJl7ENSyumXh85z0TRV0xJorM2B/JL0kHOyigQluUG
+ZMLhENaG0bYatdrKP+3H91lvK050pXwnO/R7fB/FSTouki4ciIx5OuLlnJZIxSzx
+PqGl0mkxImLNbGWoi6Lto0LYxqHN2iQtzlwTVmq9733zd3XfcXrZ3+LblHAgEt5G
+TfNxEKJ8soPLyWmwDH6HWCnjZ/aIQRBTIQ05uVeEoYxSh6wOai7ss/KveoSNBbYz
+gbdzoqI2Y8cgH2nbfgp3DSasaLZEdCSsIsK1u05CinE7k2qZ7KgKAUIcT/cR/grk
+C6VwsnDU0OUCideXcQ8WeHutqvgZH1JgKDbznoIzeQHJD238GEu+eKhRHcz8/jeG
+94zkcgJOz3KbZGYMiTh277Fvj9zzvZsbMBCedV1BTg3TqgvdX4bdkhf5cH+7NtWO
+lrFj6UwAsGukBTAOxC0l/dnSmZhJ7Z1KmEWilro/gOrjtOxqRQutlIqG22TaqoPG
+fYVN+en3Zwbt97kcgZDwqbuykNt64oZWc4XKCa3mprEGC3IbJTBFqglXmZ7l9ywG
+EEUJYOlb2XrSuPWml39beWdKM8kzr1OjnlOm6+lpTRCBfo0wa9F8YZRhHPAkwKkX
+XDeOGpWRj4ohOx0d2GWkyV5xyN14p2tQOCdOODmz80yUTgRpPVQUtOEhXQARAQAB
+tCFBV1MgQ0xJIFRlYW0gPGF3cy1jbGlAYW1hem9uLmNvbT6JAlQEEwEIAD4CGwMF
+CwkIBwIGFQoJCAsCBBYCAwECHgECF4AWIQT7Xbd/1cEYuAURraimMQrMRnJHXAUC
+akV0ygUJDqP4lQAKCRCmMQrMRnJHXFHjD/9eyZLYcKuQOlLvtqSDtUBiEZf6ZZjM
+i3ygYH8rJNtuToUH+HvSpe819urJCquXhDrlK6N+aqW0hCLtNABJG/vsafIgvIYJ
+hSGgpgtNnQyMV1jViRWqPjbouw8OkYKBThUfT1i2Y+wn58ifs6ODBCmTexWtXspA
+Si+Gt49xDOW0APmbOPnI+a4HJW6tVEo6MWS0WjzpiBayR3d1A4pt4YrPfSdDgpLo
+h2SLQqlRqvvVZJaWBjhkErNFpfsBA06sDcPEOb0G8LBUbR4WOcdvhe5LubJbZuxC
+AG9kNPCVeQP1ixwjgjXKysaxeQ6rv0VzIQgRp6tLVLWhy6AKDNvLjFSsmXZ1Wl08
+Y/RlOHXlzLuQMRE6sR1wOdRxc9TsrNWTGiBK65cvSWOy03JeBkQQ8pesqltiyxI9
+U21kkgiXtTSKNGfKK8pO27D81YANhRqPK7iTp6kuFiY2WtOg90KTMNlIT+Ff85Y2
+b1rHj6Z0SrCkJujhWk3IBPic/wJgz01LEc/OAdUPlby90RJZcIBhSlWhT7mXnXIO
+c0HWlNQrns2s3CTyYwZSiSlYe9ApeLwhjDo8NhbFuCAy61l6O5UsR4AfZxx/rGKv
+2wFb1/RN/P4gNe6vmxZAPjR0AQcwD3tc2McimOLr/22kmPz8IH3I0X7WoSFr0Biz
+E91G7bb0hOb/cA==
+=knv7
+-----END PGP PUBLIC KEY BLOCK-----
+EOF
+
+	awscli_key_fingerprint=FB5DB77FD5C118B80511ADA8A6310ACC4672475C
+	install -m 0700 -d "$tmp/gnupg"
+	actual_fingerprint=$(gpg --batch --homedir "$tmp/gnupg" --with-colons \
+		--show-keys "$tmp/aws-cli-public-key.asc" | awk -F: '$1 == "fpr" && !found {print $10; found=1}')
+	if [[ "$actual_fingerprint" != "$awscli_key_fingerprint" ]]; then
+		echo "AWS CLI 공개 키 지문이 일치하지 않습니다." >&2
+		exit 1
+	fi
+	gpg --batch --homedir "$tmp/gnupg" --import "$tmp/aws-cli-public-key.asc"
+	gpg --batch --homedir "$tmp/gnupg" \
+		--verify "$tmp/awscliv2.zip.sig" "$tmp/awscliv2.zip"
+
 	unzip -q "$tmp/awscliv2.zip" -d "$tmp"
 	sudo "$tmp/aws/install" --update
 	rm -rf "$tmp"
+	trap - EXIT
 	echo "$(aws --version 2>&1)"
 fi
 
