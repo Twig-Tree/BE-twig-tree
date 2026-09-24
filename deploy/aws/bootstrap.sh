@@ -34,10 +34,10 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 source /etc/os-release
-if [[ "${VERSION_ID:-}" != "24.04" ]]; then
-	warn "Ubuntu 24.04 를 기준으로 작성된 스크립트입니다. 현재: ${PRETTY_NAME:-unknown}"
-	read -rp "그래도 계속할까요? [y/N] " answer
-	[[ "$answer" == "y" ]] || exit 1
+if [[ "${ID:-}" != "ubuntu" || "${VERSION_ID:-}" != "24.04" ]]; then
+	echo "지원하지 않는 OS입니다: ${PRETTY_NAME:-unknown}" >&2
+	echo "Ubuntu 24.04에서만 실행할 수 있습니다." >&2
+	exit 1
 fi
 
 # AWS CLI 는 아키텍처마다 아티팩트가 다르다. 시스템을 건드리기 전에 먼저
