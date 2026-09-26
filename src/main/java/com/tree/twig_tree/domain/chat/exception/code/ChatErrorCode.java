@@ -20,6 +20,7 @@ public enum ChatErrorCode implements BaseErrorCode {
     FILE_PARSE_FAILED(HttpStatus.BAD_REQUEST, "CHAT400-9", "문서를 해석할 수 없습니다. 파일이 손상되었거나 확장자와 실제 형식이 다른지 확인해주세요."),
     FILE_ENCRYPTED(HttpStatus.BAD_REQUEST, "CHAT400-10", "암호가 설정된 문서는 읽을 수 없습니다. 암호를 해제한 뒤 업로드해주세요."),
     MESSAGE_TOO_LONG(HttpStatus.BAD_REQUEST, "CHAT400-11", "요청 메시지가 너무 깁니다. 500자 이내로 줄여주세요."),
+    INVALID_MOCK_SCENARIO(HttpStatus.BAD_REQUEST, "CHAT400-12", "허용되지 않는 형식의 mock 시나리오입니다. 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다."),
     LLM_CALL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CHAT500-1", "AI 모델 호출에 실패했습니다."),
     TREE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CHAT500-2", "생성된 트리를 저장하지 못했습니다. 다시 시도해주세요."),
     LLM_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "CHAT504-1", "AI 모델 응답 시간이 초과되었습니다."),

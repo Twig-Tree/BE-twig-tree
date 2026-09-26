@@ -1,11 +1,13 @@
 package com.tree.twig_tree.domain.tree.controller;
 
 import com.tree.twig_tree.domain.tree.dto.TreeResDTO;
+import com.tree.twig_tree.domain.tree.exception.code.TreeErrorCode;
 import com.tree.twig_tree.domain.tree.exception.code.TreeSuccessCode;
 import com.tree.twig_tree.domain.tree.service.TreeService;
+import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceErrorCode;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
-import com.tree.twig_tree.global.apiPayload.code.GeneralSuccessCode;
+import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,8 @@ public class TreeController {
      * @return treeId
      */
     @Operation(summary = "새로운 트리 생성", description = "특정 워크스페이스에 트리를 생성합니다. 하나의 워크스페이스에 하나의 트리만 생성가능합니다.")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "WORKSPACE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_ALREADY_EXISTS")
     @PostMapping("/workspaces/{workspaceId}/trees")
     public ResponseEntity<ApiResponse<TreeResDTO.TreeId>> createTree(
             @PathVariable Long workspaceId
@@ -50,6 +54,8 @@ public class TreeController {
      * @param treeId
      */
     @Operation(summary = "트리 삭제", description = "트리를 삭제합니다.")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "WORKSPACE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_NOT_IN_WORKSPACE"})
     @DeleteMapping("/workspaces/{workspaceId}/trees/{treeId}")
     public ResponseEntity<ApiResponse<Void>> deleteTree(
             @PathVariable Long workspaceId,

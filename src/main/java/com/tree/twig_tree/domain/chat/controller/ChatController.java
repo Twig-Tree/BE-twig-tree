@@ -3,11 +3,12 @@ package com.tree.twig_tree.domain.chat.controller;
 import com.tree.twig_tree.domain.chat.client.LlmProvider;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
+import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
 import com.tree.twig_tree.domain.chat.exception.code.ChatSuccessCode;
 import com.tree.twig_tree.domain.chat.service.ChatService;
+import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
-import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
-import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
+import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
 import com.tree.twig_tree.global.mock.MockResponseLoader;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -63,6 +64,9 @@ public class ChatController {
             responseCode = "201",
             content = @Content(schema = @Schema(implementation = TreeGenResDTO.class))
     )
+    @ApiErrorCodeExample(value = ChatErrorCode.class,
+            only = {"EMPTY_MESSAGE", "UNSUPPORTED_PROVIDER", "LLM_CALL_FAILED", "LLM_TIMEOUT",
+                    "LLM_RESPONSE_INVALID", "TREE_SAVE_FAILED", "INVALID_MOCK_SCENARIO"})
     @PostMapping
     public ResponseEntity<ApiResponse<Object>> generateTree(
         @AuthenticationPrincipal Long memberId,
@@ -105,6 +109,11 @@ public class ChatController {
             responseCode = "201",
             content = @Content(schema = @Schema(implementation = TreeGenResDTO.class))
     )
+    @ApiErrorCodeExample(value = ChatErrorCode.class,
+            only = {"INPUT_REQUIRED", "MESSAGE_TOO_LONG", "UNSUPPORTED_FILE_TYPE", "FILE_TOO_LARGE",
+                    "FILE_TEXT_TOO_LONG", "FILE_EMPTY", "FILE_READ_FAILED", "FILE_PARSE_FAILED", "FILE_ENCRYPTED",
+                    "UNSUPPORTED_PROVIDER", "LLM_CALL_FAILED", "LLM_TIMEOUT", "LLM_RESPONSE_INVALID",
+                    "TREE_SAVE_FAILED", "INVALID_MOCK_SCENARIO"})
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Object>> generateTreeFromFile(
         @AuthenticationPrincipal Long memberId,
@@ -140,7 +149,7 @@ public class ChatController {
      */
     private void validateScenario(String scenario) {
         if (!scenario.matches("[a-z0-9-]+")) {
-            throw new ProjectException(GeneralErrorCode.BAD_REQUEST);
+            throw new ChatException(ChatErrorCode.INVALID_MOCK_SCENARIO);
         }
     }
 }
