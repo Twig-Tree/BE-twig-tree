@@ -24,3 +24,8 @@ cors:
   allowed-origins:
     - https://app.twig-tree.com
     - https://api.twig-tree.com
+
+# 개발용 토큰 발급 API. 운영에서는 환경변수와 관계없이 끈다 (DEV_TEST_TOKEN_ENABLED 무시)
+dev:
+  test-token:
+    enabled: false
