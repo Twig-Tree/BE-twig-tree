@@ -7,8 +7,10 @@ import com.tree.twig_tree.global.apiPayload.exception.ProjectException;
 import com.tree.twig_tree.global.apiPayload.util.ConstraintErrorCodeMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,6 +20,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @RestControllerAdvice
@@ -44,7 +47,14 @@ public class GeneralExceptionAdvice {
             HttpRequestMethodNotSupportedException e
     ) {
         BaseErrorCode code = GeneralErrorCode.METHOD_NOT_ALLOWED;
-        return ApiResponse.onFailure(code, null);
+
+        // RFC 9110: 405 응답에는 지원 메서드를 담은 Allow 헤더가 있어야 한다.
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(code.getStatus());
+        Set<HttpMethod> supported = e.getSupportedHttpMethods();
+        if (!CollectionUtils.isEmpty(supported)) {
+            builder.allow(supported.toArray(HttpMethod[]::new));
+        }
+        return builder.body(ApiResponse.failure(code, null));
     }
 
     // 인증/인가에서 문제 발생 시 예외 처리
