@@ -42,8 +42,8 @@ class ErrorCodeOperationCustomizerTest {
     }
 
     @Test
-    @DisplayName("@PublicApi 가 붙은 엔드포인트는 공통 401/403 예시가 붙지 않는다")
-    void publicApiSkipsAuthErrorCodes() throws NoSuchMethodException {
+    @DisplayName("@PublicApi 가 붙은 엔드포인트는 공통 401/403 예시는 붙지 않지만, 명시적으로 선언한 403은 노출된다")
+    void publicApiSkipsAuthErrorCodesButKeepsExplicitForbidden() throws NoSuchMethodException {
         Method method = AuthController.class.getMethod(
                 "googleLogin", com.tree.twig_tree.domain.auth.dto.AuthReqDTO.GoogleLogin.class);
         Operation operation = customize(AuthController.class, null, method);
@@ -53,7 +53,9 @@ class ErrorCodeOperationCustomizerTest {
         // AUTH401-1(유효하지 않은 구글 토큰)은 도메인 에러코드이므로 여전히 노출되어야 하지만,
         // 인증 필터가 붙이는 공통 COMMON401-1 은 @PublicApi 엔드포인트에는 붙지 않아야 한다.
         assertThat(exampleKeys(responses, "401")).containsExactly("AUTH401-1");
-        assertThat(responses.get("403")).isNull();
+        // AuthOriginFilter 가 이 엔드포인트에도 Origin 불일치 시 403(COMMON403-1)을 반환하므로,
+        // @PublicApi 여도 컨트롤러에 명시한 403은 그대로 노출되어야 한다.
+        assertThat(exampleKeys(responses, "403")).containsExactly("COMMON403-1");
         assertThat(exampleKeys(responses, "500")).contains("COMMON500-1");
     }
 

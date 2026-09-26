@@ -8,6 +8,7 @@ import com.tree.twig_tree.domain.auth.exception.AuthException;
 import com.tree.twig_tree.domain.auth.service.AuthService;
 import com.tree.twig_tree.domain.member.exception.code.MemberErrorCode;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
+import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
 import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
 import com.tree.twig_tree.global.apiPayload.swagger.PublicApi;
 import com.tree.twig_tree.global.security.cookie.RefreshTokenCookieFactory;
@@ -36,6 +37,7 @@ public class AuthController {
     @Operation(summary = "구글 로그인", description = "구글 ID 토큰을 검증합니다. Access Token과 회원 정보는 응답 본문으로, Refresh Token은 HttpOnly 쿠키로 전달합니다. 첫 로그인 시 자동 가입됩니다.")
     @PublicApi
     @ApiErrorCodeExample(value = AuthErrorCode.class, only = {"INVALID_GOOGLE_TOKEN", "TOKEN_STORE_UNAVAILABLE"})
+    @ApiErrorCodeExample(value = GeneralErrorCode.class, only = "FORBIDDEN")
     public ResponseEntity<ApiResponse<AuthResDTO.TokenResponse>> googleLogin(@RequestBody @Valid AuthReqDTO.GoogleLogin request) {
         AuthResDTO.TokenPair tokens = authService.googleLogin(request.idToken());
         AuthResDTO.TokenResponse data = new AuthResDTO.TokenResponse(tokens.accessToken(), tokens.member());
@@ -53,6 +55,7 @@ public class AuthController {
     @ApiErrorCodeExample(value = AuthErrorCode.class,
             only = {"INVALID_REFRESH_TOKEN", "EXPIRED_REFRESH_TOKEN", "TOKEN_STORE_UNAVAILABLE"})
     @ApiErrorCodeExample(MemberErrorCode.class)
+    @ApiErrorCodeExample(value = GeneralErrorCode.class, only = "FORBIDDEN")
     public ResponseEntity<ApiResponse<AuthResDTO.TokenResponse>> reissue(
             @CookieValue(name = RefreshTokenCookieFactory.COOKIE_NAME, required = false) String refreshToken){
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -72,6 +75,7 @@ public class AuthController {
                     + "이미 발급된 액세스 토큰은 만료(최대 30분)까지 유효합니다.")
     @PublicApi
     @ApiErrorCodeExample(value = AuthErrorCode.class, only = "TOKEN_STORE_UNAVAILABLE")
+    @ApiErrorCodeExample(value = GeneralErrorCode.class, only = "FORBIDDEN")
     public ResponseEntity<ApiResponse<Void>> logout(
             @CookieValue(name = RefreshTokenCookieFactory.COOKIE_NAME, required = false) String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
