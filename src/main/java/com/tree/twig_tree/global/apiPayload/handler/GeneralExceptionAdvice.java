@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,17 @@ public class GeneralExceptionAdvice {
     /**
      * log: 어느 핸들러에서 예외가 발생했는지 서버에 로그를 남기면 좋습니다.
      */
+
+    // 존재하지 않는 경로 요청 시 예외 처리
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(
+            NoResourceFoundException e
+    ) {
+        log.warn("존재하지 않는 경로 요청: {}", e.getResourcePath());
+
+        BaseErrorCode code = GeneralErrorCode.NOT_FOUND;
+        return ApiResponse.onFailure(code, null);
+    }
 
     // 인증/인가에서 문제 발생 시 예외 처리
     @ExceptionHandler(AuthorizationDeniedException.class)
