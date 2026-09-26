@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -34,6 +35,15 @@ public class GeneralExceptionAdvice {
         log.warn("존재하지 않는 경로 요청: {}", e.getResourcePath());
 
         BaseErrorCode code = GeneralErrorCode.NOT_FOUND;
+        return ApiResponse.onFailure(code, null);
+    }
+
+    // 지원하지 않는 HTTP 메서드 요청 시 예외 처리
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException e
+    ) {
+        BaseErrorCode code = GeneralErrorCode.METHOD_NOT_ALLOWED;
         return ApiResponse.onFailure(code, null);
     }
 
