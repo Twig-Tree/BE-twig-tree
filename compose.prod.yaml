@@ -2,11 +2,31 @@
 #   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 #
 # 인스턴스는 1GB(VM.Standard.E2.1.Micro)이고, OS·dockerd 가 약 390MiB 를 쓴다.
-# 아래 한도의 총합 800m 는 목표치가 아니라 상한이며, 세 컨테이너가 동시에
+# 아래 한도의 총합 864m 는 목표치가 아니라 상한이며, 네 컨테이너가 동시에
 # 한도를 다 쓰면 인스턴스 메모리를 넘긴다. 값을 올리기 전에 호스트에서
 # `free -h` 의 available 을 먼저 확인한다. 실측치는 docs/DEPLOY.md 참고.
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   db:
     # 기본 shared_buffers(128MB)는 이 한도에 비해 과하다.
     # max_connections 는 HikariCP 기본 풀 크기(10)에 맞춰 20 으로 줄인다.
@@ -48,3 +68,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  caddy_data:
+  caddy_config:

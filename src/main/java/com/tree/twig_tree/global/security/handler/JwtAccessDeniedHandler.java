@@ -1,6 +1,7 @@
 package com.tree.twig_tree.global.security.handler;
 
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
+import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.GeneralErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +28,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
             AccessDeniedException accessDeniedException
     ) throws IOException {
 
-        GeneralErrorCode errorCode = GeneralErrorCode.FORBIDDEN;
+        BaseErrorCode errorCode = GeneralErrorCode.FORBIDDEN;
         response.setStatus(errorCode.getStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());

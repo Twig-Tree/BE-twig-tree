@@ -5,6 +5,11 @@ import lombok.Builder;
 
 public class AuthResDTO {
 
+    public record TokenResponse(
+            String accessToken,
+            MemberResDTO.Me member
+    ) {}
+
     @Builder
     public record TokenPair(
             String accessToken,
