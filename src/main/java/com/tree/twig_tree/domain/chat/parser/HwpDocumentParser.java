@@ -22,16 +22,9 @@ import java.util.Set;
 @Component
 public class HwpDocumentParser implements DocumentParser {
 
-    static final long MAX_BYTES = 10L * 1024L * 1024L;
-
     @Override
     public Set<String> supportedExtensions() {
         return Set.of("hwp");
-    }
-
-    @Override
-    public long maxBytes() {
-        return MAX_BYTES;
     }
 
     @Override

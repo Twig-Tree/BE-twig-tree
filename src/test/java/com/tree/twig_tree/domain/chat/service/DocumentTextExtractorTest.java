@@ -107,37 +107,21 @@ class DocumentTextExtractorTest {
     }
 
     @Test
-    @DisplayName("평문 크기 상한(1MB)을 넘으면 FILE_TOO_LARGE")
-    void plainTextTooLarge() {
-        byte[] oversized = new byte[(int) (1024L * 1024L) + 1];
-        java.util.Arrays.fill(oversized, (byte) 'a');
+    @DisplayName("모든 지원 형식은 크기 상한(25MB)을 넘으면 FILE_TOO_LARGE")
+    void allSupportedFormatsUse25MiBLimit() {
+        byte[] oversized = new byte[(int) DocumentParser.DEFAULT_MAX_BYTES + 1];
 
-        assertError(() -> extractor.extract(file("note.txt", oversized)), ChatErrorCode.FILE_TOO_LARGE);
-    }
-
-    @Test
-    @DisplayName("문서 포맷은 평문보다 큰 상한(10MB)을 쓴다")
-    void documentFormatsUseLargerLimit() {
-        byte[] twoMegabytes = new byte[2 * 1024 * 1024];
-        java.util.Arrays.fill(twoMegabytes, (byte) 'a');
-
-        // 평문이면 크기에서 걸리지만, pdf 는 상한을 통과해 파싱 단계까지 간다
-        assertError(() -> extractor.extract(file("note.txt", twoMegabytes)), ChatErrorCode.FILE_TOO_LARGE);
-        assertError(() -> extractor.extract(file("doc.pdf", twoMegabytes)), ChatErrorCode.FILE_PARSE_FAILED);
-    }
-
-    @Test
-    @DisplayName("문서 크기 상한(10MB)을 넘으면 FILE_TOO_LARGE")
-    void documentTooLarge() {
-        byte[] oversized = new byte[(int) (10L * 1024L * 1024L) + 1];
-
-        assertError(() -> extractor.extract(file("doc.pdf", oversized)), ChatErrorCode.FILE_TOO_LARGE);
+        for (String extension : extractor.supportedExtensions()) {
+            assertError(
+                () -> extractor.extract(file("document." + extension, oversized)),
+                ChatErrorCode.FILE_TOO_LARGE);
+        }
     }
 
     @Test
     @DisplayName("본문 길이 상한을 넘으면 FILE_TEXT_TOO_LONG")
     void textTooLong() {
-        // 크기 상한(1MB)에는 걸리지 않으면서 글자 수 상한만 넘기도록 ASCII 로 채운다
+        // 파일 크기 상한에는 걸리지 않으면서 글자 수 상한만 넘기도록 ASCII 로 채운다
         String longText = "a".repeat(DocumentTextExtractor.MAX_TEXT_LENGTH + 1);
 
         assertError(() -> extractor.extract(file("note.txt", longText)), ChatErrorCode.FILE_TEXT_TOO_LONG);
@@ -173,11 +157,6 @@ class DocumentTextExtractorTest {
             @Override
             public Set<String> supportedExtensions() {
                 return Set.of("txt");
-            }
-
-            @Override
-            public long maxBytes() {
-                return 1024L;
             }
 
             @Override

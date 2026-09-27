@@ -19,20 +19,12 @@ import java.util.Set;
 @Component
 public class PlainTextParser implements DocumentParser {
 
-    /** 평문은 내용 그대로가 파일 크기이므로 본문 길이 상한과 비슷한 수준으로 잡는다. */
-    static final long MAX_BYTES = 1024L * 1024L;
-
     /** UTF-8 파일 앞에 붙을 수 있는 BOM(U+FEFF). 그대로 두면 첫 글자가 깨져 보인다. */
     private static final char BOM = 0xFEFF;
 
     @Override
     public Set<String> supportedExtensions() {
         return Set.of("txt", "md");
-    }
-
-    @Override
-    public long maxBytes() {
-        return MAX_BYTES;
     }
 
     @Override
