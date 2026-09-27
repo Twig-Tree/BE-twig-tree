@@ -91,7 +91,7 @@ public class ChatController {
         description = """
             문서 파일을 업로드해 그 내용으로 트리를 생성합니다. `multipart/form-data` 로 요청하세요.
 
-            - `file`: txt, md, pdf, docx, hwp, hwpx (평문 최대 1MB / 문서 최대 10MB, 본문 20,000자 이내)
+            - `file`: txt, md, pdf, docx, hwp, hwpx (모든 형식 최대 25MB, 본문 50,000자 이내)
               - 스캔한 이미지 PDF 는 글자를 추출할 수 없어 400 입니다 (OCR 미지원)
               - 암호가 걸린 문서도 400 입니다
             - `message`: (선택) 추가 지시문, 500자 이내. 예) "3단계 깊이로 정리해줘"

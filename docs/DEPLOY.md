@@ -150,7 +150,7 @@ Mem: 954Mi total, 690Mi used, 263Mi available    # 컨테이너 합계는 310MiB
 
 ### 알려진 한계
 
-실서버 기준 297MiB / 576m 로 한도까지 279MiB, 호스트 available 263Mi 가 남습니다. **10MB 문서(PDF · DOCX · HWP · HWPX) 파싱 시 POI · PDFBox 클래스가 추가로 로드되고 힙 사용도 올라가므로, 이 여유를 넘기면 스왑에 들어갑니다.** 힙이 256m 로 묶여 있어 컨테이너가 OOM Kill 되기보다 요청 단위 `OutOfMemoryError` 로 실패할 가능성이 높습니다(컨테이너는 살아남음).
+실서버 기준 297MiB / 576m 로 한도까지 279MiB, 호스트 available 263Mi 가 남습니다. **최대 25MB 문서(PDF · DOCX · HWP · HWPX) 파싱 시 POI · PDFBox 클래스가 추가로 로드되고 힙 사용도 올라가므로, 이 여유를 넘기면 스왑에 들어갑니다.** 힙이 256m 로 묶여 있어 컨테이너가 OOM Kill 되기보다 요청 단위 `OutOfMemoryError` 로 실패할 가능성이 높습니다(컨테이너는 살아남음).
 
 이 스택(Postgres + Redis + Spring Boot + 문서 파서)이 1GB 에서 편하게 돌아가는 구성은 아닙니다. 문서 파싱을 실제로 쓰기 시작하면 **OCI Always Free 의 Ampere A1 shape(4 OCPU / 24GB)으로 옮기는 것**이 근본적인 해결입니다. 같은 무료 한도이고, `Dockerfile` 이 소스에서 빌드하므로 ARM 에서도 그대로 동작합니다.
 

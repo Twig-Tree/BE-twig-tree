@@ -11,16 +11,16 @@ import java.util.Set;
  */
 public interface DocumentParser {
 
+    /** 모든 지원 파일 형식에 적용하는 기본 크기 상한(25 MiB). */
+    long DEFAULT_MAX_BYTES = 25L * 1024L * 1024L;
+
     /** 이 파서가 처리하는 확장자. 소문자로 반환한다. */
     Set<String> supportedExtensions();
 
-    /**
-     * 이 포맷의 파일 크기 상한.
-     *
-     * <p>텍스트 파일과 달리 PDF·DOCX 같은 바이너리 포맷은 같은 분량이어도 파일이 훨씬 크므로
-     * 포맷마다 다른 값을 쓴다.
-     */
-    long maxBytes();
+    /** 이 포맷의 파일 크기 상한. 필요한 파서만 별도 값으로 재정의한다. */
+    default long maxBytes() {
+        return DEFAULT_MAX_BYTES;
+    }
 
     /**
      * 파일 바이트에서 본문을 추출한다.
