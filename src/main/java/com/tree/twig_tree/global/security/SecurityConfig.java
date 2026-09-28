@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -46,7 +48,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    CorsConfigurationSource corsConfigurationSource,
-                                                   @Value("${dev.test-token.enabled:false}") boolean testTokenEnabled) throws Exception {
+                                                   @Value("${dev.test-token.enabled:false}") boolean testTokenEnabled,
+                                                   Environment environment) throws Exception {
+        boolean openTestToken = testTokenEnabled && !environment.acceptsProfiles(Profiles.of("prod"));
+
         return http
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
@@ -62,8 +67,8 @@ public class SecurityConfig {
                         // 401 이 나가 디버깅이 불가능해진다. 외부에서 직접 부를 수 있는 경로가 아니다.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(PERMIT_ALL_PATTERNS).permitAll();
-                        // 개발용 토큰 발급은 설정을 켠 환경에서만 연다
-                        if (testTokenEnabled) {
+                        // 개발용 토큰 발급은 설정을 켠 비운영 환경에서만 연다
+                        if (openTestToken) {
                             auth.requestMatchers(HttpMethod.POST, "/dev/token").permitAll();
                         }
                         auth.anyRequest().authenticated();
