@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -54,6 +55,8 @@ public class TreeService {
                 .build();
 
         treeRepository.save(tree);
+        workspaceRepository.touchById(workspaceId, Instant.now());
+
         return TreeResDTO.TreeId.builder()
                 .treeId(tree.getId())
                 .build();
@@ -71,6 +74,7 @@ public class TreeService {
         validateWorkspaceTree(workspaceId, tree);
 
         treeRepository.delete(tree);
+        workspaceRepository.touchById(workspaceId, Instant.now());
     }
 
     // 트리가 해당 워크스페이스에 속하지 않음
