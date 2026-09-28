@@ -2,9 +2,11 @@ package com.tree.twig_tree.domain.member.controller;
 
 import com.tree.twig_tree.domain.member.converter.MemberConverter;
 import com.tree.twig_tree.domain.member.dto.MemberResDTO;
+import com.tree.twig_tree.domain.member.exception.code.MemberErrorCode;
 import com.tree.twig_tree.domain.member.exception.code.MemberSuccessCode;
 import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
+import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class MemberController {
 
     @GetMapping("/me")
     @Operation(summary = "내 정보 조회", description = "액세스 토큰의 주인(로그인한 회원) 정보를 조회합니다.")
+    @ApiErrorCodeExample(MemberErrorCode.class)
     public ResponseEntity<ApiResponse<MemberResDTO.Me>> getMe(@AuthenticationPrincipal Long memberId) {
         return ApiResponse.onSuccess(
                 MemberSuccessCode.ME_FOUND,

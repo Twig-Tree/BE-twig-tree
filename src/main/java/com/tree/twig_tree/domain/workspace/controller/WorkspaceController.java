@@ -1,11 +1,14 @@
 package com.tree.twig_tree.domain.workspace.controller;
 
+import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceReqDTO;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceResDTO;
+import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceErrorCode;
 import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceSuccessCode;
 import com.tree.twig_tree.domain.workspace.service.WorkspaceService;
 import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
+import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -46,6 +49,7 @@ public class WorkspaceController {
      */
     @Operation(summary = "특정 폴더 기준 워크스페이스 목록 최신순 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 updatedAt 기준 최신순으로 조회합니다.<br>"
             + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
     @GetMapping
     public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getWorkspacesByFolder(
             @AuthenticationPrincipal Long memberId,
@@ -61,6 +65,8 @@ public class WorkspaceController {
      * @return
      */
     @Operation(summary = "새로운 워크스페이스 생성", description = "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스가 생성됩니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "DUPLICATE_WORKSPACE_NAME")
     @PostMapping
     public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> createWorkspace(
             @AuthenticationPrincipal Long memberId,
@@ -76,6 +82,7 @@ public class WorkspaceController {
      * @return
      */
     @Operation(summary = "워크스페이스 조회", description = "")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED"})
     @GetMapping("/{workspaceId}")
     public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> getWorkspace(
             @AuthenticationPrincipal Long memberId,
@@ -91,6 +98,8 @@ public class WorkspaceController {
      * @return
      */
     @Operation(summary = "워크스페이스 이름 수정", description = "")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class,
+            only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED", "DUPLICATE_WORKSPACE_NAME"})
     @PatchMapping("/{workspaceId}")
     public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> updateWorkspace(
             @AuthenticationPrincipal Long memberId,
@@ -107,6 +116,7 @@ public class WorkspaceController {
      * @return
      */
     @Operation(summary = "워크스페이스 삭제", description = "")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED"})
     @DeleteMapping("/{workspaceId}")
     public ResponseEntity<ApiResponse<Void>> deleteWorkspace(
             @AuthenticationPrincipal Long memberId,
