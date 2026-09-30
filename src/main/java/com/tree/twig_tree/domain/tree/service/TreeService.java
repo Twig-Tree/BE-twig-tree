@@ -1,8 +1,5 @@
 package com.tree.twig_tree.domain.tree.service;
 
-import com.tree.twig_tree.domain.folder.entity.Folder;
-import com.tree.twig_tree.domain.folder.exception.FolderException;
-import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.tree.converter.TreeConverter;
 import com.tree.twig_tree.domain.tree.dto.TreeResDTO;
 import com.tree.twig_tree.domain.tree.entity.Tree;
