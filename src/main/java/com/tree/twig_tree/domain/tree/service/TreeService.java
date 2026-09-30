@@ -1,5 +1,8 @@
 package com.tree.twig_tree.domain.tree.service;
 
+import com.tree.twig_tree.domain.folder.entity.Folder;
+import com.tree.twig_tree.domain.folder.exception.FolderException;
+import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.tree.converter.TreeConverter;
 import com.tree.twig_tree.domain.tree.dto.TreeResDTO;
 import com.tree.twig_tree.domain.tree.entity.Tree;
@@ -29,8 +32,8 @@ public class TreeService {
      * 모든 트리 조회
      * @return List<Tree>
      */
-    public List<TreeResDTO.TreeId> getAllTrees() {
-        List<Tree> treeList = treeRepository.findAll();
+    public List<TreeResDTO.TreeId> getAllTrees(Long memberId) {
+        List<Tree> treeList = treeRepository.findAllByWorkspace_Member_Id(memberId);
         return TreeConverter.toGetAllTrees(treeList);
     }
 
@@ -39,10 +42,11 @@ public class TreeService {
      * @return treeId
      */
     @Transactional
-    public TreeResDTO.TreeId createTree(Long workspaceId) {
+    public TreeResDTO.TreeId createTree(Long memberId, Long workspaceId) {
 
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+        validateWorkspaceOwner(memberId, workspace);
 
         // 해당 워크스페이스에 이미 트리가 존재함
         if (treeRepository.existsByWorkspace(workspace)) {
@@ -64,8 +68,9 @@ public class TreeService {
      * @param treeId
      */
     @Transactional
-    public void deleteTree(Long workspaceId, Long treeId) {
-        workspaceRepository.findById(workspaceId).orElseThrow(()-> new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+    public void deleteTree(Long memberId, Long workspaceId, Long treeId) {
+        Workspace workspace = workspaceRepository.findById(workspaceId).orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.WORKSPACE_NOT_FOUND));
+        validateWorkspaceOwner(memberId, workspace);
         Tree tree = treeRepository.findById(treeId).orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
 
         validateWorkspaceTree(workspaceId, tree);
@@ -73,10 +78,19 @@ public class TreeService {
         treeRepository.delete(tree);
     }
 
+    // 검증 함수
+
     // 트리가 해당 워크스페이스에 속하지 않음
     private void validateWorkspaceTree(Long workspaceId, Tree tree) {
         if (!tree.getWorkspace().getId().equals(workspaceId)) {
             throw new TreeException(TreeErrorCode.TREE_NOT_IN_WORKSPACE);
+        }
+    }
+
+    // 워크스페이스 소유자 검증  // 워크스페이스 소유자이면 반드시 트리 소유자이다.
+    private void validateWorkspaceOwner(Long memberId, Workspace workspace) {
+        if (!workspace.getMember().getId().equals(memberId)) {
+            throw new WorkspaceException(WorkspaceErrorCode.WORKSPACE_ACCESS_DENIED);
         }
     }
 }

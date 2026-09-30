@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,9 +30,11 @@ public class TreeController {
      */
     @GetMapping("/trees")
     @Operation(summary = "모든 트리 조회", description = "모든 트리를 조회합니다.")
-    public ResponseEntity<ApiResponse<List<TreeResDTO.TreeId>>> getAllTrees() {
+    public ResponseEntity<ApiResponse<List<TreeResDTO.TreeId>>> getAllTrees(
+            @AuthenticationPrincipal Long memberId
+    ) {
         BaseSuccessCode code = TreeSuccessCode.TREES_FOUND;
-        return ApiResponse.onSuccess(code, treeService.getAllTrees());
+        return ApiResponse.onSuccess(code, treeService.getAllTrees(memberId));
     }
 
     /**
@@ -43,10 +46,11 @@ public class TreeController {
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_ALREADY_EXISTS")
     @PostMapping("/workspaces/{workspaceId}/trees")
     public ResponseEntity<ApiResponse<TreeResDTO.TreeId>> createTree(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long workspaceId
     ) {
         BaseSuccessCode code = TreeSuccessCode.TREE_CREATED;
-        return ApiResponse.onSuccess(code, treeService.createTree(workspaceId));
+        return ApiResponse.onSuccess(code, treeService.createTree(memberId, workspaceId));
     }
 
     /**
@@ -58,10 +62,11 @@ public class TreeController {
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_NOT_IN_WORKSPACE"})
     @DeleteMapping("/workspaces/{workspaceId}/trees/{treeId}")
     public ResponseEntity<ApiResponse<Void>> deleteTree(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long workspaceId,
             @PathVariable Long treeId) {
         BaseSuccessCode code = TreeSuccessCode.TREE_DELETED;
-        treeService.deleteTree(workspaceId, treeId);
+        treeService.deleteTree(memberId, workspaceId, treeId);
         return ApiResponse.onSuccess(code, null);
     }
 }
