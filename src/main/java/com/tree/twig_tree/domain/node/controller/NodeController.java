@@ -34,7 +34,7 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "새로운 노드 생성", description = "트리에 새로운 노드를 생성합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class,
             only = {"PARENT_NOT_FOUND", "NODE_NOT_IN_TREE", "DUPLICATED_ORDER_ID", "ONE_ROOT_PER_TREE"})
     @PostMapping()
@@ -55,7 +55,7 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
     @PatchMapping("/{nodeId}")
     public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> editNodeName(
@@ -72,7 +72,7 @@ public class NodeController {
      * @param nodeId
      */
     @Operation(summary = "노드 삭제", description = "특정 노드를 삭제합니다. ")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
     @DeleteMapping("/{nodeId}")
     public ResponseEntity<ApiResponse<Void>> deleteNode(
@@ -92,7 +92,7 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "단일 노드 상세 조회", description = "특정 노드의 상세 정보를 조회합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
     @GetMapping("/{nodeId}")
     public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> getNode(
@@ -111,7 +111,7 @@ public class NodeController {
      */
     @GetMapping
     @Operation(summary = "트리 전체 노드 조회", description = "트리의 모든 노드를 조회합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     public ResponseEntity<ApiResponse<NodeResDTO.GetTree>> getFullTree(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long treeId) {
@@ -128,7 +128,7 @@ public class NodeController {
      */
     @GetMapping("/{rootId}/subtree")
     @Operation(summary = "서브트리 노드 조회", description = "특정 노드를 루트로 하는 서브트리의 모든 노드를 조회합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
     public ResponseEntity<ApiResponse<List<NodeResDTO.GetNode>>> getSubTree(
             @AuthenticationPrincipal Long memberId,

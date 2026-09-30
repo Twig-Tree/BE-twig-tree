@@ -42,7 +42,7 @@ public class TreeController {
      * @return treeId
      */
     @Operation(summary = "새로운 트리 생성", description = "특정 워크스페이스에 트리를 생성합니다. 하나의 워크스페이스에 하나의 트리만 생성가능합니다.")
-    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "WORKSPACE_NOT_FOUND")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_ALREADY_EXISTS")
     @PostMapping("/workspaces/{workspaceId}/trees")
     public ResponseEntity<ApiResponse<TreeResDTO.TreeId>> createTree(
@@ -58,7 +58,7 @@ public class TreeController {
      * @param treeId
      */
     @Operation(summary = "트리 삭제", description = "트리를 삭제합니다.")
-    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "WORKSPACE_NOT_FOUND")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_NOT_IN_WORKSPACE"})
     @DeleteMapping("/workspaces/{workspaceId}/trees/{treeId}")
     public ResponseEntity<ApiResponse<Void>> deleteTree(
