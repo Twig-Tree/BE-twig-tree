@@ -32,8 +32,9 @@ public class NodeService {
      * @return
      */
     @Transactional
-    public NodeResDTO.GetNode createNode(Long treeId, NodeReqDTO.CreateNode dto) {
+    public NodeResDTO.GetNode createNode(Long memberId, Long treeId, NodeReqDTO.CreateNode dto) {
         Tree tree = validateTree(treeId);
+        validateTreeOwner(memberId, tree);
 
         Node parentNode = null;
         if (dto.parentId() != null) {
@@ -57,9 +58,11 @@ public class NodeService {
      * @return
      */
     @Transactional
-    public NodeResDTO.GetNode editNodeName(Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
+    public NodeResDTO.GetNode editNodeName(Long memberId, Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
         // 검증
-        validateTree(treeId);
+        Tree tree = validateTree(treeId);
+        validateTreeOwner(memberId, tree);
+
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
 
@@ -73,8 +76,10 @@ public class NodeService {
      * @param nodeId
      */
     @Transactional
-    public void deleteNode(Long treeId, Long nodeId) {
-        validateTree(treeId);
+    public void deleteNode(Long memberId, Long treeId, Long nodeId) {
+        Tree tree = validateTree(treeId);
+        validateTreeOwner(memberId, tree);
+
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
         nodeRepository.delete(node);
@@ -86,8 +91,10 @@ public class NodeService {
      * @param nodeId
      * @return
      */
-    public NodeResDTO.GetNode getNode(Long treeId, Long nodeId) {
-        validateTree(treeId);
+    public NodeResDTO.GetNode getNode(Long memberId, Long treeId, Long nodeId) {
+        Tree tree = validateTree(treeId);
+        validateTreeOwner(memberId, tree);
+
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
 
@@ -99,8 +106,9 @@ public class NodeService {
      * @param treeId
      * @return
      */
-    public NodeResDTO.GetTree getFullTreeNodes(Long treeId) {
-        validateTree(treeId);
+    public NodeResDTO.GetTree getFullTreeNodes(Long memberId, Long treeId) {
+        Tree tree = validateTree(treeId);
+        validateTreeOwner(memberId, tree);
         List<Node> fullTreeNodes = nodeRepository.findFullTreeByTreeId(treeId);
 
         return NodeConverter.toGetFullTreeNodes(fullTreeNodes);
@@ -113,8 +121,10 @@ public class NodeService {
      * @param rootId
      * @return
      */
-    public List<NodeResDTO.GetNode> getSubTreeNodes(Long treeId, Long rootId) {
-        validateTree(treeId);
+    public List<NodeResDTO.GetNode> getSubTreeNodes(Long memberId, Long treeId, Long rootId) {
+        Tree tree = validateTree(treeId);
+        validateTreeOwner(memberId, tree);
+
         Node node = validateNode(rootId);
         validateNodeInTree(node, treeId);
 
@@ -140,6 +150,13 @@ public class NodeService {
     private void validateNodeInTree(Node node, Long treeId) {
         if (!node.getTree().getId().equals(treeId)) {
             throw new NodeException(NodeErrorCode.NODE_NOT_IN_TREE);
+        }
+    }
+
+    // 트리 소유자 검증
+    private void validateTreeOwner(Long memberId, Tree tree) {
+        if (!tree.getWorkspace().getMember().getId().equals(memberId)) {
+            throw new TreeException(TreeErrorCode.TREE_ACCESS_DENIED);
         }
     }
 
