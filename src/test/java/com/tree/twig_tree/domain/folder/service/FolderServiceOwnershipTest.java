@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
  * 폴더 소유권 검증. 다른 회원의 폴더를 건드리면 FOLDER_ACCESS_DENIED 여야 한다.
  */
 @ExtendWith(MockitoExtension.class)
-class FolderServiceTest {
+class FolderServiceOwnershipTest {
 
     private static final Long OWNER_ID = 1L;
     private static final Long OTHER_ID = 2L;
