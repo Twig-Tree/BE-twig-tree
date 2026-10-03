@@ -11,10 +11,12 @@ import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.exception.TreeException;
 import com.tree.twig_tree.domain.tree.exception.code.TreeErrorCode;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
+import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -24,6 +26,7 @@ public class NodeService {
 
     private final NodeRepository nodeRepository;
     private final TreeRepository treeRepository;
+    private final WorkspaceRepository workspaceRepository;
 
     /**
      * 노드 생성
@@ -46,6 +49,7 @@ public class NodeService {
 
         Node newNode = NodeConverter.toCreateNode(tree, parentNode, dto);
         Node savedNode = nodeRepository.save(newNode);
+        workspaceRepository.touchByTreeId(treeId, Instant.now());
         return NodeConverter.toGetNode(savedNode);
     }
 
@@ -64,6 +68,7 @@ public class NodeService {
         validateNodeInTree(node, treeId);
 
         node.updateName(dto.name());
+        workspaceRepository.touchByTreeId(treeId, Instant.now());
 
         return NodeConverter.toGetNode(node);
     }
@@ -78,6 +83,7 @@ public class NodeService {
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
         nodeRepository.delete(node);
+        workspaceRepository.touchByTreeId(treeId, Instant.now());
     }
 
     /**
