@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.tree.service;
 
+import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TreeServiceWorkspaceTouchTest {
 
+    private static final Long OWNER_ID = 1L;
     private static final Long WORKSPACE_ID = 100L;
     private static final Long TREE_ID = 10L;
 
@@ -34,7 +36,8 @@ class TreeServiceWorkspaceTouchTest {
     @InjectMocks
     private TreeService treeService;
 
-    private final Workspace workspace = Workspace.builder().id(WORKSPACE_ID).name("ws").build();
+    private final Member owner = Member.builder().id(OWNER_ID).build();
+    private final Workspace workspace = Workspace.builder().id(WORKSPACE_ID).name("ws").member(owner).build();
 
     @Test
     @DisplayName("트리 생성 시 워크스페이스 updatedAt 을 갱신한다")
@@ -42,7 +45,7 @@ class TreeServiceWorkspaceTouchTest {
         when(workspaceRepository.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspace));
         when(treeRepository.existsByWorkspace(workspace)).thenReturn(false);
 
-        treeService.createTree(WORKSPACE_ID);
+        treeService.createTree(OWNER_ID, WORKSPACE_ID);
 
         verify(workspaceRepository).touchById(eq(WORKSPACE_ID), any());
     }
@@ -54,7 +57,7 @@ class TreeServiceWorkspaceTouchTest {
         when(workspaceRepository.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspace));
         when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(tree));
 
-        treeService.deleteTree(WORKSPACE_ID, TREE_ID);
+        treeService.deleteTree(OWNER_ID, WORKSPACE_ID, TREE_ID);
 
         verify(workspaceRepository).touchById(eq(WORKSPACE_ID), any());
     }

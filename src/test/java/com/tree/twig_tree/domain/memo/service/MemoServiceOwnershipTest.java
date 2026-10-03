@@ -8,6 +8,7 @@ import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
+import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,8 @@ class MemoServiceOwnershipTest {
 
     @Mock
     private NodeRepository nodeRepository;
+    @Mock
+    private WorkspaceRepository workspaceRepository;
     @InjectMocks
     private MemoService memoService;
 
