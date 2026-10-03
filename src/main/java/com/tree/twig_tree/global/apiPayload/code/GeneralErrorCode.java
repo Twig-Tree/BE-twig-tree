@@ -12,6 +12,7 @@ public enum GeneralErrorCode implements BaseErrorCode{
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON401-1", "인증되지 않았습니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON403-1", "접근이 금지되었습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON404-1", "해당 리소스를 찾을 수 없습니다."),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COMMON405-1", "지원하지 않는 HTTP 메서드입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON500-1", "서버 내부 오류입니다.");
 
     private final HttpStatus status;
