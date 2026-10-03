@@ -23,7 +23,7 @@ class ErrorCodeOperationCustomizerTest {
     @DisplayName("@ApiErrorCodeExample 로 지정한 도메인 에러코드가 상태코드별로 응답 예시에 묶인다")
     void groupsDomainErrorCodesByStatus() throws NoSuchMethodException {
         Method method = NodeController.class.getMethod(
-                "createNode", Long.class, com.tree.twig_tree.domain.node.dto.NodeReqDTO.CreateNode.class);
+                "createNode", Long.class, Long.class, com.tree.twig_tree.domain.node.dto.NodeReqDTO.CreateNode.class);
         Operation operation = customize(NodeController.class, null, method);
 
         ApiResponses responses = operation.getResponses();
@@ -37,6 +37,8 @@ class ErrorCodeOperationCustomizerTest {
         // 인증이 필요한 엔드포인트이므로 공통 401/403 이 자동으로 붙는다.
         assertThat(exampleKeys(responses, "401")).contains("COMMON401-1");
         assertThat(exampleKeys(responses, "403")).contains("COMMON403-1");
+        // 트리 소유자가 아니면 도메인 403 이 함께 노출된다.
+        assertThat(exampleKeys(responses, "403")).contains("TREE403-1");
         // 모든 엔드포인트에 공통 500 이 붙는다.
         assertThat(exampleKeys(responses, "500")).contains("COMMON500-1");
     }

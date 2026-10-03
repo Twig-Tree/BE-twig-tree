@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,14 +34,15 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "새로운 노드 생성", description = "트리에 새로운 노드를 생성합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class,
             only = {"PARENT_NOT_FOUND", "NODE_NOT_IN_TREE", "DUPLICATED_ORDER_ID", "ONE_ROOT_PER_TREE"})
     @PostMapping()
     public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> createNode(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long treeId, @RequestBody @Valid NodeReqDTO.CreateNode dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_CREATED;
-        return ApiResponse.onSuccess(code, nodeService.createNode(treeId, dto));
+        return ApiResponse.onSuccess(code, nodeService.createNode(memberId, treeId, dto));
 
     }
 
@@ -53,13 +55,16 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
     @PatchMapping("/{nodeId}")
-    public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> editNodeName(@PathVariable Long treeId, @PathVariable Long nodeId,
-                                              @RequestBody @Valid NodeReqDTO.EditNodeName dto) {
+    public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> editNodeName(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long treeId,
+            @PathVariable Long nodeId,
+            @RequestBody @Valid NodeReqDTO.EditNodeName dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_UPDATED;
-        return ApiResponse.onSuccess(code, nodeService.editNodeName(treeId, nodeId, dto));
+        return ApiResponse.onSuccess(code, nodeService.editNodeName(memberId, treeId, nodeId, dto));
     }
 
     /**
@@ -67,12 +72,15 @@ public class NodeController {
      * @param nodeId
      */
     @Operation(summary = "노드 삭제", description = "특정 노드를 삭제합니다. ")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
     @DeleteMapping("/{nodeId}")
-    public ResponseEntity<ApiResponse<Void>> deleteNode(@PathVariable Long treeId, @PathVariable Long nodeId){
+    public ResponseEntity<ApiResponse<Void>> deleteNode(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long treeId,
+            @PathVariable Long nodeId){
         BaseSuccessCode code = NodeSuccessCode.NODE_DELETED;
-        nodeService.deleteNode(treeId, nodeId);
+        nodeService.deleteNode(memberId, treeId, nodeId);
         return ApiResponse.onSuccess(code, null);
     }
 
@@ -84,12 +92,15 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "단일 노드 상세 조회", description = "특정 노드의 상세 정보를 조회합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
     @GetMapping("/{nodeId}")
-    public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> getNode(@PathVariable Long treeId, @PathVariable Long nodeId) {
+    public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> getNode(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long treeId,
+            @PathVariable Long nodeId) {
         BaseSuccessCode code = NodeSuccessCode.NODE_FOUND;
-        return ApiResponse.onSuccess(code, nodeService.getNode(treeId, nodeId));
+        return ApiResponse.onSuccess(code, nodeService.getNode(memberId, treeId, nodeId));
     }
 
     /**
@@ -100,10 +111,12 @@ public class NodeController {
      */
     @GetMapping
     @Operation(summary = "트리 전체 노드 조회", description = "트리의 모든 노드를 조회합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
-    public ResponseEntity<ApiResponse<NodeResDTO.GetTree>> getFullTree(@PathVariable Long treeId) {
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
+    public ResponseEntity<ApiResponse<NodeResDTO.GetTree>> getFullTree(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long treeId) {
         BaseSuccessCode code = NodeSuccessCode.NODES_FOUND;
-        return ApiResponse.onSuccess(code, nodeService.getFullTreeNodes(treeId));
+        return ApiResponse.onSuccess(code, nodeService.getFullTreeNodes(memberId, treeId));
     }
 
     /**
@@ -115,10 +128,13 @@ public class NodeController {
      */
     @GetMapping("/{rootId}/subtree")
     @Operation(summary = "서브트리 노드 조회", description = "특정 노드를 루트로 하는 서브트리의 모든 노드를 조회합니다.")
-    @ApiErrorCodeExample(value = TreeErrorCode.class, only = "TREE_NOT_FOUND")
+    @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
-    public ResponseEntity<ApiResponse<List<NodeResDTO.GetNode>>> getSubTree(@PathVariable Long treeId, @PathVariable Long rootId) {
+    public ResponseEntity<ApiResponse<List<NodeResDTO.GetNode>>> getSubTree(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long treeId,
+            @PathVariable Long rootId) {
         BaseSuccessCode code = NodeSuccessCode.NODES_FOUND;
-        return ApiResponse.onSuccess(code, nodeService.getSubTreeNodes(treeId, rootId));
+        return ApiResponse.onSuccess(code, nodeService.getSubTreeNodes(memberId, treeId, rootId));
     }
 }

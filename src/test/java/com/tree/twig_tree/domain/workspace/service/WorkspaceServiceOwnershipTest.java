@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
  * 워크스페이스 소유권 검증. 다른 회원의 워크스페이스를 건드리면 WORKSPACE_ACCESS_DENIED 여야 한다.
  */
 @ExtendWith(MockitoExtension.class)
-class WorkspaceServiceTest {
+class WorkspaceServiceOwnershipTest {
 
     private static final Long OWNER_ID = 1L;
     private static final Long OTHER_ID = 2L;

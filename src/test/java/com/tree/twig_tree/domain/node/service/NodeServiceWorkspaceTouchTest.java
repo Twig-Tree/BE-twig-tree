@@ -1,10 +1,12 @@
 package com.tree.twig_tree.domain.node.service;
 
+import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.node.dto.NodeReqDTO;
 import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
+import com.tree.twig_tree.domain.workspace.entity.Workspace;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class NodeServiceWorkspaceTouchTest {
 
+    private static final Long OWNER_ID = 1L;
     private static final Long TREE_ID = 10L;
     private static final Long NODE_ID = 1000L;
 
@@ -38,7 +41,9 @@ class NodeServiceWorkspaceTouchTest {
     @InjectMocks
     private NodeService nodeService;
 
-    private final Tree tree = Tree.builder().id(TREE_ID).build();
+    private final Member owner = Member.builder().id(OWNER_ID).build();
+    private final Workspace workspace = Workspace.builder().id(100L).member(owner).build();
+    private final Tree tree = Tree.builder().id(TREE_ID).workspace(workspace).build();
     private final Node node = Node.builder().id(NODE_ID).name("노드").tree(tree).build();
 
     @Test
@@ -47,7 +52,7 @@ class NodeServiceWorkspaceTouchTest {
         when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(tree));
         when(nodeRepository.save(any(Node.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        nodeService.createNode(TREE_ID, new NodeReqDTO.CreateNode("루트", null, 1L));
+        nodeService.createNode(OWNER_ID, TREE_ID, new NodeReqDTO.CreateNode("루트", null, 1L));
 
         verify(workspaceRepository).touchByTreeId(eq(TREE_ID), any());
     }
@@ -58,7 +63,7 @@ class NodeServiceWorkspaceTouchTest {
         when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(tree));
         when(nodeRepository.findById(NODE_ID)).thenReturn(Optional.of(node));
 
-        nodeService.editNodeName(TREE_ID, NODE_ID, new NodeReqDTO.EditNodeName("새 이름"));
+        nodeService.editNodeName(OWNER_ID, TREE_ID, NODE_ID, new NodeReqDTO.EditNodeName("새 이름"));
 
         verify(workspaceRepository).touchByTreeId(eq(TREE_ID), any());
     }
@@ -69,7 +74,7 @@ class NodeServiceWorkspaceTouchTest {
         when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(tree));
         when(nodeRepository.findById(NODE_ID)).thenReturn(Optional.of(node));
 
-        nodeService.deleteNode(TREE_ID, NODE_ID);
+        nodeService.deleteNode(OWNER_ID, TREE_ID, NODE_ID);
 
         verify(workspaceRepository).touchByTreeId(eq(TREE_ID), any());
     }
