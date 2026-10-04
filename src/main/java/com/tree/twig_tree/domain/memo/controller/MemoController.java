@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Memo")
@@ -25,33 +26,36 @@ public class MemoController {
 
     // memo는 초기값이 null로 생성되므로 PUT으로 생성과 수정이 모두 가능합니다.
     @Operation(summary = "메모 생성/수정", description = "메모를 업데이트합니다. 기본값이 null로 초기화되어있어 메모 생성은 수정과 같습니다.")
-    @ApiErrorCodeExample(value = NodeErrorCode.class, only = "NODE_NOT_FOUND")
+    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_ACCESS_DENIED"})
     @PutMapping
     public ResponseEntity<ApiResponse<MemoResDTO.GetMemo>> updateMemo(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long nodeId,
             @RequestBody @Valid MemoReqDTO.UpdateMemo dto
             ) {
         BaseSuccessCode code = MemoSuccessCode.MEMO_UPDATED;
-        return ApiResponse.onSuccess(code, memoService.updateMemo(nodeId, dto));
+        return ApiResponse.onSuccess(code, memoService.updateMemo(memberId, nodeId, dto));
     }
 
     @Operation(summary = "메모 조회", description = "메모를 조회합니다. 메모 title은 노드 name과 같습니다.")
-    @ApiErrorCodeExample(value = NodeErrorCode.class, only = "NODE_NOT_FOUND")
+    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_ACCESS_DENIED"})
     @GetMapping
     public ResponseEntity<ApiResponse<MemoResDTO.GetMemo>> getMemo(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long nodeId
     ) {
         BaseSuccessCode code = MemoSuccessCode.MEMO_FOUND;
-        return ApiResponse.onSuccess(code, memoService.getMemo(nodeId));
+        return ApiResponse.onSuccess(code, memoService.getMemo(memberId, nodeId));
     }
 
     @Operation(summary = "메모 삭제", description = "메모를 삭제합니다. 즉, null값이 됩니다.")
-    @ApiErrorCodeExample(value = NodeErrorCode.class, only = "NODE_NOT_FOUND")
+    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_ACCESS_DENIED"})
     @DeleteMapping
     public ResponseEntity<ApiResponse<Void>> deleteMemo(
+            @AuthenticationPrincipal Long memberId,
             @PathVariable Long nodeId
     ) {
         BaseSuccessCode code = MemoSuccessCode.MEMO_DELETED;
-        return ApiResponse.onSuccess(code, memoService.deleteMemo(nodeId));
+        return ApiResponse.onSuccess(code, memoService.deleteMemo(memberId, nodeId));
     }
 }

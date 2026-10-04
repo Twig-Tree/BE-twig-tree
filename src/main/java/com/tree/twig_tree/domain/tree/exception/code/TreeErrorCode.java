@@ -11,7 +11,8 @@ public enum TreeErrorCode implements BaseErrorCode{
 
     TREE_NOT_FOUND(HttpStatus.NOT_FOUND, "TREE404-1","해당 트리가 존재하지 않습니다."),
     TREE_NOT_IN_WORKSPACE(HttpStatus.NOT_FOUND, "TREE404-2", "해당 워크스페이스에 속하지 않는 트리입니다."),
-    TREE_ALREADY_EXISTS(HttpStatus.CONFLICT, "TREE409-1", "해당 워크스페이스에 이미 트리가 존재합니다. 하나의 워크스페이스에는 하나의 트리만 존재할 수 있습니다.");
+    TREE_ALREADY_EXISTS(HttpStatus.CONFLICT, "TREE409-1", "해당 워크스페이스에 이미 트리가 존재합니다. 하나의 워크스페이스에는 하나의 트리만 존재할 수 있습니다."),
+    TREE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "TREE403-1", "본인 소유 트리가 아니므로 처리할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

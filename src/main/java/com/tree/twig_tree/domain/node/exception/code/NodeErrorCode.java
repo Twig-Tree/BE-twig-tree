@@ -13,7 +13,8 @@ public enum NodeErrorCode implements BaseErrorCode {
     PARENT_NOT_FOUND(HttpStatus.NOT_FOUND, "NODE404-2","부모 노드가 존재하지 않습니다."),
     NODE_NOT_IN_TREE(HttpStatus.NOT_FOUND, "NODE404-3","해당 트리에 속하지 않은 노드입니다"),
     DUPLICATED_ORDER_ID(HttpStatus.CONFLICT, "NODE409-1" , "같은 부모를 갖는 노드끼리는 order_id가 겹칠 수 없습니다."),
-    ONE_ROOT_PER_TREE(HttpStatus.CONFLICT, "NODE409-2" , "하나의 트리에는 하나의 루트만 존재할 수 있습니다. ");
+    ONE_ROOT_PER_TREE(HttpStatus.CONFLICT, "NODE409-2" , "하나의 트리에는 하나의 루트만 존재할 수 있습니다. "),
+    NODE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "NODE403-1", "본인 소유 노드가 아니므로 처리할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
