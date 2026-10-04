@@ -10,6 +10,7 @@ import com.tree.twig_tree.global.apiPayload.ApiResponse;
 import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
 import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.*;
@@ -30,15 +31,25 @@ public class WorkspaceController {
     /**
      * 전체 워크스페이스 목록 최신순 조회 (특정 폴더 기준 아님)
      * Recent 탭, Dashboard 탭의 최신 목록에서 사용됩니다.
-     * @return
+     * @param cursor
+     * @param size
+     * @return GetWorkspaceSlice
      */
-    @Operation(summary = "전체 워크스페이스 목록 최신순 조회", description = "폴더에 속한 것과 관계없이 전체 워크스페이스 목록을 최신순으로 조회합니다.")
+    @Operation(summary = "전체 워크스페이스 목록 최신순 조회 (커서 기반)",
+            description = "폴더와 관계없이 전체 워크스페이스 목록을 updatedAt 기준 최신순으로 조회합니다.<br>"
+                    + "첫 요청은 cursor 없이 호출하고, 이후에는 응답의 nextCursor 를 그대로 전달합니다.<br>"
+                    + "hasNext = false 이면 마지막 페이지입니다. size 는 기본 20, 1~50 범위로 보정됩니다.")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "INVALID_CURSOR")
     @GetMapping("/recent")
-    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getAllWorkspaces(
-            @AuthenticationPrincipal Long memberId
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspaceSlice>> getAllWorkspaces(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "직전 응답의 nextCursor (첫 페이지는 생략)")
+            @RequestParam(required = false) String cursor,
+            @Parameter(description = "조회 개수 (기본 20, 최대 50)")
+            @RequestParam(required = false) Integer size
     ) {
         BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
-        return ApiResponse.onSuccess(code, workspaceService.getAllWorkspaces(memberId));
+        return ApiResponse.onSuccess(code, workspaceService.getAllWorkspaces(memberId, cursor, size));
     }
 
     /**

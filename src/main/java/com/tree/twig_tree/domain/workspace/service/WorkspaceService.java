@@ -9,6 +9,7 @@ import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.converter.WorkspaceConverter;
+import com.tree.twig_tree.domain.workspace.dto.WorkspaceCursor;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceReqDTO;
 import com.tree.twig_tree.domain.workspace.dto.WorkspaceResDTO;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
@@ -16,6 +17,7 @@ import com.tree.twig_tree.domain.workspace.exception.WorkspaceException;
 import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceErrorCode;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,16 +35,52 @@ public class WorkspaceService {
     private final TreeRepository treeRepository;
     private final MemberService memberService;
 
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 50;
+
     /**
-     * 본인 소유 전체 워크스페이스 최신순 조회
+     * 전체 워크스페이스 최신순 조회
+     * @param cursor 직전 응답의 nextCursor (null 이면 첫 페이지)
+     * @param size 요청 개수 (1 ~ 50 범위로 보정)
      * @return
      */
-    public List<WorkspaceResDTO.GetWorkspace> getAllWorkspaces(Long memberId) {
-        List<Workspace> workspaceList = workspaceRepository.findAllByMember_IdOrderByUpdatedAtDesc(memberId);
+    public WorkspaceResDTO.GetWorkspaceSlice getAllWorkspaces(Long memberId, String cursor, Integer size) {
+        int pageSize = normalizeSize(size);
+
+        // 1) size + 1 개를 조회한다.
+        //    하나 더 가져와서 실제로 넘치면 다음 페이지가 있다고 판단한다.
+        int fetchSize = pageSize + 1;
+        List<Workspace> fetched;
+        if (cursor == null || cursor.isBlank()) {
+            fetched = workspaceRepository.findRecentFirstPage(memberId, PageRequest.of(0, fetchSize));
+        } else {
+            WorkspaceCursor decoded = WorkspaceCursor.decode(cursor);
+            fetched = workspaceRepository.findRecentAfterCursor(memberId, decoded.updatedAt(), decoded.workspaceId(), PageRequest.of(0, fetchSize));
+        }
+
+        // 2) hasNext 기록하고 넘친 1개는 잘라낸다.
+        boolean hasNext = fetched.size() > pageSize;
+        List<Workspace> workspaceList = hasNext ? fetched.subList(0, pageSize) : fetched;
+
+        // 트리 ID 매핑
         Map<Long, Long> treeIdByWorkspaceId = treeRepository.findAllByWorkspaceIn(workspaceList).stream()
                 .collect(Collectors.toMap(tree -> tree.getWorkspace().getId(), Tree::getId));
+        List<WorkspaceResDTO.GetWorkspace> workspaces = WorkspaceConverter.toGetWorkspaces(workspaceList, treeIdByWorkspaceId);
 
-        return WorkspaceConverter.toGetWorkspaces(workspaceList ,treeIdByWorkspaceId);
+        // 3) 다음 커서는 이번 페이지의 마지막 항목으로 만든다.
+        String nextCursor = hasNext ? WorkspaceCursor.from(workspaces.get(workspaces.size() - 1)).encode() : null;
+
+        return WorkspaceResDTO.GetWorkspaceSlice.builder()
+                .workspaces(workspaces)
+                .nextCursor(nextCursor)
+                .hasNext(hasNext)
+                .build();
+    }
+
+    // size 가 없거나 범위를 벗어나면 에러 대신 경계값으로 보정 (프론트 친화적)
+    private int normalizeSize(Integer size) {
+        if (size == null) return DEFAULT_PAGE_SIZE;
+        return Math.max(1, Math.min(size, MAX_PAGE_SIZE));
     }
 
     /**
