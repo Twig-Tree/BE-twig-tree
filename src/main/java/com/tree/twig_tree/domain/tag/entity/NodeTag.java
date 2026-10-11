@@ -7,6 +7,11 @@ import lombok.Getter;
 
 @Getter
 @Entity
+@Table(name = "node_tags",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_node_tag", // 같은 노드에 같은 태그를 두 번 붙일 수 없다.
+                columnNames = {"node_id", "tag_id"}
+        ))
 public class NodeTag {
 
     @Id
@@ -15,10 +20,10 @@ public class NodeTag {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id")
-    private Tag tag;
+    @JoinColumn(name = "node_id", nullable = false)
+    private Node node;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "node_id")
-    private Node node;
+    @JoinColumn(name = "tag_id", nullable = false)
+    private Tag tag;
 }

@@ -13,7 +13,8 @@ public enum TagSuccessCode implements BaseSuccessCode {
     TAG_UPDATED(HttpStatus.OK, "TAG200-1", "성공적으로 태그 정보를 수정했습니다."),
     TAG_DELETED(HttpStatus.OK, "TAG200-2", "성공적으로 태그를 삭제했습니다."),
     TAGS_FOUND(HttpStatus.FOUND, "TAG200-3", "성공적으로 태그 목록을 조회했습니다."),
-    TAGS_UPDATED(HttpStatus.OK, "TAG-200-4", "성공적으로 태그 목록을 수정했습니다.");
+    TAG_ADDED(HttpStatus.OK, "TAG200-4", "성공적으로 노드에 태그가 추가되었습니다."),
+    TAG_REMOVED(HttpStatus.OK, "TAG200-5", "성공적으로 노드에 태그가 제거되었습니다.");
 
     private final HttpStatus status;
     private final String code;

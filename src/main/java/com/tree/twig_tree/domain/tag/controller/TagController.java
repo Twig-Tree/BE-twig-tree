@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.tag.controller;
 
+import com.tree.twig_tree.domain.tag.dto.TagReqDTO;
 import com.tree.twig_tree.domain.tag.dto.TagResDTO;
 import com.tree.twig_tree.domain.tag.exception.code.TagSuccessCode;
 import com.tree.twig_tree.domain.tag.service.TagService;
@@ -24,10 +25,11 @@ public class TagController {
     @PostMapping("/trees/{treeId}/tags")
     public ResponseEntity<ApiResponse<TagResDTO.GetTag>> createTag(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable Long treeId
+            @PathVariable Long treeId,
+            @RequestBody TagReqDTO.CreateTag dto
     ) {
         BaseSuccessCode code = TagSuccessCode.TAG_CREATED;
-        return ApiResponse.onSuccess(code, tagService.createTag(memberId, treeId));
+        return ApiResponse.onSuccess(code, tagService.createTag(memberId, treeId, dto));
     }
 
     // 태그 이름 수정
@@ -36,10 +38,11 @@ public class TagController {
     public ResponseEntity<ApiResponse<TagResDTO.GetTag>> updateTagName(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long treeId,
-            @PathVariable Long tagId
+            @PathVariable Long tagId,
+            @RequestBody TagReqDTO.EditTagName dto
     ) {
         BaseSuccessCode code = TagSuccessCode.TAG_UPDATED;
-        return ApiResponse.onSuccess(code, tagService.updateTagName(memberId, treeId, tagId));
+        return ApiResponse.onSuccess(code, tagService.updateTagName(memberId, treeId, tagId, dto));
     }
 
     // 태그 삭제
@@ -77,14 +80,25 @@ public class TagController {
         return ApiResponse.onSuccess(code, tagService.getNodeTags(memberId, nodeId));
     }
 
-    // 노드의 태그 목록 추가/삭제 (한번에 여러개 가능??????????)
-    @Operation(summary = "노드의 태그 목록 수정", description = "노드에 속한 태그 목록을 수정합니다. 한번에 추가/삭제할 수 있습니다.")
-    @PatchMapping("/nodes/{nodeId}/tags")
-    public ResponseEntity<ApiResponse<List<TagResDTO.GetTag>>> updateNodeTags(
+    // 노드의 태그 추가
+    @Operation(summary = "노드의 태그 추가", description = "노드에 태그 하나를 추가합니다.")
+    @PostMapping("/nodes/{nodeId}/tags")
+    public ResponseEntity<ApiResponse<List<TagResDTO.GetTag>>> addNodeTag(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long nodeId
     ) {
-        BaseSuccessCode code = TagSuccessCode.TAGS_UPDATED;
-        return ApiResponse.onSuccess(code, tagService.updateNodeTags(memberId, nodeId));
+        BaseSuccessCode code = TagSuccessCode.TAG_ADDED;
+        return ApiResponse.onSuccess(code, tagService.addNodeTag(memberId, nodeId));
+    }
+
+    // 노드의 태그 삭제
+    @Operation(summary = "노드의 태그 삭제", description = "노드에 태그 하나를 삭제합니다.")
+    @DeleteMapping("/nodes/{nodeId}/tags")
+    public ResponseEntity<ApiResponse<List<TagResDTO.GetTag>>> removeNodeTag(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long nodeId
+    ) {
+        BaseSuccessCode code = TagSuccessCode.TAG_REMOVED;
+        return ApiResponse.onSuccess(code, tagService.removeNodeTag(memberId, nodeId));
     }
 }
