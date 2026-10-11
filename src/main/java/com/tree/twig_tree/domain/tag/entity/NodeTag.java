@@ -2,10 +2,12 @@ package com.tree.twig_tree.domain.tag.entity;
 
 import com.tree.twig_tree.domain.node.entity.Node;
 import jakarta.persistence.*;
-import lombok.Cleanup;
-import lombok.Getter;
+import lombok.*;
 
 @Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "node_tags",
         uniqueConstraints = @UniqueConstraint(
