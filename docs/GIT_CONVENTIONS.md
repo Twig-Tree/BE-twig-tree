@@ -77,13 +77,6 @@ GitHub 저장소
       └─ Rulesets
 ```
 
-CLI로는 다음 명령으로 확인할 수 있다.
-
-```bash
-gh api repos/Twig-Tree/BE-twig-tree/rulesets
-gh api repos/Twig-Tree/BE-twig-tree/rulesets/<ruleset-id>
-```
-
 ## 브랜치 생성 전 체크리스트
 
 - 실제 GitHub 이슈 번호를 확인한다.
