@@ -28,6 +28,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TagService {
 
+    private static final int MAX_NODE_TAG_COUNT = 10;
+
     private final TreeRepository treeRepository;
     private final NodeRepository nodeRepository;
     private final TagRepository tagRepository;
@@ -82,18 +84,25 @@ public class TagService {
         return TagConverter.toGetTags(tags);
     }
 
+    // 노드에 태그 추가
     @Transactional
     public TagResDTO.GetTag addNodeTag(Long memberId, Long nodeId, Long tagId) {
         Node node = validateNode(nodeId);
         validateTreeOwner(memberId, node.getTree());
         Tag tag = validateTag(tagId);
         validateTagInTree(node.getTree().getId(), tag);
+
+        // 태그 개수 제한
+        long tagCount = nodeTagRepository.countByNodeId(nodeId);
+        if (tagCount >= MAX_NODE_TAG_COUNT) throw new TagException(TagErrorCode.NODE_TAG_COUNT_EXCEEDED);
+
         NodeTag nodeTag = NodeTag.builder().node(node).tag(tag).build();
 
         nodeTagRepository.save(nodeTag);
         return TagConverter.toGetTag(tag);
     }
 
+    // 노드에 태그 제거
     @Transactional
     public Void removeNodeTag(Long memberId, Long nodeId, Long tagId) {
         Node node = validateNode(nodeId);

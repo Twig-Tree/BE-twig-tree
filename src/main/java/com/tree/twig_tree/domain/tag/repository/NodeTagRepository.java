@@ -11,4 +11,7 @@ import java.util.Optional;
 @Repository
 public interface NodeTagRepository extends JpaRepository<NodeTag, Long> {
     Optional<NodeTag> findByNodeAndTag(Node node, Tag tag);
+
+    // 노드당 태그 개수 카운트
+    long countByNodeId(Long nodeId);
 }
