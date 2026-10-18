@@ -17,10 +17,12 @@ import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.exception.TreeException;
 import com.tree.twig_tree.domain.tree.exception.code.TreeErrorCode;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
+import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -34,6 +36,7 @@ public class TagService {
     private final NodeRepository nodeRepository;
     private final TagRepository tagRepository;
     private final NodeTagRepository nodeTagRepository;
+    private final WorkspaceRepository workspaceRepository;
 
     @Transactional
     public TagResDTO.GetTag createTag(Long memberId, Long treeId, TagReqDTO.CreateTag dto) {
@@ -45,6 +48,7 @@ public class TagService {
                 .build();
 
         tagRepository.save(tag);
+        touchWorkspace(treeId);
         return TagConverter.toGetTag(tag);
     }
 
@@ -56,6 +60,7 @@ public class TagService {
         validateTagInTree(treeId, tag);
 
         tag.updateName(dto.name());
+        touchWorkspace(treeId);
         return TagConverter.toGetTag(tag);
     }
 
@@ -67,6 +72,7 @@ public class TagService {
         validateTagInTree(treeId, tag);
 
         tagRepository.delete(tag);
+        touchWorkspace(treeId);
         return null;
     }
 
@@ -99,6 +105,7 @@ public class TagService {
         NodeTag nodeTag = NodeTag.builder().node(node).tag(tag).build();
 
         nodeTagRepository.save(nodeTag);
+        touchWorkspace(node.getTree().getId());
         return TagConverter.toGetTag(tag);
     }
 
@@ -110,6 +117,7 @@ public class TagService {
         Tag tag = validateTag(tagId);
         NodeTag nodeTag = nodeTagRepository.findByNodeAndTag(node, tag).orElseThrow(() -> new TagException(TagErrorCode.NODE_TAG_NOT_FOUND));
         nodeTagRepository.delete(nodeTag);
+        touchWorkspace(node.getTree().getId());
         return null;
     }
 
@@ -143,5 +151,10 @@ public class TagService {
         if (!tag.getTree().getId().equals(treeId)) {
             throw new TagException(TagErrorCode.TAG_NOT_IN_TREE);
         }
+    }
+
+    // 워크스페이스 updatedAt 갱신
+    private void touchWorkspace(Long treeId) {
+        workspaceRepository.touchByTreeId(treeId, Instant.now());
     }
 }
