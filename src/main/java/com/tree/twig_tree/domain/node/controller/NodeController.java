@@ -112,7 +112,7 @@ public class NodeController {
     @GetMapping
     @Operation(summary = "트리 전체 노드 조회", description = "트리의 모든 노드를 조회합니다.")
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
-    public ResponseEntity<ApiResponse<NodeResDTO.GetTree>> getFullTree(
+    public ResponseEntity<ApiResponse<NodeResDTO.GetTree>> getFullTreeNodes(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long treeId) {
         BaseSuccessCode code = NodeSuccessCode.NODES_FOUND;
@@ -130,7 +130,7 @@ public class NodeController {
     @Operation(summary = "서브트리 노드 조회", description = "특정 노드를 루트로 하는 서브트리의 모든 노드를 조회합니다.")
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
-    public ResponseEntity<ApiResponse<List<NodeResDTO.GetNode>>> getSubTree(
+    public ResponseEntity<ApiResponse<List<NodeResDTO.GetNode>>> getSubTreeNodes(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long treeId,
             @PathVariable Long rootId) {
