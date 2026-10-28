@@ -2,6 +2,7 @@ package com.tree.twig_tree.global.apiPayload.util;
 
 import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
 import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
+import com.tree.twig_tree.domain.tag.exception.code.TagErrorCode;
 import com.tree.twig_tree.domain.tree.exception.code.TreeErrorCode;
 import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceErrorCode;
 import com.tree.twig_tree.global.apiPayload.code.BaseErrorCode;
@@ -17,13 +18,15 @@ public final class ConstraintErrorCodeMapper {
     }
 
     private static final Map<String, BaseErrorCode> CONSTRAINT_ERROR_CODE_MAP = Map.of(
+            "uk_trees_workspace", TreeErrorCode.TREE_ALREADY_EXISTS,
             "uk_nodes_root_per_tree", NodeErrorCode.ONE_ROOT_PER_TREE,
             "uk_nodes_parent_order_id", NodeErrorCode.DUPLICATED_ORDER_ID,
             "uk_folder_root_name", FolderErrorCode.DUPLICATE_FOLDER_NAME,
             "uk_folder_parent_name", FolderErrorCode.DUPLICATE_FOLDER_NAME,
             "uk_workspace_root_name", WorkspaceErrorCode.DUPLICATE_WORKSPACE_NAME,
             "uk_workspace_folder_name", WorkspaceErrorCode.DUPLICATE_WORKSPACE_NAME,
-            "uk_trees_workspace", TreeErrorCode.TREE_ALREADY_EXISTS
+            "uk_tag_name", TagErrorCode.DUPLICATE_TAG_NAME,
+            "uk_node_tag", TagErrorCode.DUPLICATE_NODE_TAG
             // 새 도메인 제약조건 추가될 때 여기만 추가
     );
 

@@ -52,6 +52,7 @@ public class NodeConverter {
                 .orderId(node.getOrderId())
                 .name(node.getName())
                 .memo(node.getMemo())
+                .tagIds(node.getNodeTags().stream().map(nodeTag -> nodeTag.getTag().getId()).toList())
                 .build();
     }
 }

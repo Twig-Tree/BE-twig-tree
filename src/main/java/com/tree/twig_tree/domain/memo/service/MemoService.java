@@ -54,7 +54,6 @@ public class MemoService {
         workspaceRepository.touchByTreeId(node.getTree().getId(), Instant.now());
     }
 
-
     /**
      * 검증 함수
      */

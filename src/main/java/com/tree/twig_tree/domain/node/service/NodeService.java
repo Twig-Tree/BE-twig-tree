@@ -50,7 +50,7 @@ public class NodeService {
 
         Node newNode = NodeConverter.toCreateNode(tree, parentNode, dto);
         Node savedNode = nodeRepository.save(newNode);
-        workspaceRepository.touchByTreeId(treeId, Instant.now());
+        touchWorkspace(treeId);
         return NodeConverter.toGetNode(savedNode);
     }
 
@@ -71,7 +71,7 @@ public class NodeService {
         validateNodeInTree(node, treeId);
 
         node.updateName(dto.name());
-        workspaceRepository.touchByTreeId(treeId, Instant.now());
+        touchWorkspace(treeId);
 
         return NodeConverter.toGetNode(node);
     }
@@ -126,7 +126,7 @@ public class NodeService {
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
         nodeRepository.delete(node);
-        workspaceRepository.touchByTreeId(treeId, Instant.now());
+        touchWorkspace(treeId);
     }
 
     /**
@@ -204,5 +204,8 @@ public class NodeService {
         }
     }
 
-
+    // 워크스페이스 updatedAt 갱신
+    private void touchWorkspace(Long treeId) {
+        workspaceRepository.touchByTreeId(treeId, Instant.now());
+    }
 }

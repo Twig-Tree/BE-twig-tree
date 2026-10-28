@@ -12,7 +12,8 @@ public class NodeResDTO {
             Long parentId,
             Long orderId,
             String name,
-            String memo
+            String memo,
+            List<Long> tagIds
     ) {}
 
     @Builder

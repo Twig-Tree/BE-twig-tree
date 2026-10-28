@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.node.entity;
 
+import com.tree.twig_tree.domain.tag.entity.NodeTag;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.global.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -7,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +46,13 @@ public class Node extends BaseEntity {
     @OneToMany(mappedBy = "parent")
     @Builder.Default // @Builder 사용 시 필드 기본값이 무시되므로 초기화가 필요합니다.
     private List<Node> children = new ArrayList<>();
+
+    // BatchSize: Lazy 연관관계를 하나씩 따로 조회하지 않고, 여러개를 모아서 IN 쿼리 한번으로 가져옵니다. (N+1 문제 해결)
+    // 트리 조회는 재귀 CTE native query라서 JPQL join fetch를 쓰지 못해서 batch 로 해결합니다.
+    @BatchSize(size = 100)
+    @OneToMany(mappedBy = "node")
+    @Builder.Default
+    private List<NodeTag> nodeTags = new ArrayList<>();
 
     // Node가 연관관계의 주인입니다.
     @ManyToOne(fetch = FetchType.LAZY)
