@@ -62,4 +62,10 @@ public class Node extends BaseEntity {
     public void updateMemo(String newContent) {
         this.memo = newContent;
     }
+
+    // 노드 위치 이동 (하위 노드는 parent_id 로 연결되어 있어 함께 이동합니다.)
+    public void moveTo(Node newParent, Long newOrderId) {
+        this.parent = newParent;
+        this.orderId = newOrderId;
+    }
 }

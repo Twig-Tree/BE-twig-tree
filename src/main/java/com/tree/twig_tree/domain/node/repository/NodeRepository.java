@@ -49,4 +49,26 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
         """, nativeQuery = true)
     List<Node> findSubTreeByRootId(@Param("rootId") Long rootId);
 
+    // nodeId가 targetId 자신이거나 targetId의 조상인지 확인 (targetId에서 루트까지 거슬러 올라가며 탐색)
+    @Query(value = """
+        WITH RECURSIVE ancestors AS (
+            -- Non-recursive term
+            SELECT node_id, parent_id
+            FROM nodes
+            WHERE node_id = :targetId
+
+            UNION ALL
+
+            -- Recursive term
+            SELECT n.node_id, n.parent_id
+            FROM nodes n
+            INNER JOIN ancestors a ON n.node_id = a.parent_id
+        )
+        SELECT EXISTS (SELECT 1 FROM ancestors WHERE node_id = :nodeId)
+        """, nativeQuery = true)
+    boolean isSelfOrAncestor(@Param("nodeId") Long nodeId, @Param("targetId") Long targetId);
+
+    // 같은 부모를 갖는 형제 노드들을 순서대로 조회
+    List<Node> findAllByParentIdOrderByOrderIdAsc(Long parentId);
+
 }

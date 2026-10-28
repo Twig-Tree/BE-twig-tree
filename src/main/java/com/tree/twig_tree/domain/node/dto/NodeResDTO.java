@@ -20,6 +20,13 @@ public class NodeResDTO {
             List<GetNode> nodes
     ) {}
 
+    // 이동 후 목적지 부모의 자식 노드 목록 (orderId 오름차순)
+    @Builder
+    public record MoveNode(
+            Long parentId,
+            List<GetNode> siblings
+    ) {}
+
     // 공용 dto
     @Builder
     public record NodeId(

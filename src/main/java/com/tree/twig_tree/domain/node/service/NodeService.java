@@ -77,6 +77,44 @@ public class NodeService {
     }
 
     /**
+     * 노드 위치 이동
+     * : 같은 부모 내 이동과 다른 부모 밑으로의 이동을 모두 처리합니다. 하위 노드는 parent_id로 연결되어 있어 함께 이동합니다.
+     *   형제 노드 재정렬은 아직 지원하지 않으므로, position이 이미 사용 중이면 DUPLICATED_ORDER_ID로 거절됩니다.
+     * @param treeId
+     * @param nodeId
+     * @param dto
+     * @return 목적지 부모의 자식 노드 목록
+     */
+    @Transactional
+    public NodeResDTO.MoveNode moveNode(Long memberId, Long treeId, Long nodeId, NodeReqDTO.MoveNode dto) {
+        Tree tree = validateTree(treeId);
+        validateTreeOwner(memberId, tree);
+
+        Node node = validateNode(nodeId);
+        validateNodeInTree(node, treeId);
+        if (node.getParent() == null) {
+            throw new NodeException(NodeErrorCode.ROOT_NODE_NOT_MOVABLE);
+        }
+
+        Node newParent = nodeRepository.findById(dto.parentId())
+                .orElseThrow(() -> new NodeException(NodeErrorCode.PARENT_NOT_FOUND));
+        validateNodeInTree(newParent, treeId);
+
+        // 목적지 부모가 이동 대상 자신이거나 그 하위 노드이면 순환 구조가 생깁니다.
+        if (nodeRepository.isSelfOrAncestor(nodeId, newParent.getId())) {
+            throw new NodeException(NodeErrorCode.INVALID_MOVE_TARGET);
+        }
+
+        node.moveTo(newParent, dto.position());
+        // 제약조건 위반(DUPLICATED_ORDER_ID)을 이 시점에 드러내기 위해 즉시 반영합니다.
+        nodeRepository.flush();
+        workspaceRepository.touchByTreeId(treeId, Instant.now());
+
+        List<Node> siblings = nodeRepository.findAllByParentIdOrderByOrderIdAsc(newParent.getId());
+        return NodeConverter.toMoveNode(newParent.getId(), siblings);
+    }
+
+    /**
      * 노드 삭제
      * @param nodeId
      */
