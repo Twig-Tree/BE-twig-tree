@@ -169,7 +169,7 @@ jobs:
             --output text)
           echo "command_id=$command_id" >>"$GITHUB_OUTPUT"
 
-          for attempt in {1..90}; do
+          for _ in {1..90}; do
             invocation=$(aws ssm get-command-invocation \
               --region "$AWS_REGION" \
               --command-id "$command_id" \
