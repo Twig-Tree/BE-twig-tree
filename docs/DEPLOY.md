@@ -1,199 +1,233 @@
-# 배포 가이드 (OCI)
+# AWS 운영 배포 가이드
 
-로컬 실행은 [SETUP.md](SETUP.md)를 참고하세요. 이 문서는 OCI 인스턴스 배포만 다룹니다.
+로컬 개발 환경은 [SETUP.md](SETUP.md)를 참고하세요. 이 문서는 GitHub Actions, ECR,
+SSM Run Command를 이용해 AWS EC2 운영 환경을 배포하는 절차를 설명합니다.
 
-## 1. compose 파일 구성
+## 1. 배포 구조
 
-세 파일로 나뉘어 있고, **로컬과 배포가 서로 다른 조합**을 사용합니다.
+```text
+feature branch
+└─ PR → develop
+   ├─ CI / Test
+   └─ CodeQL / Analyze (java-kotlin)
 
-| 파일 | 역할 | 언제 적용되나 |
-|---|---|---|
-| `compose.yaml` | 공통 정의 (db · redis · app) | 항상 |
-| `compose.override.yaml` | 로컬 전용. app(8080) · db(5432) · redis(6379) 포트 개방 | `docker compose up` 시 **자동** 병합 |
-| `compose.prod.yaml` | 배포 전용. Caddy(80/443) · 메모리 · 로깅 · 프로파일 | `-f` 로 명시할 때만 |
+develop
+└─ 승격 PR → main
+   ├─ CI / Test
+   ├─ CodeQL / Analyze (java-kotlin)
+   └─ 사람 승인
 
-`-f` 를 하나라도 지정하면 `compose.override.yaml` 은 자동 병합되지 않습니다. 배포 명령이 항상 `-f compose.yaml -f compose.prod.yaml` 형태인 이유입니다.
-
-> ⚠️ 서버에서 `docker compose up -d` 만 실행하면 프로덕션 설정이 빠진 채로 뜹니다. 반드시 `-f` 두 개를 붙이세요.
-
-## 2. 서버 `.env`
-
-최초 배포 시 프로젝트 루트에 템플릿을 복사해서 만듭니다. 기존 서버의 `.env`는 그대로 유지합니다.
-
-```bash
-cp .env.example .env
+main merge
+└─ GitHub production Environment
+   └─ OIDC → AWS deploy role
+      ├─ Docker image → ECR (commit SHA tag)
+      └─ SSM Run Command → EC2
+         └─ deploy/aws/deploy.sh
+            ├─ Parameter Store 설정 로드
+            ├─ ECR image pull
+            ├─ Docker Compose 적용
+            ├─ HTTPS 검증
+            └─ 실패 시 이전 애플리케이션 이미지 복구
 ```
 
-아래 4개 키가 모두 채워져 있어야 app 이 기동됩니다. 하나라도 비면 컨테이너가 즉시 죽습니다.
+기본 브랜치는 `develop`입니다. `main`은 운영에 배포된 코드만 보관합니다. 배포 workflow는
+`main` push와 `main`에서 시작한 수동 실행만 허용합니다.
 
-```env
-DB_PASSWORD=
-JWT_SECRET=
-GOOGLE_CLIENT_IDS=
-OPENAI_API_KEY=
-```
+## 2. 운영 Compose
 
-`OPENAI_MODEL` 은 생략 시 `gpt-4o-mini` 가 사용됩니다.
-
-`.env.example` 에 있는 `DB_URL` · `DB_USERNAME` 은 **배포에서는 쓰이지 않습니다.** 로컬에서 앱을
-직접 실행할 때(`./gradlew bootRun`)만 필요한 값이고, 컨테이너에는 `compose.yaml` 이 DB 주소를
-서비스명 `db` 로 직접 넣어주기 때문입니다. `.env` 의 `localhost` 값이 컨테이너에 새어 들어갈
-일은 없으니 템플릿의 기본값 그대로 두면 됩니다.
-
-## 3. 배포
-
-### HTTPS 구성과 사전 조건
-
-외부 요청은 `https://api.twig-tree.com` → Caddy → Docker 내부 `app:8080` 순서로 전달됩니다.
-`deploy/caddy/Caddyfile`에 도메인과 프록시 대상을 지정하며, 인증서 발급·갱신과 HTTP → HTTPS 전환은 Caddy가 처리합니다.
-운영 Spring은 `server.forward-headers-strategy: native`로 전달 헤더를 처리합니다.
-
-- DNS의 `api` A 레코드는 OCI 공인 IPv4를 가리켜야 합니다. AAAA 레코드가 있다면 IPv6 경로도 정상이어야 합니다.
-- OCI 보안 목록/NSG와 서버 방화벽에서 TCP 80·443 접근을 허용합니다. 인증서 발급·갱신에 필요한 외부 DNS 및 HTTPS 통신도 가능해야 합니다.
-- 서버의 80·443 포트를 다른 프로세스가 사용하지 않아야 합니다. UFW 설치는 필수 조건이 아닙니다.
-- 운영 Compose는 앱의 8080 포트를 호스트에 공개하지 않습니다. DB·Redis도 외부에 공개하지 않습니다.
-- 인증서 상태는 `caddy_data`, 설정 상태는 `caddy_config` 볼륨에 유지됩니다. 갱신을 위해 Caddy와 80·443 접근을 유지합니다.
-
-### 소스 준비
-
-아래 명령은 변경 사항이 원격 브랜치에 올라간 후, 서버의 저장소 디렉터리에서 실행합니다.
-`git status --short`에 변경 파일이 나오면 먼저 내용을 확인하고 보존합니다.
-배포 전 커밋은 롤백을 위해 별도로 기록합니다.
+운영에서는 다음 두 파일을 함께 사용합니다.
 
 ```bash
-git status --short
-git rev-parse HEAD
-git fetch origin
-git switch 'feat/#42-https'
-git pull --ff-only origin 'feat/#42-https'
+docker compose -f compose.yaml -f compose.prod.yaml ...
 ```
 
-이 브랜치가 `develop`에 병합된 뒤에는 위 명령의 브랜치명을 `develop`으로 바꿉니다.
+| 파일 | 역할 |
+|---|---|
+| `compose.yaml` | db, redis, app 공통 정의와 로컬 app 빌드 |
+| `compose.prod.yaml` | ECR app 이미지, Caddy, 운영 메모리·로깅·프로파일 |
 
-### 검증 및 적용
+`compose.prod.yaml`의 app은 `APP_IMAGE`가 반드시 필요합니다. 배포 스크립트가 full commit SHA로
+태그된 ECR 이미지 URI를 환경변수로 전달하고 `--no-build`로 적용합니다. 운영 EC2에서 소스를
+Gradle로 다시 빌드하지 않습니다.
 
-각 명령이 성공한 것을 확인한 뒤 다음 명령을 실행합니다. `config --quiet`는 `.env` 값을 출력하지 않고 설정을 검증합니다.
+## 3. AWS 사전 조건
 
-```bash
-docker compose -f compose.yaml -f compose.prod.yaml config --quiet
-docker compose -f compose.yaml -f compose.prod.yaml pull caddy
-docker compose -f compose.yaml -f compose.prod.yaml run --rm --no-deps caddy \
-  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-docker compose -f compose.yaml -f compose.prod.yaml build app
-docker compose -f compose.yaml -f compose.prod.yaml up -d
-docker compose -f compose.yaml -f compose.prod.yaml ps
-docker compose -f compose.yaml -f compose.prod.yaml logs --tail=100 caddy app
+### EC2
+
+- Ubuntu 24.04
+- Docker CE와 Docker Compose plugin
+- AWS CLI v2
+- SSM Agent Online
+- `ubuntu` 사용자가 Docker를 실행할 수 있음
+- 저장소를 `/opt/twigtree`에 clone할 수 있는 외부 HTTPS 통신
+- 80·443 인바운드 허용, 22 인바운드 불필요
+
+초기 서버 구성에는 [bootstrap.sh](../deploy/aws/bootstrap.sh)를 사용합니다.
+
+### ECR
+
+- 저장소: GitHub `production` Environment의 `ECR_REPOSITORY` 변수로 지정
+- image scan on push 활성화
+- tag immutability 활성화 권장
+- lifecycle policy로 오래된 이미지 정리
+
+이미지 태그는 `latest`가 아니라 40자리 Git commit SHA입니다. workflow를 재실행했을 때 같은
+SHA 이미지가 이미 있으면 빌드를 건너뛰고 기존 이미지를 재사용합니다.
+
+### Parameter Store
+
+`PARAMETER_PATH` 아래에 다음 `SecureString`이 필요합니다.
+
+```text
+DB_PASSWORD
+JWT_SECRET
+GOOGLE_CLIENT_IDS
+OPENAI_API_KEY
 ```
 
-- 앱 재생성 시 짧은 중단이 발생합니다. Caddy의 `service_started`는 Spring 준비 완료를 보장하지 않으므로 기동 중 잠시 502가 나올 수 있습니다.
-- 첫 빌드는 의존성 다운로드 때문에 10분 안팎 걸립니다. 이후 재배포는 레이어 캐시로 짧아집니다.
-- DB 스키마는 Flyway 가 자동 적용합니다. 로그에서 `Successfully applied N migrations` 를 확인하세요.
+기본 경로는 `/twigtree/prod`입니다. 배포 스크립트는 값을 파일에 저장하지 않고 현재 프로세스의
+환경변수로만 Compose에 전달합니다. `OPENAI_MODEL`은 지정하지 않으면 `gpt-4o-mini`,
+`DEV_TEST_TOKEN_ENABLED`는 항상 `false`입니다.
 
-### 동작 확인
+### EC2 인스턴스 역할
 
-앱 기동과 인증서 발급 후 실행합니다. HTTPS 검증에는 인증서 검증을 생략하는 `-k` 옵션을 사용하지 않습니다.
+EC2 역할에는 다음 권한만 필요합니다.
+
+- `AmazonSSMManagedInstanceCore`
+- ECR 인증 토큰과 지정 저장소 pull
+- 지정 Parameter Store 경로 읽기
+- SSM Parameter Store를 경유한 KMS 복호화
+
+## 4. GitHub OIDC와 배포 역할
+
+장기 AWS Access Key를 GitHub Secret에 저장하지 않습니다. AWS에 GitHub OIDC Provider와 배포
+역할을 만들고, trust policy의 subject를 production Environment로 제한합니다.
+
+```text
+token.actions.githubusercontent.com:aud = sts.amazonaws.com
+token.actions.githubusercontent.com:sub = repo:Twig-Tree/BE-twig-tree:environment:production
+```
+
+배포 역할에는 다음 최소 권한이 필요합니다.
+
+- 지정 ECR 저장소 image push·조회
+- `ecr:GetAuthorizationToken`
+- 지정 EC2에 `ssm:SendCommand`
+- `AWS-RunShellScript` 문서 사용
+- 실행한 명령의 `ssm:GetCommandInvocation`
+
+## 5. GitHub production Environment
+
+`production` Environment를 만들고 deployment branch policy를 `main`으로 제한합니다. 다음 값은
+Secret이 아니라 Environment variable입니다.
+
+| 변수 | 예시/의미 |
+|---|---|
+| `AWS_REGION` | `ap-northeast-2` |
+| `AWS_ROLE_ARN` | GitHub OIDC 배포 역할 ARN |
+| `ECR_REPOSITORY` | ECR 저장소 이름 |
+| `EC2_INSTANCE_ID` | 배포 대상 인스턴스 ID |
+| `PARAMETER_PATH` | `/twigtree/prod` |
+| `HEALTHCHECK_URL` | `https://api.twig-tree.com/v3/api-docs` |
+| `PRODUCTION_URL` | `https://api.twig-tree.com` |
+
+애플리케이션 비밀값은 GitHub에 복사하지 않습니다.
+
+## 6. main 보호 규칙
+
+`main`에는 `develop`과 별도의 ruleset을 적용합니다.
+
+- Pull Request 필수
+- 사람 승인 최소 1명
+- 리뷰 대화 해결 필수
+- force push·삭제 금지
+- squash merge만 허용
+- `Test` required check
+- `Analyze (java-kotlin)` required check
+
+CI와 CodeQL workflow는 `develop`, `main` 대상 PR과 push에서 모두 실행됩니다.
+
+## 7. 자동 배포 순서
+
+`.github/workflows/deploy.yml`은 다음 순서로 실행됩니다.
+
+1. 실행 ref가 `main`인지 확인
+2. production Environment 변수 형식 검증
+3. OIDC로 AWS 배포 역할 획득
+4. ECR에서 commit SHA 이미지 존재 여부 확인
+5. 이미지가 없으면 `linux/amd64`로 build·push
+6. SSM Run Command로 EC2의 저장소를 workflow commit에 맞춤
+7. `deploy/aws/deploy.sh` 실행
+8. HTTPS health check 성공 확인
+9. GitHub deployment 성공 또는 실패 기록
+
+production concurrency는 실행 중 배포를 취소하지 않습니다. 동시에 여러 배포가 서버 상태를
+덮어쓰지 않도록 서버 스크립트도 `flock`으로 중복 실행을 거부합니다.
+
+## 8. EC2 배포 스크립트
+
+[deploy.sh](../deploy/aws/deploy.sh)는 다음 안전 검사를 수행합니다.
+
+- 40자리 commit SHA와 ECR image tag 일치 확인
+- Parameter Store 필수값 누락 확인
+- 비밀값을 로그나 `.env`에 기록하지 않음
+- Compose 설정 검증 후 image pull
+- 기존 app 컨테이너의 image reference 기록
+- `--no-build`로 새 이미지 적용
+- HTTPS endpoint를 최대 3분 동안 재시도
+- 실패 시 기존 컨테이너가 사용하던 이미지로 app 복구 시도
+
+첫 ECR 배포 전에도 기존 컨테이너가 있으면 해당 컨테이너의 image reference를 롤백 대상으로
+사용합니다. 기존 이미지가 없거나 이미 삭제됐다면 자동 롤백할 수 없으므로 수동 복구가
+필요합니다.
+
+## 9. 수동 재배포와 롤백
+
+GitHub Actions의 `Deploy production` workflow에서 `Run workflow`를 선택하고, `main` ref와 기존
+ECR image의 full commit SHA를 `image_tag`에 입력합니다.
+
+```text
+image_tag = 40자리 기존 commit SHA
+```
+
+workflow는 해당 태그가 ECR에 있는지 먼저 확인하고, 새로 빌드하지 않은 채 같은 SSM 배포 절차를
+실행합니다. 빈 값으로 실행하면 현재 `main` SHA 이미지를 빌드하거나 재사용합니다.
+
+## 10. 운영 확인
+
+배포 후 다음을 확인합니다.
 
 ```bash
-# 308과 https://api.twig-tree.com/... Location 확인
+# HTTP → HTTPS 전환
 curl -I http://api.twig-tree.com/v3/api-docs
 
-# 인증서 검증을 포함한 API 응답: 200 기대
+# 인증서 검증을 포함한 운영 응답
 curl -sS -o /dev/null -w '%{http_code}\n' https://api.twig-tree.com/v3/api-docs
 
-# 포트 공개 및 메모리 확인: app의 8080에 호스트 포트 매핑이 없어야 함
+# SSM Session Manager로 서버에 접속한 경우
+cd /opt/twigtree
 docker compose -f compose.yaml -f compose.prod.yaml ps
+docker compose -f compose.yaml -f compose.prod.yaml logs --tail=100 caddy app
 docker stats --no-stream
 free -h
-
-# 재시작 후에도 같은 HTTPS 요청이 성공하는지 확인
-docker compose -f compose.yaml -f compose.prod.yaml restart caddy
-curl -sS -o /dev/null -w '%{http_code}\n' https://api.twig-tree.com/v3/api-docs
 ```
 
-외부 PC에서도 HTTPS 응답을 확인하고, `http://<OCI공인IP>:8080`으로 직접 접근할 수 없는지 확인합니다.
-정상 동작 확인 후 기존 OCI TCP 8080 인그레스 규칙을 제거합니다.
-재시작 검증은 실제 갱신 시점의 성공을 증명하지 않으므로, 운영 중 인증서 만료일과 Caddy 갱신 오류 로그도 확인합니다.
-프론트의 CORS 및 쿠키 인증 연동은 후속 작업이며 이 단계의 API 검증은 브라우저 직접 접속 또는 curl로 수행합니다.
+HTTPS 검증에는 인증서 검증을 생략하는 `curl -k`를 사용하지 않습니다.
 
-## 4. 리소스 배분
+## 11. DB와 롤백 한계
 
-인스턴스는 1GB(VM.Standard.E2.1.Micro)이며 Caddy 추가 후 컨테이너 메모리 상한 합계는 864m입니다. 아래 기존 서비스 실측값은 Caddy 추가 전 워밍업(swagger · api-docs · 인증 필요 API 각 5회)을 마친 값입니다. Caddy의 64m는 초기 상한으로, 인증서 발급과 실제 요청 처리 후 다시 측정합니다.
+이번 CD 구성은 DB 백업을 만들지 않습니다. 자동 롤백은 **애플리케이션 이미지에만** 적용됩니다.
 
-| 서비스 | mem_limit | 실서버 실측 | 로컬 실측 | 비고 |
-|---|---|---|---|---|
-| db | 176m | 11MiB | 33MiB | `shared_buffers=48MB`, `max_connections=20` (HikariCP 기본 풀 10) |
-| redis | 48m | 2MiB | 5MiB | `maxmemory 24mb`, eviction 없음 (refresh token 유실 방지) |
-| app | 576m | 297MiB | 472MiB | 힙 상한 256m 고정 |
-| caddy | 64m | 미측정 | 미측정 | 인증서 발급·기동 후 측정 필요 |
+- Flyway migration은 애플리케이션 이미지를 되돌려도 자동으로 취소되지 않습니다.
+- migration은 이전 애플리케이션과 호환되는 확장 방식으로 작성해야 합니다.
+- 컬럼 삭제·이름 변경·타입 축소처럼 되돌리기 어려운 migration은 별도 운영 절차가 필요합니다.
+- EC2 또는 루트 EBS가 삭제되면 현재 Docker volume의 DB를 복구할 외부 백업이 없습니다.
 
-로컬(Docker Desktop / WSL2)이 더 크게 나오는 것은 cgroup 통계에 잡히는 범위와 워밍업 정도가 달라서입니다. 한도 산정은 큰 쪽인 로컬 값을 기준으로 잡았으므로 실서버에서는 여유가 더 있습니다.
+DB 백업 정책이 도입되기 전까지 이 위험을 수용한 상태로 운영합니다.
 
-### OS · dockerd 몫은 약 390MiB
+## 12. 알려진 운영 특성
 
-Ubuntu 이미지는 snapd · unattended-upgrades 등을 기본으로 돌려서 생각보다 무겁습니다. 실측:
-
-```
-Mem: 954Mi total, 690Mi used, 263Mi available    # 컨테이너 합계는 310MiB
-```
-
-컨테이너 한도 총합 864m를 다 쓰고 OS·dockerd 약 390MiB를 더하면 약 1254MiB로 954MiB를 넘깁니다. 한도는 목표 사용량이 아닙니다. 위 실측 여유는 Caddy 추가 전 값이므로 배포 후 `free -h`와 `docker stats --no-stream`으로 다시 확인합니다.
-
-메모리가 더 필요하면 컨테이너 한도를 올리기보다 OS 쪽을 덜어내는 편이 효과적입니다(1GB 머신에서 snapd 정리 등).
-
-### 힙은 비율로 주면 안 됩니다
-
-`-XX:MaxRAMPercentage` 는 JVM 이 컨테이너 메모리 한도를 인식한다는 전제에서만 동작합니다. 이 환경에서는 인식이 실패해서, `mem_limit: 512m` 인 컨테이너 안에서 JVM 이 최대 힙을 **3.83G**(호스트 RAM 기준)로 잡았습니다. 그 결과 cgroup 한도를 반복해서 치며 상시 스래싱 상태가 됩니다.
-
-그래서 `-Xms128m -Xmx256m` 으로 절대값을 못 박았습니다. 인식 성공 여부와 무관하게 동일하게 동작합니다. 이 설정에서는 컨테이너 스왑과 한도 접촉이 모두 0 이고, 워밍업 중에도 스왑이 늘지 않습니다.
-
-메타스페이스에는 **상한을 두지 않았습니다.** 실사용 커밋량이 91.6MB(NMT 기준)라 96m 로 조였을 때 첫 요청 처리 중 `OutOfMemoryError: Metaspace` 로 요청 스레드가 죽습니다. 총량은 `mem_limit` 이 막아주므로 이중으로 조일 필요가 없습니다.
-
-### 알려진 한계
-
-실서버 기준 297MiB / 576m 로 한도까지 279MiB, 호스트 available 263Mi 가 남습니다. **최대 25MB 문서(PDF · DOCX · HWP · HWPX) 파싱 시 POI · PDFBox 클래스가 추가로 로드되고 힙 사용도 올라가므로, 이 여유를 넘기면 스왑에 들어갑니다.** 힙이 256m 로 묶여 있어 컨테이너가 OOM Kill 되기보다 요청 단위 `OutOfMemoryError` 로 실패할 가능성이 높습니다(컨테이너는 살아남음).
-
-이 스택(Postgres + Redis + Spring Boot + 문서 파서)이 1GB 에서 편하게 돌아가는 구성은 아닙니다. 문서 파싱을 실제로 쓰기 시작하면 **OCI Always Free 의 Ampere A1 shape(4 OCPU / 24GB)으로 옮기는 것**이 근본적인 해결입니다. 같은 무료 한도이고, `Dockerfile` 이 소스에서 빌드하므로 ARM 에서도 그대로 동작합니다.
-
-측정 방법:
-
-```bash
-docker stats --no-stream
-docker exec <app컨테이너> sh -c 'grep -E "^VmRSS|^VmSwap" /proc/1/status'
-docker exec <app컨테이너> cat /sys/fs/cgroup/memory.events   # max 가 늘어나면 한도를 치는 중
-free -h
-```
-
-컨테이너 로그는 서비스당 10m × 3개로 로테이션됩니다. 부트 볼륨이 차오르는 것을 막기 위한 설정이니 함부로 늘리지 마세요.
-
-## 5. 종료 / 롤백
-
-```bash
-# 종료 (DB 및 인증서 볼륨 유지)
-docker compose -f compose.yaml -f compose.prod.yaml down
-```
-
-`down -v`는 DB와 인증서 볼륨을 삭제하므로 배포·롤백에 사용하지 않습니다.
-
-롤백 시에는 작업 파일을 확인한 뒤, 기록해 둔 이전 배포 커밋으로 전환합니다. 아래 자리표시자를 실제 SHA로 바꾸고 각 명령의 성공을 확인합니다.
-
-```bash
-git status --short
-git switch --detach <이전_배포_커밋_SHA>
-docker compose -f compose.yaml -f compose.prod.yaml config --quiet
-docker compose -f compose.yaml -f compose.prod.yaml build app
-docker compose -f compose.yaml -f compose.prod.yaml up -d --remove-orphans
-docker compose -f compose.yaml -f compose.prod.yaml ps
-```
-
-HTTPS 도입 전 커밋으로 돌아가면 Caddy가 제거되고 앱의 8080 공개가 복구됩니다. HTTPS는 중단되며, 외부 HTTP 접근까지 복구해야 한다면 제거했던 OCI 8080 규칙을 의도적으로 다시 설정해야 합니다. 인증서 볼륨은 유지됩니다.
-
-Flyway 마이그레이션은 코드를 되돌려도 **자동으로 롤백되지 않습니다.** 스키마 변경이 포함된 배포를 되돌릴 때는 DB 상태를 직접 확인해야 합니다.
-
-## 자주 겪는 문제
-
-- **app 이 `Migration ... failed` 로 죽음**: 기존 데이터가 새 제약을 위반하는 경우입니다. 예를 들어 V7 은 `nodes` · `workspaces` · `folders` 의 `name` 을 `VARCHAR(30)` 으로 줄이므로, 30자를 넘는 기존 행이 있으면 실패합니다. 실패한 마이그레이션과 대상 데이터를 확인하고 백업 후 수정합니다. 전체 볼륨 삭제로 해결하지 않습니다.
-- **빌드 중 서버가 멈춘 것처럼 느려짐**: Gradle 빌드가 스왑을 쓰는 중입니다. `free -h` 로 스왑 사용량을 확인하고 기다리세요. 스왑이 없다면 먼저 잡아야 합니다.
-- **외부에서 HTTPS 접속 불가**: DNS의 A/AAAA 레코드, OCI 보안 목록/NSG의 TCP 80·443, 서버 방화벽 및 Caddy 포트 매핑을 확인하세요.
-- **인증서 발급 실패**: Caddy 로그에서 원인을 확인하고 DNS 전파, 잘못된 AAAA, 80·443 접근, 외부 DNS/HTTPS 통신 및 인증서 볼륨 쓰기 권한을 확인합니다. 인증서 볼륨을 지우며 재발급을 반복하지 않습니다.
-- **502 응답**: Spring이 준비됐는지 app 로그를 확인하고, Caddy와 app이 같은 Compose 네트워크에 있는지 확인합니다.
-- **Caddy가 반복 재시작**: 컨테이너 종료 상태와 OOM 여부, 호스트 메모리를 확인하고 64m 상한의 적정성을 재평가합니다.
+- 단일 EC2·단일 app 컨테이너이므로 재생성 중 잠시 502가 발생할 수 있습니다.
+- Caddy 인증서 데이터와 PostgreSQL 데이터는 Docker volume에 유지됩니다.
+- `down -v`는 DB와 인증서 볼륨을 삭제하므로 배포·롤백에 사용하지 않습니다.
+- Redis refresh token 데이터는 영구 백업 대상이 아니며 손실되면 사용자가 다시 로그인해야 합니다.
