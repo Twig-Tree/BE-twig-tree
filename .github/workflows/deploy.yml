@@ -93,6 +93,7 @@ jobs:
         id: image
         env:
           IMAGE_TAG: ${{ steps.deployment.outputs.image_tag }}
+          BUILD_IMAGE: ${{ steps.deployment.outputs.build_image }}
         shell: bash
         run: |
           set -euo pipefail
@@ -105,7 +106,7 @@ jobs:
             echo "exists=true" >>"$GITHUB_OUTPUT"
           else
             echo "exists=false" >>"$GITHUB_OUTPUT"
-            if [[ "${{ steps.deployment.outputs.build_image }}" == "false" ]]; then
+            if [[ "$BUILD_IMAGE" == "false" ]]; then
               echo "Requested rollback image does not exist: $IMAGE_TAG" >&2
               exit 1
             fi
@@ -147,7 +148,7 @@ jobs:
             --arg parameter_path "$PARAMETER_PATH" \
             --arg healthcheck_url "$HEALTHCHECK_URL" \
             '[
-              "set -euo pipefail",
+              "set -eu",
               "install -d -o ubuntu -g ubuntu /opt/twigtree",
               ("if ! sudo -u ubuntu git -C /opt/twigtree rev-parse --git-dir >/dev/null 2>&1; then sudo -u ubuntu git clone --filter=blob:none " + ($repository_url | @sh) + " /opt/twigtree; fi"),
               "sudo -u ubuntu git -C /opt/twigtree diff --quiet",

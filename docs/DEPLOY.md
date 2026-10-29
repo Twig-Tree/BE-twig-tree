@@ -174,7 +174,7 @@ production concurrency는 실행 중 배포를 취소하지 않습니다. 동시
 - Compose 설정 검증 후 image pull
 - 기존 app 컨테이너의 image reference 기록
 - `--no-build`로 새 이미지 적용
-- HTTPS endpoint를 최대 3분 동안 재시도
+- HTTPS endpoint를 기본 설정 기준 최대 약 9분 동안 재시도
 - 실패 시 기존 컨테이너가 사용하던 이미지로 app 복구 시도
 
 첫 ECR 배포 전에도 기존 컨테이너가 있으면 해당 컨테이너의 image reference를 롤백 대상으로

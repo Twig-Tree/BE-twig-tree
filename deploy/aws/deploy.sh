@@ -76,7 +76,7 @@ aws ecr get-login-password --region "$AWS_REGION" |
 	docker login --username AWS --password-stdin "$registry" >/dev/null
 
 "${compose[@]}" config --quiet
-"${compose[@]}" pull app caddy
+"${compose[@]}" pull db redis app caddy
 
 previous_image=""
 current_container=$("${compose[@]}" ps -q app 2>/dev/null || true)
