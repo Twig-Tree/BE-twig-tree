@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -79,19 +80,23 @@ public class NodeService {
     /**
      * 노드 위치 이동
      * : 같은 부모 내 이동과 다른 부모 밑으로의 이동을 모두 처리합니다. 하위 노드는 parent_id로 연결되어 있어 함께 이동합니다.
-     *   형제 노드 재정렬은 아직 지원하지 않으므로, position이 이미 사용 중이면 DUPLICATED_ORDER_ID로 거절됩니다.
+     *   이동 후 목적지 부모의 형제들은 position 위치에 끼워 1..n으로, 원래 부모의 형제들은 빈자리를 메워 1..n으로 다시 매깁니다.
      * @param treeId
      * @param nodeId
      * @param dto
-     * @return 목적지 부모의 자식 노드 목록
+     * @return 목적지 부모와 원래 부모의 자식 노드 목록
      */
     @Transactional
     public NodeResDTO.MoveNode moveNode(Long memberId, Long treeId, Long nodeId, NodeReqDTO.MoveNode dto) {
-        Tree tree = validateTree(treeId);
+        // 동시에 들어온 이동 요청이 같은 형제 목록을 재정렬하지 않도록 트리 단위로 락을 겁니다.
+        Tree tree = treeRepository.findByIdForUpdate(treeId)
+                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
         validateTreeOwner(memberId, tree);
 
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
+
+        // 이동 대상 노드의 현재 부모가 null이면 그 노드는 root
         if (node.getParent() == null) {
             throw new NodeException(NodeErrorCode.ROOT_NODE_NOT_MOVABLE);
         }
@@ -105,13 +110,43 @@ public class NodeService {
             throw new NodeException(NodeErrorCode.INVALID_MOVE_TARGET);
         }
 
-        node.moveTo(newParent, dto.position());
-        // 제약조건 위반(DUPLICATED_ORDER_ID)을 이 시점에 드러내기 위해 즉시 반영합니다.
+        // 변경 전에 목적지·원래 부모의 형제 목록을 불러오고, 이동 대상은 목록에서 뺍니다.
+        Node oldParent = node.getParent();
+        boolean sameParent = oldParent.getId().equals(newParent.getId());
+        List<Node> siblings = new ArrayList<>(nodeRepository.findAllByParentIdOrderByOrderIdAsc(newParent.getId()));
+        siblings.remove(node);
+        List<Node> previousSiblings = new ArrayList<>();
+        if (!sameParent) {
+            previousSiblings.addAll(nodeRepository.findAllByParentIdOrderByOrderIdAsc(oldParent.getId()));
+            previousSiblings.remove(node);
+        }
+
+        // 같은 부모면 1..n, 다른 부모면 1..n+1 (n: 이동 대상을 제외한 목적지 형제 수)
+        if (dto.position() > siblings.size() + 1) {
+            throw new NodeException(NodeErrorCode.INVALID_POSITION);
+        }
+        siblings.add(dto.position().intValue() - 1, node);
+
+        // 재정렬 중 order_id가 잠깐 겹쳐도 되도록 유니크 검사를 미룹니다.
+        nodeRepository.deferParentOrderIdConstraint();
+        node.moveTo(newParent);
+        renumber(siblings);
+        renumber(previousSiblings);
         nodeRepository.flush();
+        // 미뤄둔 검사를 여기서 수행해 제약조건 위반(DUPLICATED_ORDER_ID)을 커밋 전에 드러냅니다.
+        nodeRepository.checkParentOrderIdConstraint();
+        // 워크스페이스 수정 시각을 갱신
         workspaceRepository.touchByTreeId(treeId, Instant.now());
 
-        List<Node> siblings = nodeRepository.findAllByParentIdOrderByOrderIdAsc(newParent.getId());
-        return NodeConverter.toMoveNode(newParent.getId(), siblings);
+        return NodeConverter.toMoveNode(newParent.getId(), siblings,
+                sameParent ? null : oldParent.getId(), previousSiblings);
+    }
+
+    // 형제 노드들의 orderId를 목록 순서대로 1부터 다시 매깁니다. (값이 바뀐 노드만 변경 감지로 UPDATE 됩니다.)
+    private void renumber(List<Node> siblings) {
+        for (int i = 0; i < siblings.size(); i++) {
+            siblings.get(i).changeOrder((long) i + 1);
+        }
     }
 
     /**

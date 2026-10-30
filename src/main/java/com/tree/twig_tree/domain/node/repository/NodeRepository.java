@@ -2,6 +2,7 @@ package com.tree.twig_tree.domain.node.repository;
 
 import com.tree.twig_tree.domain.node.entity.Node;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -70,5 +71,15 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
 
     // 같은 부모를 갖는 형제 노드들을 순서대로 조회
     List<Node> findAllByParentIdOrderByOrderIdAsc(Long parentId);
+
+    // 형제 노드 재정렬 중에는 order_id가 잠깐 겹칠 수 있으므로 현재 트랜잭션에서 유니크 검사를 미룹니다.
+    @Modifying
+    @Query(value = "SET CONSTRAINTS uk_nodes_parent_order_id DEFERRED", nativeQuery = true)
+    void deferParentOrderIdConstraint();
+
+    // 미뤄둔 유니크 검사를 즉시 수행합니다. 커밋 시점이 아닌 여기서 위반이 드러나야 DUPLICATED_ORDER_ID로 매핑됩니다.
+    @Modifying
+    @Query(value = "SET CONSTRAINTS uk_nodes_parent_order_id IMMEDIATE", nativeQuery = true)
+    void checkParentOrderIdConstraint();
 
 }

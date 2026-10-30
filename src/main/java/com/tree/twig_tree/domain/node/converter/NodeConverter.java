@@ -35,10 +35,15 @@ public class NodeConverter {
                 .toList();
     }
 
-    public static NodeResDTO.MoveNode toMoveNode(Long parentId, List<Node> siblings) {
+    public static NodeResDTO.MoveNode toMoveNode(Long parentId, List<Node> siblings,
+                                                 Long previousParentId, List<Node> previousSiblings) {
         return NodeResDTO.MoveNode.builder()
                 .parentId(parentId)
                 .siblings(siblings.stream()
+                        .map(NodeConverter::toGetNode)
+                        .toList())
+                .previousParentId(previousParentId)
+                .previousSiblings(previousSiblings.stream()
                         .map(NodeConverter::toGetNode)
                         .toList())
                 .build();

@@ -8,32 +8,29 @@ import com.tree.twig_tree.domain.member.repository.MemberRepository;
 import com.tree.twig_tree.domain.node.dto.NodeReqDTO;
 import com.tree.twig_tree.domain.node.dto.NodeResDTO;
 import com.tree.twig_tree.domain.node.entity.Node;
-import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
-import com.tree.twig_tree.global.apiPayload.util.ConstraintErrorCodeMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * 실제 PostgreSQL 에서 노드 이동을 검증한다.
- * 조상 탐색 재귀 CTE, 서브트리 동반 이동, V14 의 uk_nodes_parent_order_id 제약 매핑은 DB 없이 확인할 수 없다.
+ * 조상 탐색 재귀 CTE, 서브트리 동반 이동, V16 의 DEFERRABLE 제약 덕분에 순서가 겹치는 재정렬이 성공하는지는 DB 없이 확인할 수 없다.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -52,7 +49,7 @@ class NodeMoveIntegrationTest {
     private MemberRepository memberRepository;
 
     private Long memberId;
-    private Long treeId;
+    private Tree tree;
 
     // root ─┬─ a ── a1 ── a11
     //       └─ b
@@ -74,41 +71,76 @@ class NodeMoveIntegrationTest {
                 .name("ws-" + UUID.randomUUID().toString().substring(0, 8))
                 .member(member)
                 .build());
-        Tree tree = treeRepository.save(Tree.builder().workspace(workspace).build());
+        tree = treeRepository.save(Tree.builder().workspace(workspace).build());
         memberId = member.getId();
-        treeId = tree.getId();
 
-        root = save("root", null, 1L, tree);
-        a = save("a", root, 1L, tree);
-        b = save("b", root, 2L, tree);
-        a1 = save("a1", a, 1L, tree);
-        a11 = save("a11", a1, 1L, tree);
+        root = save("root", null, 1L);
+        a = save("a", root, 1L);
+        b = save("b", root, 2L);
+        a1 = save("a1", a, 1L);
+        a11 = save("a11", a1, 1L);
     }
 
     @Test
     @DisplayName("다른 부모 밑으로 이동하면 하위 노드도 함께 따라온다")
     void moveWithSubtree() {
-        NodeResDTO.MoveNode result = nodeService.moveNode(
-                memberId, treeId, a1.getId(), new NodeReqDTO.MoveNode(b.getId(), 1L));
+        NodeResDTO.MoveNode result = move(a1, b, 1L);
 
         assertThat(result.parentId()).isEqualTo(b.getId());
         assertThat(result.siblings()).extracting(NodeResDTO.GetNode::nodeId).containsExactly(a1.getId());
+        assertThat(result.previousParentId()).isEqualTo(a.getId());
+        assertThat(result.previousSiblings()).isEmpty();
 
         List<Long> subtreeIds = nodeRepository.findSubTreeByRootId(b.getId()).stream().map(Node::getId).toList();
         assertThat(subtreeIds).containsExactlyInAnyOrder(b.getId(), a1.getId(), a11.getId());
     }
 
     @Test
-    @DisplayName("같은 부모 내에서 비어 있는 position 으로 이동하면 순서만 바뀐다")
-    void moveWithinSameParent() {
-        NodeResDTO.MoveNode result = nodeService.moveNode(
-                memberId, treeId, a.getId(), new NodeReqDTO.MoveNode(root.getId(), 3L));
+    @DisplayName("같은 부모 내에서 이미 사용 중인 위치로 옮기면 형제와 순서를 맞바꾼다")
+    void swapWithinSameParent() {
+        NodeResDTO.MoveNode result = move(b, root, 1L);
+
+        assertThat(result.previousParentId()).isNull();
+        assertThat(result.siblings())
+                .extracting(NodeResDTO.GetNode::nodeId, NodeResDTO.GetNode::orderId)
+                .containsExactly(tuple(b.getId(), 1L), tuple(a.getId(), 2L));
+        assertStoredOrder(root, b, a);
+    }
+
+    @Test
+    @DisplayName("다른 부모의 앞쪽에 끼워 넣으면 기존 형제들이 뒤로 밀린다")
+    void insertShiftsSiblings() {
+        NodeResDTO.MoveNode result = move(a1, root, 1L);
 
         assertThat(result.siblings())
                 .extracting(NodeResDTO.GetNode::nodeId, NodeResDTO.GetNode::orderId)
-                .containsExactly(
-                        tuple(b.getId(), 2L),
-                        tuple(a.getId(), 3L));
+                .containsExactly(tuple(a1.getId(), 1L), tuple(a.getId(), 2L), tuple(b.getId(), 3L));
+        assertStoredOrder(root, a1, a, b);
+        assertStoredOrder(a);
+    }
+
+    @Test
+    @DisplayName("순서에 빈 번호가 있어도 이동 후 목적지·원래 부모 모두 1..n 으로 정리된다")
+    void compactsGaps() {
+        // root ─┬─ a(1) ─┬─ a1(1) ── a11
+        //       │        ├─ a2(5)
+        //       │        └─ a3(9)
+        //       ├─ b(2)
+        //       └─ c(7)
+        Node a2 = save("a2", a, 5L);
+        Node a3 = save("a3", a, 9L);
+        Node c = save("c", root, 7L);
+
+        NodeResDTO.MoveNode result = move(a2, root, 2L);
+
+        assertThat(result.siblings())
+                .extracting(NodeResDTO.GetNode::nodeId, NodeResDTO.GetNode::orderId)
+                .containsExactly(tuple(a.getId(), 1L), tuple(a2.getId(), 2L), tuple(b.getId(), 3L), tuple(c.getId(), 4L));
+        assertThat(result.previousSiblings())
+                .extracting(NodeResDTO.GetNode::nodeId, NodeResDTO.GetNode::orderId)
+                .containsExactly(tuple(a1.getId(), 1L), tuple(a3.getId(), 2L));
+        assertStoredOrder(root, a, a2, b, c);
+        assertStoredOrder(a, a1, a3);
     }
 
     @Test
@@ -120,21 +152,22 @@ class NodeMoveIntegrationTest {
         assertThat(nodeRepository.isSelfOrAncestor(a1.getId(), root.getId())).isFalse();
     }
 
-    @Test
-    @DisplayName("이미 사용 중인 position 으로 이동하면 DUPLICATED_ORDER_ID 로 매핑된다")
-    void duplicatedPosition() {
-        assertThatThrownBy(() -> nodeService.moveNode(
-                memberId, treeId, a1.getId(), new NodeReqDTO.MoveNode(root.getId(), 2L)))
-                .isInstanceOf(DataIntegrityViolationException.class)
-                .satisfies(e -> assertThat(ConstraintErrorCodeMapper.getErrorCode(e))
-                        .isEqualTo(NodeErrorCode.DUPLICATED_ORDER_ID));
-
-        // 롤백되어 원래 위치에 그대로 있어야 한다.
-        Node reloaded = nodeRepository.findAllByParentIdOrderByOrderIdAsc(a.getId()).get(0);
-        assertThat(reloaded.getId()).isEqualTo(a1.getId());
+    private NodeResDTO.MoveNode move(Node target, Node newParent, Long position) {
+        return nodeService.moveNode(
+                memberId, tree.getId(), target.getId(), new NodeReqDTO.MoveNode(newParent.getId(), position));
     }
 
-    private Node save(String name, Node parent, Long orderId, Tree tree) {
+    // 커밋된 DB 상태에서 parent 의 자식들이 주어진 순서대로 orderId 1..n 을 갖는지 확인
+    private void assertStoredOrder(Node parent, Node... expected) {
+        List<Node> children = nodeRepository.findAllByParentIdOrderByOrderIdAsc(parent.getId());
+        assertThat(children).extracting(Node::getId)
+                .containsExactly(Arrays.stream(expected).map(Node::getId).toArray(Long[]::new));
+        for (int i = 0; i < children.size(); i++) {
+            assertThat(children.get(i).getOrderId()).isEqualTo(i + 1L);
+        }
+    }
+
+    private Node save(String name, Node parent, Long orderId) {
         return nodeRepository.save(Node.builder().name(name).parent(parent).orderId(orderId).tree(tree).build());
     }
 }

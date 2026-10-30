@@ -16,7 +16,8 @@ public enum NodeErrorCode implements BaseErrorCode {
     ONE_ROOT_PER_TREE(HttpStatus.CONFLICT, "NODE409-2" , "하나의 트리에는 하나의 루트만 존재할 수 있습니다. "),
     NODE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "NODE403-1", "본인 소유 노드가 아니므로 처리할 수 없습니다."),
     ROOT_NODE_NOT_MOVABLE(HttpStatus.BAD_REQUEST, "NODE400-1", "루트 노드는 이동할 수 없습니다."),
-    INVALID_MOVE_TARGET(HttpStatus.BAD_REQUEST, "NODE400-2", "자기 자신이나 하위 노드 밑으로는 이동할 수 없습니다.");
+    INVALID_MOVE_TARGET(HttpStatus.BAD_REQUEST, "NODE400-2", "자기 자신이나 하위 노드 밑으로는 이동할 수 없습니다."),
+    INVALID_POSITION(HttpStatus.BAD_REQUEST, "NODE400-3", "이동할 위치가 형제 노드 범위를 벗어났습니다.");
 
     private final HttpStatus status;
     private final String code;

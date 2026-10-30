@@ -76,12 +76,13 @@ public class NodeController {
      * @return
      */
     @Operation(summary = "노드 위치 이동",
-            description = "노드를 지정한 부모 밑의 position 위치로 이동합니다. 하위 노드도 함께 이동하며, 이동 후 목적지 부모의 자식 노드 목록을 반환합니다. "
-                    + "parentId가 현재 부모와 같으면 순서만 변경됩니다.")
+            description = "노드를 지정한 부모 밑의 position 번째(1부터 시작)로 이동합니다. 하위 노드도 함께 이동하며, 형제 노드들의 순서는 1..n으로 다시 매겨집니다. "
+                    + "parentId가 현재 부모와 같으면 순서만 변경됩니다(position 1..n). 다른 부모로 이동하면 position은 1..n+1 범위입니다. "
+                    + "응답으로 목적지 부모의 자식 목록과, 다른 부모로 이동한 경우 원래 부모의 자식 목록을 반환합니다.")
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
     @ApiErrorCodeExample(value = NodeErrorCode.class,
             only = {"NODE_NOT_FOUND", "PARENT_NOT_FOUND", "NODE_NOT_IN_TREE",
-                    "ROOT_NODE_NOT_MOVABLE", "INVALID_MOVE_TARGET", "DUPLICATED_ORDER_ID"})
+                    "ROOT_NODE_NOT_MOVABLE", "INVALID_MOVE_TARGET", "INVALID_POSITION", "DUPLICATED_ORDER_ID"})
     @PatchMapping("/{nodeId}/move")
     public ResponseEntity<ApiResponse<NodeResDTO.MoveNode>> moveNode(
             @AuthenticationPrincipal Long memberId,
