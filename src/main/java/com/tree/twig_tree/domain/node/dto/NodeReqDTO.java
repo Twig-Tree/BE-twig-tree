@@ -24,4 +24,12 @@ public class NodeReqDTO {
             @Size(max = 30)
             String name
     ){}
+
+    public record MoveNodeReq(
+            @Min(1) @NotNull // 루트로는 이동할 수 없으므로 null 불가
+            Long parentId,
+
+            @Min(1) @NotNull
+            Long position
+    ) {}
 }
