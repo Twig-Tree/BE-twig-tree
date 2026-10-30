@@ -92,7 +92,7 @@ class NodeServiceMoveTest {
         void backToFront() {
             when(nodeRepository.findById(c.getId())).thenReturn(Optional.of(c));
 
-            NodeResDTO.MoveNode result = move(c, root, 1L);
+            NodeResDTO.MoveNodeRes result = move(c, root, 1L);
 
             assertOrders(result.siblings(), c, a, b);
             assertThat(result.previousParentId()).isNull();
@@ -105,7 +105,7 @@ class NodeServiceMoveTest {
         void frontToBack() {
             when(nodeRepository.findById(a.getId())).thenReturn(Optional.of(a));
 
-            NodeResDTO.MoveNode result = move(a, root, 3L);
+            NodeResDTO.MoveNodeRes result = move(a, root, 3L);
 
             assertOrders(result.siblings(), b, c, a);
         }
@@ -138,7 +138,7 @@ class NodeServiceMoveTest {
         void insertInMiddle() {
             when(nodeRepository.findAllByParentIdOrderByOrderIdAsc(root.getId())).thenReturn(List.of(a, b, c));
 
-            NodeResDTO.MoveNode result = move(b, a, 2L);
+            NodeResDTO.MoveNodeRes result = move(b, a, 2L);
 
             assertThat(b.getParent()).isSameAs(a);
             assertThat(result.parentId()).isEqualTo(a.getId());
@@ -159,7 +159,7 @@ class NodeServiceMoveTest {
         void appendToEnd() {
             when(nodeRepository.findAllByParentIdOrderByOrderIdAsc(root.getId())).thenReturn(List.of(a, b, c));
 
-            NodeResDTO.MoveNode result = move(b, a, 3L);
+            NodeResDTO.MoveNodeRes result = move(b, a, 3L);
 
             assertOrders(result.siblings(), a1, a2, b);
         }
@@ -203,7 +203,7 @@ class NodeServiceMoveTest {
         when(nodeRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertNodeError(() -> nodeService.moveNode(
-                OWNER_ID, TREE_ID, b.getId(), new NodeReqDTO.MoveNode(999L, 1L)),
+                OWNER_ID, TREE_ID, b.getId(), new NodeReqDTO.MoveNodeReq(999L, 1L)),
                 NodeErrorCode.PARENT_NOT_FOUND);
     }
 
@@ -218,9 +218,9 @@ class NodeServiceMoveTest {
         verify(nodeRepository, never()).isSelfOrAncestor(anyLong(), anyLong());
     }
 
-    private NodeResDTO.MoveNode move(Node target, Node newParent, Long position) {
+    private NodeResDTO.MoveNodeRes move(Node target, Node newParent, Long position) {
         return nodeService.moveNode(
-                OWNER_ID, TREE_ID, target.getId(), new NodeReqDTO.MoveNode(newParent.getId(), position));
+                OWNER_ID, TREE_ID, target.getId(), new NodeReqDTO.MoveNodeReq(newParent.getId(), position));
     }
 
     // 형제 목록이 주어진 노드 순서대로 orderId 1..n 을 갖는지 확인

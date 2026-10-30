@@ -24,7 +24,7 @@ public class NodeResDTO {
     // 이동 후 목적지 부모와 원래 부모의 자식 노드 목록 (orderId 오름차순)
     // 같은 부모 내 이동이면 previousParentId는 null, previousSiblings는 빈 목록입니다.
     @Builder
-    public record MoveNode(
+    public record MoveNodeRes(
             Long parentId,
             List<GetNode> siblings,
             Long previousParentId,

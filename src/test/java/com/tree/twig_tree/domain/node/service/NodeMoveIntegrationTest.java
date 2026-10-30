@@ -84,7 +84,7 @@ class NodeMoveIntegrationTest {
     @Test
     @DisplayName("다른 부모 밑으로 이동하면 하위 노드도 함께 따라온다")
     void moveWithSubtree() {
-        NodeResDTO.MoveNode result = move(a1, b, 1L);
+        NodeResDTO.MoveNodeRes result = move(a1, b, 1L);
 
         assertThat(result.parentId()).isEqualTo(b.getId());
         assertThat(result.siblings()).extracting(NodeResDTO.GetNode::nodeId).containsExactly(a1.getId());
@@ -98,7 +98,7 @@ class NodeMoveIntegrationTest {
     @Test
     @DisplayName("같은 부모 내에서 이미 사용 중인 위치로 옮기면 형제와 순서를 맞바꾼다")
     void swapWithinSameParent() {
-        NodeResDTO.MoveNode result = move(b, root, 1L);
+        NodeResDTO.MoveNodeRes result = move(b, root, 1L);
 
         assertThat(result.previousParentId()).isNull();
         assertThat(result.siblings())
@@ -110,7 +110,7 @@ class NodeMoveIntegrationTest {
     @Test
     @DisplayName("다른 부모의 앞쪽에 끼워 넣으면 기존 형제들이 뒤로 밀린다")
     void insertShiftsSiblings() {
-        NodeResDTO.MoveNode result = move(a1, root, 1L);
+        NodeResDTO.MoveNodeRes result = move(a1, root, 1L);
 
         assertThat(result.siblings())
                 .extracting(NodeResDTO.GetNode::nodeId, NodeResDTO.GetNode::orderId)
@@ -131,7 +131,7 @@ class NodeMoveIntegrationTest {
         Node a3 = save("a3", a, 9L);
         Node c = save("c", root, 7L);
 
-        NodeResDTO.MoveNode result = move(a2, root, 2L);
+        NodeResDTO.MoveNodeRes result = move(a2, root, 2L);
 
         assertThat(result.siblings())
                 .extracting(NodeResDTO.GetNode::nodeId, NodeResDTO.GetNode::orderId)
@@ -152,9 +152,9 @@ class NodeMoveIntegrationTest {
         assertThat(nodeRepository.isSelfOrAncestor(a1.getId(), root.getId())).isFalse();
     }
 
-    private NodeResDTO.MoveNode move(Node target, Node newParent, Long position) {
+    private NodeResDTO.MoveNodeRes move(Node target, Node newParent, Long position) {
         return nodeService.moveNode(
-                memberId, tree.getId(), target.getId(), new NodeReqDTO.MoveNode(newParent.getId(), position));
+                memberId, tree.getId(), target.getId(), new NodeReqDTO.MoveNodeReq(newParent.getId(), position));
     }
 
     // 커밋된 DB 상태에서 parent 의 자식들이 주어진 순서대로 orderId 1..n 을 갖는지 확인

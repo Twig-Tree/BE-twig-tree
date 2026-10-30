@@ -84,11 +84,11 @@ public class NodeController {
             only = {"NODE_NOT_FOUND", "PARENT_NOT_FOUND", "NODE_NOT_IN_TREE",
                     "ROOT_NODE_NOT_MOVABLE", "INVALID_MOVE_TARGET", "INVALID_POSITION", "DUPLICATED_ORDER_ID"})
     @PatchMapping("/{nodeId}/move")
-    public ResponseEntity<ApiResponse<NodeResDTO.MoveNode>> moveNode(
+    public ResponseEntity<ApiResponse<NodeResDTO.MoveNodeRes>> moveNode(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long treeId,
             @PathVariable Long nodeId,
-            @RequestBody @Valid NodeReqDTO.MoveNode dto) {
+            @RequestBody @Valid NodeReqDTO.MoveNodeReq dto) {
         BaseSuccessCode code = NodeSuccessCode.NODE_MOVED;
         return ApiResponse.onSuccess(code, nodeService.moveNode(memberId, treeId, nodeId, dto));
     }

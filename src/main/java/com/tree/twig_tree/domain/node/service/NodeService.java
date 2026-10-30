@@ -87,7 +87,7 @@ public class NodeService {
      * @return 목적지 부모와 원래 부모의 자식 노드 목록
      */
     @Transactional
-    public NodeResDTO.MoveNode moveNode(Long memberId, Long treeId, Long nodeId, NodeReqDTO.MoveNode dto) {
+    public NodeResDTO.MoveNodeRes moveNode(Long memberId, Long treeId, Long nodeId, NodeReqDTO.MoveNodeReq dto) {
         // 동시에 들어온 이동 요청이 같은 형제 목록을 재정렬하지 않도록 트리 단위로 락을 겁니다.
         Tree tree = treeRepository.findByIdForUpdate(treeId)
                 .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));

@@ -25,7 +25,7 @@ public class NodeReqDTO {
             String name
     ){}
 
-    public record MoveNode(
+    public record MoveNodeReq(
             @Min(1) @NotNull // 루트로는 이동할 수 없으므로 null 불가
             Long parentId,
 
