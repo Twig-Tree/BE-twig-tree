@@ -11,12 +11,69 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
 
-# 3. Logging & Debugging
+  # flyway / DB migration 이력 관리
+  flyway:
+    enabled: true
+    baseline-on-migrate: true # 기존 DB를 V0으로 기준점을 잡고, V1부터 실행하겠다는 의미
+    baseline-version: 0
+    schemas: public
+
+  # 파일 업로드 (트리 생성 입력용. 원본은 저장하지 않고 요청 처리 중에만 사용)
+  # 앱 레벨 상한(모든 지원 형식 25MB)보다 넉넉히 잡아, 정상 범위 초과는 도메인 에러코드로 응답되게 한다.
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 32MB
+
+  # Redis / 캐시 서버 (refresh token 저장 등)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s          # 커맨드 응답 대기
+      connect-timeout: 1s  # 연결 수립 대기
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-ttl: 1800000
+  refresh-token-ttl: 1209600000
+
+# Google
+google:
+  client-ids: ${GOOGLE_CLIENT_IDS}
+
+# OpenAI (mock 모드에서는 실제 호출되지 않으므로 dummy 기본값 사용)
+openai:
+  api-key: ${OPENAI_API_KEY:dummy}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+
+# Ollama (Local LLM, mock 모드에서는 실제 호출되지 않음)
+ollama:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${OLLAMA_MODEL:llama3.2}
+
+# Dev 개발용.
+dev:
+  test-token:
+    enabled: ${DEV_TEST_TOKEN_ENABLED:false}
+
+# Logging & Debugging
 logging:
   level:
     org.hibernate.orm.jdbc.bind: trace
+# 로컬 HTTP 개발용. 운영에서는 application-prod.yml에서 Secure를 활성화한다.
+auth:
+  cookie:
+    secure: false
+
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - http://localhost:8080

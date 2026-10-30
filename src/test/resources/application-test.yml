@@ -1,0 +1,7 @@
+jwt:
+  # 테스트 전용 256-bit 이상 HMAC 키. 실제 자격증명과 무관한 고정 더미 값이다.
+  secret: dGVzdC1qd3Qtc2VjcmV0LXRlc3Qtand0LXNlY3JldC0xMjM0NTY=
+
+google:
+  client-ids:
+    - test-client-id

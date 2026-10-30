@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "ko-KR"
+early_access: false
+
+reviews:
+  # 학생 팀에서 지나치게 사소한 지적이 쌓이지 않도록 중요한 문제 위주로 리뷰합니다.
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "github-actions[bot]"
+
+  path_instructions:
+    - path: "src/main/java/**"
+      instructions: |
+        - Spring Boot 계층 간 책임 분리와 기존 프로젝트 구조를 우선 확인하세요.
+        - 실제 버그, 예외 처리 누락, 트랜잭션 경계, N+1 쿼리 등 실행 시 문제가 될 수 있는 사항을 우선 지적하세요.
+        - 취향에 가까운 스타일 변경이나 대규모 리팩터링은 제안하지 마세요.
+
+    - path: "src/main/java/**/security/**"
+      instructions: |
+        - 인증 및 인가 우회 가능성, JWT 검증, 토큰 만료와 재발급 흐름을 확인하세요.
+        - 쿠키의 Secure, HttpOnly, SameSite 속성과 CSRF 및 CORS 설정을 함께 확인하세요.
+        - 로그나 응답에 토큰, 비밀번호, API 키 등 민감정보가 노출되는지 확인하세요.
+
+    - path: "src/main/java/**/chat/**"
+      instructions: |
+        - 업로드 문서와 LLM 응답을 신뢰할 수 없는 입력으로 취급하는지 확인하세요.
+        - 파일 크기, 파싱 실패, 비정상 구조, 자원 고갈 가능성 및 프롬프트 인젝션 위험을 확인하세요.
+        - 외부 LLM 장애나 지연이 발생했을 때의 예외 처리와 타임아웃을 확인하세요.
+
+    - path: "src/main/resources/db/migration/**"
+      instructions: |
+        - 이미 배포된 Flyway 마이그레이션 파일을 수정하지 않았는지 확인하세요.
+        - 데이터 손실 가능성, 기존 데이터와의 호환성, 제약조건 및 인덱스 영향을 확인하세요.
+        - 운영 중 적용될 때 장시간 잠금이나 롤백 곤란 문제가 생길 수 있으면 명확히 지적하세요.
+
+    - path: "src/test/**"
+      instructions: |
+        - 정상 경로뿐 아니라 실패 경로, 권한 경계, 입력 경계값이 검증되는지 확인하세요.
+        - 외부 API, 현재 시간, 테스트 실행 순서에 의존하는 불안정한 테스트인지 확인하세요.
+        - 구현 세부사항보다 관찰 가능한 동작을 검증하도록 제안하세요.
+
+    - path: "src/main/resources/application*.yml"
+      instructions: |
+        - 비밀번호, 토큰, API 키 등 실제 비밀값이 커밋되지 않았는지 확인하세요.
+        - 개발 및 운영 프로필의 보안 설정 차이와 환경변수 기본값이 안전한지 확인하세요.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        - GitHub Actions 권한은 필요한 최소 범위인지 확인하세요.
+        - 사용자 입력이 셸 명령에 직접 삽입되거나 비밀값이 로그에 노출되는지 확인하세요.
+        - 빌드와 테스트 실패가 누락되지 않고 PR 상태에 반영되는지 확인하세요.
+
+chat:
+  auto_reply: true

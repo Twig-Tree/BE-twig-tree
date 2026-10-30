@@ -1,0 +1,139 @@
+package com.tree.twig_tree.domain.workspace.controller;
+
+import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
+import com.tree.twig_tree.domain.workspace.dto.WorkspaceReqDTO;
+import com.tree.twig_tree.domain.workspace.dto.WorkspaceResDTO;
+import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceErrorCode;
+import com.tree.twig_tree.domain.workspace.exception.code.WorkspaceSuccessCode;
+import com.tree.twig_tree.domain.workspace.service.WorkspaceService;
+import com.tree.twig_tree.global.apiPayload.ApiResponse;
+import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
+import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Tag(name = "Workspace", description = "워크스페이스 생성, 조회, 수정 관련 API")
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/workspaces")
+public class WorkspaceController {
+
+    private final WorkspaceService workspaceService;
+
+    /**
+     * 전체 워크스페이스 목록 최신순 조회 (특정 폴더 기준 아님)
+     * Recent 탭, Dashboard 탭의 최신 목록에서 사용됩니다.
+     * @param cursor
+     * @param size
+     * @return GetWorkspaceSlice
+     */
+    @Operation(summary = "전체 워크스페이스 목록 최신순 조회 (커서 기반)",
+            description = "폴더와 관계없이 전체 워크스페이스 목록을 updatedAt 기준 최신순으로 조회합니다.<br>"
+                    + "첫 요청은 cursor 없이 호출하고, 이후에는 응답의 nextCursor 를 그대로 전달합니다.<br>"
+                    + "hasNext = false 이면 마지막 페이지입니다. size 는 기본 20, 1~50 범위로 보정됩니다.")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "INVALID_CURSOR")
+    @GetMapping("/recent")
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspaceSlice>> getAllWorkspaces(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "직전 응답의 nextCursor (첫 페이지는 생략)")
+            @RequestParam(required = false) String cursor,
+            @Parameter(description = "조회 개수 (기본 20, 최대 50)")
+            @RequestParam(required = false) Integer size
+    ) {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
+        return ApiResponse.onSuccess(code, workspaceService.getAllWorkspaces(memberId, cursor, size));
+    }
+
+    /**
+     * 특정 폴더 내 워크스페이스 목록 최신순 조회
+     * Directory 탭에서 사용됩니다.
+     * @param folderId (null 가능) 이 값을 기준으로 폴더 내 워크스페이스 목록을 조회합니다.
+     * @return
+     */
+    @Operation(summary = "특정 폴더 기준 워크스페이스 목록 최신순 조회", description = "folderId 값을 기준으로 폴더 내 워크스페이스 목록을 updatedAt 기준 최신순으로 조회합니다.<br>"
+            + "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스입니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<WorkspaceResDTO.GetWorkspace>>> getWorkspacesByFolder(
+            @AuthenticationPrincipal Long memberId,
+            @RequestParam(required = false) Long folderId
+    ) {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACES_FOUND;
+        return ApiResponse.onSuccess(code, workspaceService.getWorkspacesByFolder(memberId, folderId));
+    }
+
+    /**
+     * 워크스페이스 생성
+     * @param dto // name, folderId (null 가능)
+     * @return
+     */
+    @Operation(summary = "새로운 워크스페이스 생성", description = "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위 워크스페이스가 생성됩니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = "DUPLICATE_WORKSPACE_NAME")
+    @PostMapping
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> createWorkspace(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody @Valid WorkspaceReqDTO.CreateWorkspace dto
+    ) {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_CREATED;
+        return ApiResponse.onSuccess(code, workspaceService.createWorkspace(memberId, dto));
+    }
+
+    /**
+     * 워크스페이스 조회
+     * @param workspaceId
+     * @return
+     */
+    @Operation(summary = "워크스페이스 조회", description = "")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED"})
+    @GetMapping("/{workspaceId}")
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> getWorkspace(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long workspaceId
+    ) {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_FOUND;
+        return ApiResponse.onSuccess(code, workspaceService.getWorkspace(memberId, workspaceId));
+    }
+
+    /**
+     * 워크스페이스 수정
+     * @param workspaceId
+     * @return
+     */
+    @Operation(summary = "워크스페이스 이름 수정", description = "")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class,
+            only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED", "DUPLICATE_WORKSPACE_NAME"})
+    @PatchMapping("/{workspaceId}")
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> updateWorkspace(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long workspaceId,
+            @RequestBody @Valid WorkspaceReqDTO.UpdateWorkspace dto
+    ) {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_UPDATED;
+        return ApiResponse.onSuccess(code, workspaceService.updateWorkspace(memberId, workspaceId, dto.name()));
+    }
+
+    /**
+     * 워크스페이스 삭제
+     * @param workspaceId
+     * @return
+     */
+    @Operation(summary = "워크스페이스 삭제", description = "")
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class, only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED"})
+    @DeleteMapping("/{workspaceId}")
+    public ResponseEntity<ApiResponse<Void>> deleteWorkspace(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long workspaceId
+    ) {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_DELETED;
+        return ApiResponse.onSuccess(code, workspaceService.deleteWorkspace(memberId, workspaceId));
+    }
+}

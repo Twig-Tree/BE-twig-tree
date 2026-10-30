@@ -1,0 +1,130 @@
+package com.tree.twig_tree.domain.folder.controller;
+
+import com.tree.twig_tree.domain.folder.dto.FolderReqDTO;
+import com.tree.twig_tree.domain.folder.dto.FolderResDTO;
+import com.tree.twig_tree.domain.folder.exception.code.FolderErrorCode;
+import com.tree.twig_tree.domain.folder.exception.code.FolderSuccessCode;
+import com.tree.twig_tree.domain.folder.service.FolderService;
+import com.tree.twig_tree.global.apiPayload.ApiResponse;
+import com.tree.twig_tree.global.apiPayload.code.BaseSuccessCode;
+import com.tree.twig_tree.global.apiPayload.swagger.ApiErrorCodeExample;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+
+@Tag(name = "Folder", description = "폴더 생성, 조회, 수정, 삭제 관련 API")
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/folders")
+public class FolderController {
+
+    private final FolderService folderService;
+
+    /**
+     * 폴더 상위 경로 목록 조회
+     * @param folderId 해당 폴더를 포함하여 상위 폴더 경로 조회
+     * @return
+     */
+    @Operation(summary = "폴더 상위 경로 조회", description = "해당 folderId를 갖는 폴더 자신을 포함하여 그 상위 경로를 조회합니다. 최상위 경로부터 순서대로 나열됩니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @GetMapping("/{folderId}/path")
+    public ResponseEntity<ApiResponse<FolderResDTO.FolderPathList>> getFoldersPath(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long folderId
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDERS_PATH_FOUND;
+        return ApiResponse.onSuccess(code, folderService.getFoldersPath(memberId, folderId));
+    }
+
+    /**
+     * 폴더 목록 조회
+     * @param folderParentId 이 값을 기준으로 하위 폴더 목록을 조회
+     * @return
+     */
+    @Operation(summary = "폴더 목록 조회", description = "folder_parent_id를 기준으로 하위 폴더 목록을 조회합니다. <br>" +"파라미터 없이 조회하면 folder_parent_id = null 인 폴더가 조회됩니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"PARENT_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<FolderResDTO.GetFolder>>> getFolders(
+            @AuthenticationPrincipal Long memberId,
+            @RequestParam(required = false) Long folderParentId
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDERS_FOUND;
+        return ApiResponse.onSuccess(code, folderService.getFolders(memberId, folderParentId));
+    }
+
+    /**
+     * 새로운 폴더 생성
+     * folder_parent_id는 null이 가능하여 path variable이 아닌 request body로 받습니다.
+     * @param dto
+     * @return
+     */
+    @Operation(
+            summary = "새로운 폴더 생성",
+            description = "새로운 폴더를 생성합니다.<br>" +
+                    "folder_parent_id가 null이면 최상위 루트에 들어갑니다.<br>" +
+                    "같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다."
+    )
+    @ApiErrorCodeExample(value = FolderErrorCode.class,
+            only = {"PARENT_NOT_FOUND", "FOLDER_ACCESS_DENIED", "DUPLICATE_FOLDER_NAME"})
+    @PostMapping
+    public ResponseEntity<ApiResponse<FolderResDTO.GetFolder>> createFolder(
+            @AuthenticationPrincipal Long memberId,
+            @RequestBody @Valid FolderReqDTO.CreateFolder dto
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDER_CREATED;
+        return ApiResponse.onSuccess(code, folderService.createFolder(memberId, dto));
+    }
+
+    @Operation(summary = "폴더 조회", description = "")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @GetMapping("/{folderId}")
+    public ResponseEntity<ApiResponse<FolderResDTO.GetFolder>> getFolder(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long folderId
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDER_FOUND;
+        return ApiResponse.onSuccess(code, folderService.getFolder(memberId, folderId));
+    }
+
+    /**
+     * 폴더 이름 수정
+     * @param folderId
+     * @param dto
+     * @return
+     */
+    @Operation(summary = "폴더 이름 수정", description = "폴더 이름을 수정합니다. 같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class,
+            only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED", "DUPLICATE_FOLDER_NAME"})
+    @PatchMapping("/{folderId}")
+    public ResponseEntity<ApiResponse<FolderResDTO.GetFolder>> updateFolder(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long folderId,
+            @RequestBody @Valid FolderReqDTO.UpdateFolder dto
+    ){
+        BaseSuccessCode code = FolderSuccessCode.FOLDER_UPDATED;
+        return ApiResponse.onSuccess(code, folderService.updateFolder(memberId, folderId, dto));
+    }
+
+    /**
+     * 폴더 삭제
+     * @param folderId
+     * @return
+     */
+    @Operation(summary = "폴더 삭제", description = "특정 folder_id를 갖는 폴더를 삭제합니다.")
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @DeleteMapping("/{folderId}")
+    public ResponseEntity<ApiResponse<Void>> deleteFolder(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long folderId
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDER_DELETED;
+        return ApiResponse.onSuccess(code, folderService.deleteFolder(memberId, folderId));
+    }
+}
