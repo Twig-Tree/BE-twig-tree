@@ -35,6 +35,20 @@ public class NodeConverter {
                 .toList();
     }
 
+    public static NodeResDTO.MoveNodeRes toMoveNode(Long parentId, List<Node> siblings,
+                                                    Long previousParentId, List<Node> previousSiblings) {
+        return NodeResDTO.MoveNodeRes.builder()
+                .parentId(parentId)
+                .siblings(siblings.stream()
+                        .map(NodeConverter::toGetNode)
+                        .toList())
+                .previousParentId(previousParentId)
+                .previousSiblings(previousSiblings.stream()
+                        .map(NodeConverter::toGetNode)
+                        .toList())
+                .build();
+    }
+
     // 공용 메서드
     public static NodeResDTO.GetNode toGetNode(Node node) {
         return NodeResDTO.GetNode.builder()
