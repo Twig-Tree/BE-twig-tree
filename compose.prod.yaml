@@ -50,6 +50,10 @@ services:
         max-file: "3"
 
   app:
+    # GitHub Actions가 ECR에 올린 불변 commit SHA 이미지를 사용한다.
+    # deploy/aws/deploy.sh가 APP_IMAGE를 주입하고 --no-build로 적용하므로
+    # 운영 서버에서 Gradle/Docker 빌드를 다시 수행하지 않는다.
+    image: ${APP_IMAGE:?APP_IMAGE must be an immutable ECR image tagged with a commit SHA}
     environment:
       SPRING_PROFILES_ACTIVE: prod
       # 힙은 비율(-XX:MaxRAMPercentage)이 아니라 절대값으로 고정한다.
