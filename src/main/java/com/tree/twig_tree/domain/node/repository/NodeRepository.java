@@ -16,14 +16,14 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
     @Query(value = """
         WITH RECURSIVE tree_hierarchy AS (
             -- Non-recursive term
-            SELECT node_id, name, memo, parent_id, order_id, tree_id, created_at, updated_at
+            SELECT node_id, name, memo, version, parent_id, order_id, tree_id, created_at, updated_at
             FROM nodes
             WHERE tree_id = :treeId AND parent_id IS NULL
 
             UNION ALL
 
             -- Recursive term
-            SELECT n.node_id, n.name, n.memo, n.parent_id, n.order_id, n.tree_id, n.created_at, n.updated_at
+            SELECT n.node_id, n.name, n.memo, n.version, n.parent_id, n.order_id, n.tree_id, n.created_at, n.updated_at
             FROM nodes n
             INNER JOIN tree_hierarchy th ON n.parent_id = th.node_id
         )
@@ -35,14 +35,14 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
     @Query(value = """
         WITH RECURSIVE tree_hierarchy AS (
             -- Non-recursive term
-            SELECT node_id, name, memo, parent_id, order_id, tree_id, created_at, updated_at
+            SELECT node_id, name, memo, version, parent_id, order_id, tree_id, created_at, updated_at
             FROM nodes
             WHERE node_id = :rootId
 
             UNION ALL
 
             -- Recursive term
-            SELECT n.node_id, n.name, n.memo, n.parent_id, n.order_id, n.tree_id, n.created_at, n.updated_at
+            SELECT n.node_id, n.name, n.memo, n.version, n.parent_id, n.order_id, n.tree_id, n.created_at, n.updated_at
             FROM nodes n
             INNER JOIN tree_hierarchy th ON n.parent_id = th.node_id
         )
