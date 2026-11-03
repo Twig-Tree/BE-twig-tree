@@ -48,14 +48,14 @@ class MemoServiceOwnershipTest {
         Member owner = Member.builder().id(OWNER_ID).build();
         Workspace workspace = Workspace.builder().id(100L).name("내 워크스페이스").member(owner).build();
         Tree tree = Tree.builder().id(10L).workspace(workspace).build();
-        node = Node.builder().id(NODE_ID).name("노드").memo("원래 메모").tree(tree).build();
+        node = Node.builder().id(NODE_ID).name("노드").memo("원래 메모").version(0L).tree(tree).build();
         when(nodeRepository.findById(NODE_ID)).thenReturn(Optional.of(node));
     }
 
     @Test
     @DisplayName("다른 회원 노드의 메모는 수정할 수 없다")
     void updateOthersMemo() {
-        assertAccessDenied(() -> memoService.updateMemo(OTHER_ID, NODE_ID, new MemoReqDTO.UpdateMemo("덮어쓰기")));
+        assertAccessDenied(() -> memoService.updateMemo(OTHER_ID, NODE_ID, new MemoReqDTO.UpdateMemo("덮어쓰기", 0L)));
         assertThat(node.getMemo()).isEqualTo("원래 메모");
     }
 
@@ -68,7 +68,7 @@ class MemoServiceOwnershipTest {
     @Test
     @DisplayName("본인 노드의 메모는 수정할 수 있다")
     void ownerCanUpdateMemo() {
-        memoService.updateMemo(OWNER_ID, NODE_ID, new MemoReqDTO.UpdateMemo("새 메모"));
+        memoService.updateMemo(OWNER_ID, NODE_ID, new MemoReqDTO.UpdateMemo("새 메모", 0L));
 
         assertThat(node.getMemo()).isEqualTo("새 메모");
     }

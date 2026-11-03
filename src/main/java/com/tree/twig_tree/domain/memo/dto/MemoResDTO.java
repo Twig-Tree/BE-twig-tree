@@ -6,6 +6,7 @@ public class MemoResDTO {
     @Builder
     public record GetMemo(
             String title,
-            String content
+            String content,
+            Long version
     ) {}
 }

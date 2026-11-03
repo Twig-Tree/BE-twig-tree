@@ -9,6 +9,7 @@ import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,9 @@ public class MemoService {
     public MemoResDTO.GetMemo updateMemo(Long memberId, Long nodeId, MemoReqDTO.UpdateMemo dto) {
         Node node = validateNode(nodeId);
         validateNodeOwner(memberId, node);
+        validateVersion(node, dto.version());
         node.updateMemo(dto.content());
+        flushOrConflict();
         touchWorkspace(node);
 
         return MemoConverter.toGetMemo(node);
@@ -40,10 +43,12 @@ public class MemoService {
     }
 
     @Transactional
-    public Void deleteMemo(Long memberId, Long nodeId) {
+    public Void deleteMemo(Long memberId, Long nodeId, Long version) {
         Node node = validateNode(nodeId);
         validateNodeOwner(memberId, node);
+        validateVersion(node, version);
         node.updateMemo(null);
+        flushOrConflict();
         touchWorkspace(node);
 
         return null;
@@ -66,6 +71,23 @@ public class MemoService {
     private void validateNodeOwner(Long memberId, Node node) {
         if (!node.getTree().getWorkspace().getMember().getId().equals(memberId)) {
             throw new NodeException(NodeErrorCode.NODE_ACCESS_DENIED);
+        }
+    }
+
+    // 요청이 보고 만든 version이 현재 version과 다르면 다른 곳에서 먼저 수정된 것입니다.
+    private void validateVersion(Node node, Long version) {
+        if (!node.getVersion().equals(version)) {
+            throw new NodeException(NodeErrorCode.VERSION_CONFLICT);
+        }
+    }
+
+    // UPDATE ... WHERE version = ? 를 즉시 실행합니다.
+    // 같은 version으로 동시에 들어온 요청 중 늦은 쪽은 0건이 갱신되어 충돌로 처리되고, 응답에는 올라간 version이 담깁니다.
+    private void flushOrConflict() {
+        try {
+            nodeRepository.flush();
+        } catch (OptimisticLockingFailureException e) {
+            throw new NodeException(NodeErrorCode.VERSION_CONFLICT);
         }
     }
 }
