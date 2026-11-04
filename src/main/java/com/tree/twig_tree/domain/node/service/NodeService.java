@@ -65,8 +65,9 @@ public class NodeService {
      */
     @Transactional
     public NodeResDTO.GetNode editNodeName(Long memberId, Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
-        // 검증
-        Tree tree = validateTree(treeId);
+        // 이동과 겹치지 않도록 이동과 같은 트리 락을 겁니다. 락을 잡은 뒤 노드를 읽어야 이동이 끝난 최신 상태를 봅니다.
+        Tree tree = treeRepository.findByIdForUpdate(treeId)
+                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
         validateTreeOwner(memberId, tree);
 
         Node node = validateNode(nodeId);

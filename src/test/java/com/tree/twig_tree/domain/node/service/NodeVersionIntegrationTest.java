@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,13 +37,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * 실제 PostgreSQL 에서 노드 version 충돌 검증을 확인한다.
- * 동시에 들어온 요청 중 하나만 UPDATE ... WHERE version = ? 를 통과하는지, native CTE 가 version 을 매핑하는지는 DB 없이 확인할 수 없다.
+ * 동시에 들어온 요청 중 하나만 UPDATE ... WHERE version = ? 를 통과하는지, native CTE 가 version 을 매핑하는지,
+ * 이동과 이름 수정이 겹칠 때 서로의 컬럼을 덮어쓰지 않는지는 DB 없이 확인할 수 없다.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -60,6 +65,8 @@ class NodeVersionIntegrationTest {
     private WorkspaceRepository workspaceRepository;
     @Autowired
     private MemberRepository memberRepository;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private Long memberId;
     private Tree tree;
@@ -190,6 +197,65 @@ class NodeVersionIntegrationTest {
                 .filteredOn(node -> node.nodeId().equals(b.getId()))
                 .extracting(NodeResDTO.GetNode::version)
                 .containsExactly(0L);
+    }
+
+    @Test
+    @DisplayName("메모 수정이 이동 전에 노드를 읽고 이동이 먼저 커밋해도 이동 결과를 덮어쓰지 않는다")
+    void memoUpdateAfterConcurrentMoveKeepsMove() {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            // 메모 수정은 트리 락 전에 노드를 읽으므로, 이동 전 상태(parent=root, orderId=1)를 먼저 읽어 둔 상황을 만든다.
+            nodeRepository.findById(a.getId()).orElseThrow();
+            runInOtherTransaction(() -> nodeService.moveNode(
+                    memberId, tree.getId(), a.getId(), new NodeReqDTO.MoveNodeReq(b.getId(), 1L)));
+            memoService.updateMemo(memberId, a.getId(), new MemoReqDTO.UpdateMemo("메모", 0L));
+        });
+
+        assertThat(stored(a).getMemo()).isEqualTo("메모");
+        assertThat(stored(a).getParent().getId()).isEqualTo(b.getId());
+        assertThat(stored(a).getOrderId()).isEqualTo(1L);
+        assertThat(stored(b).getOrderId()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("이동이 진행 중이면 이름 수정은 이동이 커밋될 때까지 기다린 뒤 최신 상태 위에 저장된다")
+    void editNameWaitsForMoveInProgress() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<NodeResDTO.GetNode> edit;
+        try {
+            edit = new TransactionTemplate(transactionManager).execute(status -> {
+                // 이동 트랜잭션이 트리 락을 잡고 형제 목록을 읽은 상태
+                treeRepository.findByIdForUpdate(tree.getId()).orElseThrow();
+                nodeRepository.findAllByParentIdOrderByOrderIdAsc(root.getId());
+
+                // 이 사이에 들어온 이름 수정은 트리 락에서 기다려야 한다.
+                Future<NodeResDTO.GetNode> pending = executor.submit(() -> editName(a, "새 이름", 0L));
+                assertThatThrownBy(() -> pending.get(500, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+
+                // b를 맨 앞으로 옮기면 a의 orderId가 1 -> 2로 바뀌어 a도 UPDATE 된다.
+                nodeService.moveNode(memberId, tree.getId(), b.getId(), new NodeReqDTO.MoveNodeReq(root.getId(), 1L));
+                return pending;
+            });
+            // 이동이 커밋되면 이름 수정이 이어서 진행된다.
+            assertThat(edit.get(5, TimeUnit.SECONDS).version()).isEqualTo(1L);
+        } finally {
+            executor.shutdown();
+        }
+
+        assertThat(stored(a).getName()).isEqualTo("새 이름");
+        assertThat(stored(a).getOrderId()).isEqualTo(2L);
+        assertThat(stored(b).getOrderId()).isEqualTo(1L);
+    }
+
+    // 다른 스레드(= 다른 트랜잭션)에서 실행하고 커밋될 때까지 기다린다.
+    private void runInOtherTransaction(Runnable action) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            executor.submit(action).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     private NodeResDTO.GetNode editName(Node target, String name, Long version) {

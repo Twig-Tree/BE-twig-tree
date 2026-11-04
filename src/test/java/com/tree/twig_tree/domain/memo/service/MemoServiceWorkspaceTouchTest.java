@@ -5,6 +5,7 @@ import com.tree.twig_tree.domain.memo.dto.MemoReqDTO;
 import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
+import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,8 @@ class MemoServiceWorkspaceTouchTest {
     @Mock
     private NodeRepository nodeRepository;
     @Mock
+    private TreeRepository treeRepository;
+    @Mock
     private WorkspaceRepository workspaceRepository;
     @InjectMocks
     private MemoService memoService;
@@ -46,6 +49,7 @@ class MemoServiceWorkspaceTouchTest {
         Tree tree = Tree.builder().id(TREE_ID).workspace(workspace).build();
         Node node = Node.builder().id(NODE_ID).name("노드").version(0L).tree(tree).build();
         when(nodeRepository.findById(NODE_ID)).thenReturn(Optional.of(node));
+        when(treeRepository.findByIdForUpdate(TREE_ID)).thenReturn(Optional.of(tree));
     }
 
     @Test

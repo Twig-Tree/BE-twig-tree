@@ -60,7 +60,7 @@ class NodeServiceWorkspaceTouchTest {
     @Test
     @DisplayName("노드 이름 수정 시 워크스페이스 updatedAt 을 갱신한다")
     void editNodeNameTouchesWorkspace() {
-        when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(tree));
+        when(treeRepository.findByIdForUpdate(TREE_ID)).thenReturn(Optional.of(tree));
         when(nodeRepository.findById(NODE_ID)).thenReturn(Optional.of(node));
 
         nodeService.editNodeName(OWNER_ID, TREE_ID, NODE_ID, new NodeReqDTO.EditNodeName("새 이름", 0L));

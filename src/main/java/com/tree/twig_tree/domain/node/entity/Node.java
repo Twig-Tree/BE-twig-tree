@@ -9,11 +9,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.OptimisticLock;
 
 import java.util.ArrayList;
 import java.util.List;
 
+// 바뀐 컬럼만 UPDATE 합니다. 이름·메모 수정과 이동이 겹쳐도 상대가 바꾼 컬럼을 읽어둔 옛 값으로 덮어쓰지 않습니다.
+@DynamicUpdate
 @Entity
 @Getter
 @Builder

@@ -7,6 +7,9 @@ import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.exception.NodeException;
 import com.tree.twig_tree.domain.node.exception.code.NodeErrorCode;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
+import com.tree.twig_tree.domain.tree.exception.TreeException;
+import com.tree.twig_tree.domain.tree.exception.code.TreeErrorCode;
+import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -21,12 +24,14 @@ import java.time.Instant;
 public class MemoService {
 
     private final NodeRepository nodeRepository;
+    private final TreeRepository treeRepository;
     private final WorkspaceRepository workspaceRepository;
 
     @Transactional
     public MemoResDTO.GetMemo updateMemo(Long memberId, Long nodeId, MemoReqDTO.UpdateMemo dto) {
         Node node = validateNode(nodeId);
         validateNodeOwner(memberId, node);
+        lockTree(node);
         validateVersion(node, dto.version());
         node.updateMemo(dto.content());
         flushOrConflict();
@@ -46,6 +51,7 @@ public class MemoService {
     public Void deleteMemo(Long memberId, Long nodeId, Long version) {
         Node node = validateNode(nodeId);
         validateNodeOwner(memberId, node);
+        lockTree(node);
         validateVersion(node, version);
         node.updateMemo(null);
         flushOrConflict();
@@ -72,6 +78,13 @@ public class MemoService {
         if (!node.getTree().getWorkspace().getMember().getId().equals(memberId)) {
             throw new NodeException(NodeErrorCode.NODE_ACCESS_DENIED);
         }
+    }
+
+    // 노드 이동과 겹치지 않도록 이동과 같은 트리 락을 겁니다.
+    // 노드는 락 전에 읽지만, @DynamicUpdate로 memo 컬럼만 UPDATE 하므로 그 사이 이동한 결과를 덮어쓰지 않습니다.
+    private void lockTree(Node node) {
+        treeRepository.findByIdForUpdate(node.getTree().getId())
+                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
     }
 
     // 요청이 보고 만든 version이 현재 version과 다르면 다른 곳에서 먼저 수정된 것입니다.
