@@ -13,6 +13,7 @@ import com.tree.twig_tree.domain.tree.exception.code.TreeErrorCode;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,14 +65,17 @@ public class NodeService {
      */
     @Transactional
     public NodeResDTO.GetNode editNodeName(Long memberId, Long treeId, Long nodeId, NodeReqDTO.EditNodeName dto) {
-        // 검증
-        Tree tree = validateTree(treeId);
+        // 이동과 겹치지 않도록 이동과 같은 트리 락을 겁니다. 락을 잡은 뒤 노드를 읽어야 이동이 끝난 최신 상태를 봅니다.
+        Tree tree = treeRepository.findByIdForUpdate(treeId)
+                .orElseThrow(() -> new TreeException(TreeErrorCode.TREE_NOT_FOUND));
         validateTreeOwner(memberId, tree);
 
         Node node = validateNode(nodeId);
         validateNodeInTree(node, treeId);
+        validateVersion(node, dto.version());
 
         node.updateName(dto.name());
+        flushOrConflict();
         touchWorkspace(treeId);
 
         return NodeConverter.toGetNode(node);
@@ -229,6 +233,23 @@ public class NodeService {
     private void validateNodeInTree(Node node, Long treeId) {
         if (!node.getTree().getId().equals(treeId)) {
             throw new NodeException(NodeErrorCode.NODE_NOT_IN_TREE);
+        }
+    }
+
+    // 요청이 보고 만든 version이 현재 version과 다르면 다른 곳에서 먼저 수정된 것입니다.
+    private void validateVersion(Node node, Long version) {
+        if (!node.getVersion().equals(version)) {
+            throw new NodeException(NodeErrorCode.VERSION_CONFLICT);
+        }
+    }
+
+    // UPDATE ... WHERE version = ? 를 즉시 실행합니다.
+    // 같은 version으로 동시에 들어온 요청 중 늦은 쪽은 0건이 갱신되어 충돌로 처리되고, 응답에는 올라간 version이 담깁니다.
+    private void flushOrConflict() {
+        try {
+            nodeRepository.flush();
+        } catch (OptimisticLockingFailureException e) {
+            throw new NodeException(NodeErrorCode.VERSION_CONFLICT);
         }
     }
 

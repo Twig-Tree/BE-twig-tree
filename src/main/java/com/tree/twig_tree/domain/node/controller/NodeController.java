@@ -54,9 +54,10 @@ public class NodeController {
      * @param dto
      * @return
      */
-    @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다.")
+    @Operation(summary = "노드 제목 수정", description = "특정 노드의 제목을 수정합니다. "
+            + "version은 편집을 시작할 때 본 노드의 version이며, 현재 version과 다르면 저장하지 않고 VERSION_CONFLICT를 반환합니다.")
     @ApiErrorCodeExample(value = TreeErrorCode.class, only = {"TREE_NOT_FOUND", "TREE_ACCESS_DENIED"})
-    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE"})
+    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_NOT_IN_TREE", "VERSION_CONFLICT"})
     @PatchMapping("/{nodeId}")
     public ResponseEntity<ApiResponse<NodeResDTO.GetNode>> editNodeName(
             @AuthenticationPrincipal Long memberId,

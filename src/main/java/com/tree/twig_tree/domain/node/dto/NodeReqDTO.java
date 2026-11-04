@@ -22,7 +22,10 @@ public class NodeReqDTO {
     public record EditNodeName(
             @NotBlank
             @Size(max = 30)
-            String name
+            String name,
+
+            @Min(0) @NotNull // 편집을 시작할 때 본 노드의 version
+            Long version
     ){}
 
     public record MoveNodeReq(
