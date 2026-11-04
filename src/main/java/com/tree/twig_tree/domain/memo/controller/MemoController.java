@@ -25,8 +25,9 @@ public class MemoController {
     private final MemoService memoService;
 
     // memo는 초기값이 null로 생성되므로 PUT으로 생성과 수정이 모두 가능합니다.
-    @Operation(summary = "메모 생성/수정", description = "메모를 업데이트합니다. 기본값이 null로 초기화되어있어 메모 생성은 수정과 같습니다.")
-    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_ACCESS_DENIED"})
+    @Operation(summary = "메모 생성/수정", description = "메모를 업데이트합니다. 기본값이 null로 초기화되어있어 메모 생성은 수정과 같습니다. "
+            + "version은 편집을 시작할 때 본 노드의 version이며, 현재 version과 다르면 저장하지 않고 VERSION_CONFLICT를 반환합니다.")
+    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_ACCESS_DENIED", "VERSION_CONFLICT"})
     @PutMapping
     public ResponseEntity<ApiResponse<MemoResDTO.GetMemo>> updateMemo(
             @AuthenticationPrincipal Long memberId,
@@ -48,14 +49,16 @@ public class MemoController {
         return ApiResponse.onSuccess(code, memoService.getMemo(memberId, nodeId));
     }
 
-    @Operation(summary = "메모 삭제", description = "메모를 삭제합니다. 즉, null값이 됩니다.")
-    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_ACCESS_DENIED"})
+    @Operation(summary = "메모 삭제", description = "메모를 삭제합니다. 즉, null값이 됩니다. "
+            + "version은 쿼리 파라미터로 받으며, 현재 version과 다르면 삭제하지 않고 VERSION_CONFLICT를 반환합니다.")
+    @ApiErrorCodeExample(value = NodeErrorCode.class, only = {"NODE_NOT_FOUND", "NODE_ACCESS_DENIED", "VERSION_CONFLICT"})
     @DeleteMapping
     public ResponseEntity<ApiResponse<Void>> deleteMemo(
             @AuthenticationPrincipal Long memberId,
-            @PathVariable Long nodeId
+            @PathVariable Long nodeId,
+            @RequestParam Long version
     ) {
         BaseSuccessCode code = MemoSuccessCode.MEMO_DELETED;
-        return ApiResponse.onSuccess(code, memoService.deleteMemo(memberId, nodeId));
+        return ApiResponse.onSuccess(code, memoService.deleteMemo(memberId, nodeId, version));
     }
 }

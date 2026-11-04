@@ -13,6 +13,7 @@ public class NodeResDTO {
             Long orderId,
             String name,
             String memo,
+            Long version,
             List<Long> tagIds
     ) {}
 

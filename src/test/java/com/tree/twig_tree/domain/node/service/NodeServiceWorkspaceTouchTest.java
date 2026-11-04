@@ -44,7 +44,7 @@ class NodeServiceWorkspaceTouchTest {
     private final Member owner = Member.builder().id(OWNER_ID).build();
     private final Workspace workspace = Workspace.builder().id(100L).member(owner).build();
     private final Tree tree = Tree.builder().id(TREE_ID).workspace(workspace).build();
-    private final Node node = Node.builder().id(NODE_ID).name("노드").tree(tree).build();
+    private final Node node = Node.builder().id(NODE_ID).name("노드").version(0L).tree(tree).build();
 
     @Test
     @DisplayName("노드 생성 시 워크스페이스 updatedAt 을 갱신한다")
@@ -60,10 +60,10 @@ class NodeServiceWorkspaceTouchTest {
     @Test
     @DisplayName("노드 이름 수정 시 워크스페이스 updatedAt 을 갱신한다")
     void editNodeNameTouchesWorkspace() {
-        when(treeRepository.findById(TREE_ID)).thenReturn(Optional.of(tree));
+        when(treeRepository.findByIdForUpdate(TREE_ID)).thenReturn(Optional.of(tree));
         when(nodeRepository.findById(NODE_ID)).thenReturn(Optional.of(node));
 
-        nodeService.editNodeName(OWNER_ID, TREE_ID, NODE_ID, new NodeReqDTO.EditNodeName("새 이름"));
+        nodeService.editNodeName(OWNER_ID, TREE_ID, NODE_ID, new NodeReqDTO.EditNodeName("새 이름", 0L));
 
         verify(workspaceRepository).touchByTreeId(eq(TREE_ID), any());
     }

@@ -5,6 +5,7 @@ import com.tree.twig_tree.domain.memo.dto.MemoReqDTO;
 import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
+import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,8 @@ class MemoServiceWorkspaceTouchTest {
     @Mock
     private NodeRepository nodeRepository;
     @Mock
+    private TreeRepository treeRepository;
+    @Mock
     private WorkspaceRepository workspaceRepository;
     @InjectMocks
     private MemoService memoService;
@@ -44,14 +47,15 @@ class MemoServiceWorkspaceTouchTest {
         Member owner = Member.builder().id(OWNER_ID).build();
         Workspace workspace = Workspace.builder().id(100L).member(owner).build();
         Tree tree = Tree.builder().id(TREE_ID).workspace(workspace).build();
-        Node node = Node.builder().id(NODE_ID).name("노드").tree(tree).build();
+        Node node = Node.builder().id(NODE_ID).name("노드").version(0L).tree(tree).build();
         when(nodeRepository.findById(NODE_ID)).thenReturn(Optional.of(node));
+        when(treeRepository.findByIdForUpdate(TREE_ID)).thenReturn(Optional.of(tree));
     }
 
     @Test
     @DisplayName("메모 수정 시 워크스페이스 updatedAt 을 갱신한다")
     void updateMemoTouchesWorkspace() {
-        memoService.updateMemo(OWNER_ID, NODE_ID, new MemoReqDTO.UpdateMemo("메모"));
+        memoService.updateMemo(OWNER_ID, NODE_ID, new MemoReqDTO.UpdateMemo("메모", 0L));
 
         verify(workspaceRepository).touchByTreeId(eq(TREE_ID), any());
     }
@@ -59,7 +63,7 @@ class MemoServiceWorkspaceTouchTest {
     @Test
     @DisplayName("메모 삭제 시 워크스페이스 updatedAt 을 갱신한다")
     void deleteMemoTouchesWorkspace() {
-        memoService.deleteMemo(OWNER_ID, NODE_ID);
+        memoService.deleteMemo(OWNER_ID, NODE_ID, 0L);
 
         verify(workspaceRepository).touchByTreeId(eq(TREE_ID), any());
     }
