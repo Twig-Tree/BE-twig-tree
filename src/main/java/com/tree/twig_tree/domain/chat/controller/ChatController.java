@@ -98,7 +98,7 @@ public class ChatController {
               - 스캔한 이미지 PDF 는 글자를 추출할 수 없어 400 입니다 (OCR 미지원)
               - 암호가 걸린 문서도 400 입니다
             - `message`: (선택) 추가 지시문, 500자 이내. 예) "3단계 깊이로 정리해줘"
-            - `provider`: LLM 제공자 (OPENAI / OLLAMA)
+            - `provider`: (선택) LLM 제공자 (OPENAI / OLLAMA), 생략 시 OPENAI
 
             `file` 과 `message` 는 각각 선택이지만 **둘 다 비어 있으면 400** 입니다.
             업로드한 파일은 저장하지 않고 요청 처리 중에만 사용합니다.

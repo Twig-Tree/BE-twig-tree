@@ -22,7 +22,7 @@ public record ChatFileReqDTO(
     @Size(max = ChatReqDTO.MESSAGE_MAX_LENGTH)
     String message,
 
-    @Schema(description = "LLM 제공자", example = "OPENAI")
+    @Schema(description = "(선택) LLM 제공자. 생략 시 OPENAI", example = "OPENAI")
     LlmProvider provider
 ) {
 }

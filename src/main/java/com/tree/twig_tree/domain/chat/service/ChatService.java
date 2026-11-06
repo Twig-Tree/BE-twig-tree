@@ -34,6 +34,9 @@ public class ChatService {
     /** LLM 응답 대기 상한. WebClient responseTimeout(60s)보다 약간 크게 잡아 안전망으로 둔다. */
     private static final Duration LLM_TIMEOUT = Duration.ofSeconds(65);
 
+    /** 요청에서 provider 를 생략했을 때 사용할 제공자. */
+    static final LlmProvider DEFAULT_PROVIDER = LlmProvider.OPENAI;
+
     private final List<LlmClient> llmClients;
     private final ObjectMapper objectMapper;
     private final TreeValidator treeValidator;
@@ -53,7 +56,7 @@ public class ChatService {
      *
      * <p>지시문과 파일 중 최소 하나는 있어야 한다. 파일은 본문만 추출해 쓰고 원본은 저장하지 않는다.
      *
-     * @param provider LLM 제공자
+     * @param provider LLM 제공자 (선택, 생략 시 {@link #DEFAULT_PROVIDER})
      * @param message  사용자 지시문 (선택)
      * @param file     업로드 파일 (선택)
      */
@@ -82,8 +85,9 @@ public class ChatService {
     }
 
     private LlmClient resolveClient(LlmProvider provider) {
+        LlmProvider target = provider == null ? DEFAULT_PROVIDER : provider;
         return llmClients.stream()
-            .filter(c -> c.getProvider() == provider)
+            .filter(c -> c.getProvider() == target)
             .findFirst()
             .orElseThrow(() -> new ChatException(ChatErrorCode.UNSUPPORTED_PROVIDER));
     }

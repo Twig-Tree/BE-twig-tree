@@ -74,6 +74,17 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("provider 를 생략하면 기본 provider(OPENAI)로 호출한다")
+    void nullProviderFallsBackToDefault() {
+        stubTreeJson();
+
+        TreeGenResDTO result = chatService.generateTree(MEMBER_ID, null, "트리 만들어줘", file("note.md", "본문"));
+
+        assertThat(result.treeId()).isEqualTo(42L);
+        verify(openAiClient).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     @DisplayName("LLM 응답이 JSON 이 아니면 LLM_RESPONSE_INVALID")
     void invalidJson() {
         when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(Mono.just("이건 JSON 이 아님"));
