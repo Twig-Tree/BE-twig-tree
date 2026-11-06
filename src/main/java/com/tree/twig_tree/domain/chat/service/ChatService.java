@@ -34,6 +34,9 @@ public class ChatService {
     /** LLM 응답 대기 상한. WebClient responseTimeout(60s)보다 약간 크게 잡아 안전망으로 둔다. */
     private static final Duration LLM_TIMEOUT = Duration.ofSeconds(65);
 
+    /** 요청에서 provider 를 생략했을 때 사용할 제공자. */
+    static final LlmProvider DEFAULT_PROVIDER = LlmProvider.OPENAI;
+
     private final List<LlmClient> llmClients;
     private final ObjectMapper objectMapper;
     private final TreeValidator treeValidator;
@@ -44,6 +47,7 @@ public class ChatService {
         if (req == null || req.message() == null || req.message().isBlank()) {
             throw new ChatException(ChatErrorCode.EMPTY_MESSAGE);
         }
+        validateMessageLength(req.message());
 
         return generate(memberId, req.provider(), TreePrompt.userMessage(req.message(), null));
     }
@@ -53,7 +57,7 @@ public class ChatService {
      *
      * <p>지시문과 파일 중 최소 하나는 있어야 한다. 파일은 본문만 추출해 쓰고 원본은 저장하지 않는다.
      *
-     * @param provider LLM 제공자
+     * @param provider LLM 제공자 (선택, 생략 시 {@link #DEFAULT_PROVIDER})
      * @param message  사용자 지시문 (선택)
      * @param file     업로드 파일 (선택)
      */
@@ -64,17 +68,26 @@ public class ChatService {
         if (!hasMessage && !hasFile) {
             throw new ChatException(ChatErrorCode.INPUT_REQUIRED);
         }
-
-        // multipart 요청은 @RequestParam 으로 받아 @Valid 를 걸 DTO 가 없으므로, JSON 경로의
-        // ChatReqDTO(@Size)와 같은 상한을 여기서 직접 적용한다.
-        if (hasMessage && message.length() > ChatReqDTO.MESSAGE_MAX_LENGTH) {
-            throw new ChatException(ChatErrorCode.MESSAGE_TOO_LONG);
+        if (hasMessage) {
+            validateMessageLength(message);
         }
 
         // 파일 검증을 LLM 호출 전에 끝내, 잘못된 입력으로 비용이 발생하지 않게 한다.
         String documentText = hasFile ? documentTextExtractor.extract(file) : null;
 
         return generate(memberId, provider, TreePrompt.userMessage(message, documentText));
+    }
+
+    /**
+     * 지시문 길이 상한 검사.
+     *
+     * <p>컨트롤러의 {@code @Valid} 가 먼저 막지만, 이 서비스를 다른 경로에서 직접 호출해도
+     * 큰 프롬프트가 LLM 에 실리지 않도록 서비스에서도 한 번 더 확인한다.
+     */
+    private void validateMessageLength(String message) {
+        if (message.length() > ChatReqDTO.MESSAGE_MAX_LENGTH) {
+            throw new ChatException(ChatErrorCode.MESSAGE_TOO_LONG);
+        }
     }
 
     private TreeGenResDTO generate(Long memberId, LlmProvider provider, String userMessage) {
@@ -88,8 +101,9 @@ public class ChatService {
     }
 
     private LlmClient resolveClient(LlmProvider provider) {
+        LlmProvider target = provider == null ? DEFAULT_PROVIDER : provider;
         return llmClients.stream()
-            .filter(c -> c.getProvider() == provider)
+            .filter(c -> c.getProvider() == target)
             .findFirst()
             .orElseThrow(() -> new ChatException(ChatErrorCode.UNSUPPORTED_PROVIDER));
     }
