@@ -66,7 +66,8 @@ class ErrorCodeOperationCustomizerTest {
     void fileUploadExposesCommonBadRequestAndExplicitMockErrorCode() throws NoSuchMethodException {
         Method method = ChatController.class.getMethod(
                 "generateTreeFromFile", Long.class,
-                com.tree.twig_tree.domain.chat.dto.ChatFileReqDTO.class, String.class);
+                com.tree.twig_tree.domain.chat.dto.ChatFileReqDTO.class,
+                org.springframework.validation.BindingResult.class, String.class);
         Operation operation = customize(ChatController.class, null, method);
 
         ApiResponses responses = operation.getResponses();

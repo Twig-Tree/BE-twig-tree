@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -70,15 +72,17 @@ public class ChatController {
     public ResponseEntity<ApiResponse<Object>> generateTree(
         @AuthenticationPrincipal Long memberId,
         @RequestBody(required = false) @Valid ChatReqDTO req,
+        BindingResult bindingResult,
         @Parameter(
             description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않고 mock 트리를 반환합니다.",
             schema = @Schema(allowableValues = {"empty", "small", "large", "max"})
         )
         @RequestParam(required = false) String mock
-    ) {
+    ) throws BindException {
         if (mock != null) {
             return mockResponse(mock);
         }
+        throwIfInvalid(bindingResult);
 
         TreeGenResDTO tree = chatService.generateTree(memberId, req);
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
@@ -117,15 +121,29 @@ public class ChatController {
     public ResponseEntity<ApiResponse<Object>> generateTreeFromFile(
         @AuthenticationPrincipal Long memberId,
         @Valid @ModelAttribute ChatFileReqDTO req,
+        BindingResult bindingResult,
         @Parameter(description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않습니다.")
         @RequestParam(required = false) String mock
-    ) {
+    ) throws BindException {
         if (mock != null) {
             return mockResponse(mock);
         }
+        throwIfInvalid(bindingResult);
 
         TreeGenResDTO tree = chatService.generateTree(memberId, req.provider(), req.message(), req.file());
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
+    }
+
+    /**
+     * 입력 검증 실패를 mock 분기 뒤에서 던진다.
+     *
+     * <p>BindingResult 를 받으면 Spring 이 검증 실패로 바로 400 을 내지 않으므로,
+     * mock 요청은 입력과 무관하게 mock 트리를 받고 실제 요청만 검증 결과를 따른다.
+     */
+    private void throwIfInvalid(BindingResult bindingResult) throws BindException {
+        if (bindingResult.hasErrors()) {
+            throw new BindException(bindingResult);
+        }
     }
 
     private ResponseEntity<ApiResponse<Object>> mockResponse(String scenario) {

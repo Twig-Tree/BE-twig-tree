@@ -191,4 +191,33 @@ class ChatControllerRoutingTest {
         verify(mockResponseLoader).load("mocks/chat/tree-small.json");
         verify(chatService, never()).generateTree(any(), any(), any(), any());
     }
+    @Test
+    @DisplayName("multipart mock 요청은 message 가 상한을 넘거나 provider 가 잘못돼도 검증 없이 mock 트리를 반환한다")
+    void multipartMockSkipsValidation() throws Exception {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        mockMvc.perform(multipart("/tree-request")
+                .param("message", tooLong)
+                .param("provider", "openai")
+                .param("mock", "small"))
+            .andExpect(status().isCreated());
+
+        verify(mockResponseLoader).load("mocks/chat/tree-small.json");
+        verify(chatService, never()).generateTree(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("JSON mock 요청은 message 가 상한을 넘어도 검증 없이 mock 트리를 반환한다")
+    void jsonMockSkipsValidation() throws Exception {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        mockMvc.perform(post("/tree-request")
+                .param("mock", "small")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"" + tooLong + "\"}"))
+            .andExpect(status().isCreated());
+
+        verify(mockResponseLoader).load("mocks/chat/tree-small.json");
+        verify(chatService, never()).generateTree(any(), any(ChatReqDTO.class));
+    }
 }

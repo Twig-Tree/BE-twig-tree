@@ -171,6 +171,38 @@ class ChatServiceTest {
         verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
     }
 
+    @Test
+    @DisplayName("JSON 경로 메시지가 상한을 넘으면 LLM 호출 없이 MESSAGE_TOO_LONG")
+    void jsonMessageTooLong() {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        assertError(() -> chatService.generateTree(MEMBER_ID, req(tooLong, LlmProvider.OPENAI)),
+            ChatErrorCode.MESSAGE_TOO_LONG);
+        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("파일 경로 지시문이 상한을 넘으면 파일 추출·LLM 호출 없이 MESSAGE_TOO_LONG")
+    void fileMessageTooLong() {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        // 확장자가 잘못된 파일을 넣어, 파일 추출보다 길이 검사가 먼저인지도 함께 확인한다
+        assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, tooLong, file("a.exe", "내용")),
+            ChatErrorCode.MESSAGE_TOO_LONG);
+        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("지시문이 상한과 같으면 통과한다")
+    void messageAtLimit() {
+        stubTreeJson();
+        String atLimit = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH);
+
+        chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, atLimit, null);
+
+        assertThat(capturedPrompt()).contains(atLimit);
+    }
+
     private void stubTreeJson() {
         String json = """
             {"nodes":[{"tempId":1,"name":"루트","memo":null,"parentTempId":null,"orderId":1}]}

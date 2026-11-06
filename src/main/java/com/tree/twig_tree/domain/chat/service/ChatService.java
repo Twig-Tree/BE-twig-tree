@@ -47,6 +47,7 @@ public class ChatService {
         if (req == null || req.message() == null || req.message().isBlank()) {
             throw new ChatException(ChatErrorCode.EMPTY_MESSAGE);
         }
+        validateMessageLength(req.message());
 
         return generate(memberId, req.provider(), TreePrompt.userMessage(req.message(), null));
     }
@@ -67,11 +68,26 @@ public class ChatService {
         if (!hasMessage && !hasFile) {
             throw new ChatException(ChatErrorCode.INPUT_REQUIRED);
         }
+        if (hasMessage) {
+            validateMessageLength(message);
+        }
 
         // 파일 검증을 LLM 호출 전에 끝내, 잘못된 입력으로 비용이 발생하지 않게 한다.
         String documentText = hasFile ? documentTextExtractor.extract(file) : null;
 
         return generate(memberId, provider, TreePrompt.userMessage(message, documentText));
+    }
+
+    /**
+     * 지시문 길이 상한 검사.
+     *
+     * <p>컨트롤러의 {@code @Valid} 가 먼저 막지만, 이 서비스를 다른 경로에서 직접 호출해도
+     * 큰 프롬프트가 LLM 에 실리지 않도록 서비스에서도 한 번 더 확인한다.
+     */
+    private void validateMessageLength(String message) {
+        if (message.length() > ChatReqDTO.MESSAGE_MAX_LENGTH) {
+            throw new ChatException(ChatErrorCode.MESSAGE_TOO_LONG);
+        }
     }
 
     private TreeGenResDTO generate(Long memberId, LlmProvider provider, String userMessage) {
