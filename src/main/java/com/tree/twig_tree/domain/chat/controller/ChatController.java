@@ -1,6 +1,6 @@
 package com.tree.twig_tree.domain.chat.controller;
 
-import com.tree.twig_tree.domain.chat.client.LlmProvider;
+import com.tree.twig_tree.domain.chat.dto.ChatFileReqDTO;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
@@ -20,13 +20,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -110,23 +109,14 @@ public class ChatController {
             content = @Content(schema = @Schema(implementation = TreeGenResDTO.class))
     )
     @ApiErrorCodeExample(value = ChatErrorCode.class,
-            only = {"INPUT_REQUIRED", "MESSAGE_TOO_LONG", "UNSUPPORTED_FILE_TYPE", "FILE_TOO_LARGE",
+            only = {"INPUT_REQUIRED", "UNSUPPORTED_FILE_TYPE", "FILE_TOO_LARGE",
                     "FILE_TEXT_TOO_LONG", "FILE_EMPTY", "FILE_READ_FAILED", "FILE_PARSE_FAILED", "FILE_ENCRYPTED",
                     "UNSUPPORTED_PROVIDER", "LLM_CALL_FAILED", "LLM_TIMEOUT", "LLM_RESPONSE_INVALID",
                     "TREE_SAVE_FAILED", "INVALID_MOCK_SCENARIO"})
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Object>> generateTreeFromFile(
         @AuthenticationPrincipal Long memberId,
-
-        @Parameter(description = "(선택) txt, md, pdf, docx, hwp, hwpx 파일")
-        @RequestPart(value = "file", required = false) MultipartFile file,
-
-        @Parameter(description = "(선택) 추가 지시문. 500자 이내", example = "3단계 깊이로 정리해줘")
-        @RequestParam(required = false) String message,
-
-        @Parameter(description = "LLM 제공자", schema = @Schema(allowableValues = {"OPENAI", "OLLAMA"}))
-        @RequestParam(required = false) LlmProvider provider,
-
+        @Valid @ModelAttribute ChatFileReqDTO req,
         @Parameter(description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않습니다.")
         @RequestParam(required = false) String mock
     ) {
@@ -134,7 +124,7 @@ public class ChatController {
             return mockResponse(mock);
         }
 
-        TreeGenResDTO tree = chatService.generateTree(memberId, provider, message, file);
+        TreeGenResDTO tree = chatService.generateTree(memberId, req.provider(), req.message(), req.file());
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
     }
 

@@ -4,6 +4,7 @@ import com.tree.twig_tree.domain.chat.client.LlmProvider;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.service.ChatService;
+import com.tree.twig_tree.global.apiPayload.handler.GeneralExceptionAdvice;
 import com.tree.twig_tree.global.mock.MockResponseLoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,12 +21,14 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -45,6 +48,7 @@ class ChatControllerRoutingTest {
         mockMvc = MockMvcBuilders
             .standaloneSetup(new ChatController(chatService, mockResponseLoader))
             .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+            .setControllerAdvice(new GeneralExceptionAdvice())
             .build();
 
         when(chatService.generateTree(any(), any(ChatReqDTO.class)))
@@ -100,7 +104,9 @@ class ChatControllerRoutingTest {
         mockMvc.perform(post("/tree-request")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"" + tooLong + "\",\"provider\":\"OPENAI\"}"))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("COMMON400-1"))
+            .andExpect(jsonPath("$.data.message").exists());
 
         // LLM 호출은 물론 서비스 진입 자체가 없어야 한다
         verify(chatService, never()).generateTree(any(), any(ChatReqDTO.class));
@@ -127,6 +133,62 @@ class ChatControllerRoutingTest {
 
         verify(mockResponseLoader).load("mocks/chat/tree-small.json");
         verify(chatService, never()).generateTree(any(), any(ChatReqDTO.class));
+        verify(chatService, never()).generateTree(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("multipart message 가 상한(500자)을 넘으면 JSON 경로와 같은 COMMON400-1 로 400")
+    void multipartMessageTooLong() throws Exception {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+        MockMultipartFile file =
+            new MockMultipartFile("file", "note.md", "text/markdown", "본문".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/tree-request")
+                .file(file)
+                .param("message", tooLong)
+                .param("provider", "OPENAI"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("COMMON400-1"))
+            .andExpect(jsonPath("$.data.message").exists());
+
+        verify(chatService, never()).generateTree(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("multipart message 가 상한(500자)과 같으면 통과한다")
+    void multipartMessageAtLimit() throws Exception {
+        String atLimit = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH);
+
+        mockMvc.perform(multipart("/tree-request")
+                .param("message", atLimit)
+                .param("provider", "OPENAI"))
+            .andExpect(status().isCreated());
+
+        verify(chatService).generateTree(any(), eq(LlmProvider.OPENAI), eq(atLimit), any());
+    }
+
+    @Test
+    @DisplayName("multipart 요청에서 provider 를 생략하면 null 로 서비스에 넘어간다")
+    void multipartProviderOptional() throws Exception {
+        mockMvc.perform(multipart("/tree-request")
+                .param("message", "트리 만들어줘"))
+            .andExpect(status().isCreated());
+
+        verify(chatService).generateTree(any(), isNull(), eq("트리 만들어줘"), any());
+    }
+
+    @Test
+    @DisplayName("multipart 요청에 mock 이 있으면 서비스를 호출하지 않고 mock 트리를 반환한다")
+    void multipartMockRequest() throws Exception {
+        MockMultipartFile file =
+            new MockMultipartFile("file", "note.md", "text/markdown", "본문".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/tree-request")
+                .file(file)
+                .param("mock", "small"))
+            .andExpect(status().isCreated());
+
+        verify(mockResponseLoader).load("mocks/chat/tree-small.json");
         verify(chatService, never()).generateTree(any(), any(), any(), any());
     }
 }

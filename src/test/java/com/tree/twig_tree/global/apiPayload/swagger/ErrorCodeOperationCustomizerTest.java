@@ -62,17 +62,18 @@ class ErrorCodeOperationCustomizerTest {
     }
 
     @Test
-    @DisplayName("@Valid 파라미터가 없는 메서드도 명시적으로 추가한 mock 검증 에러코드가 노출된다")
-    void explicitDomainErrorCodeIsExposedWithoutValidParameter() throws NoSuchMethodException {
+    @DisplayName("multipart 파일 업로드 엔드포인트에 공통 400 과 명시한 mock 검증 에러코드가 함께 노출된다")
+    void fileUploadExposesCommonBadRequestAndExplicitMockErrorCode() throws NoSuchMethodException {
         Method method = ChatController.class.getMethod(
                 "generateTreeFromFile", Long.class,
-                org.springframework.web.multipart.MultipartFile.class, String.class,
-                com.tree.twig_tree.domain.chat.client.LlmProvider.class, String.class);
+                com.tree.twig_tree.domain.chat.dto.ChatFileReqDTO.class, String.class);
         Operation operation = customize(ChatController.class, null, method);
 
         ApiResponses responses = operation.getResponses();
 
-        // mock 시나리오 검증 실패(ChatErrorCode.INVALID_MOCK_SCENARIO)는 @Valid 파라미터로는 감지되지 않으므로
+        // @Valid @ModelAttribute 로 바인딩하므로 message 길이 위반 등은 JSON 경로와 같은 COMMON400-1 로 나간다.
+        assertThat(exampleKeys(responses, "400")).contains("COMMON400-1");
+        // mock 시나리오 검증 실패(ChatErrorCode.INVALID_MOCK_SCENARIO)는 @Valid 로 감지되지 않으므로
         // 컨트롤러에 명시적으로 붙인 CHAT400-12 가 노출되어야 한다.
         assertThat(exampleKeys(responses, "400")).contains("CHAT400-12");
     }

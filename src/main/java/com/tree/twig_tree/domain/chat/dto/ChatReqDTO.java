@@ -19,7 +19,7 @@ public record ChatReqDTO(
      * 지시문 길이 상한.
      *
      * <p>제한이 없으면 임의로 큰 프롬프트가 그대로 LLM 에 실려 토큰 비용과 응답 대기가 늘어난다.
-     * 파일 업로드 경로에는 붙일 DTO 가 없어 {@code ChatService} 가 같은 상수로 직접 검사한다.
+     * 파일 업로드 경로의 {@link ChatFileReqDTO} 도 같은 상수로 {@code @Size} 검증을 건다.
      */
     public static final int MESSAGE_MAX_LENGTH = 500;
 }
