@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -78,10 +78,12 @@ public class GeneralExceptionAdvice {
 
     }
 
-    // @Validation 검증 실패 예외 처리
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleMethodArgumentNotValidException(
-            MethodArgumentNotValidException e
+    // @Validation 검증 실패 예외 처리.
+    // MethodArgumentNotValidException 의 상위 타입인 BindException 으로 받아, 컨트롤러가 BindingResult 를
+    // 직접 받아 던지는 경우(mock 요청 분기 등)도 같은 응답 형식으로 처리한다.
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleBindException(
+            BindException e
     ) {
 
         // 검증 실패한 변수명과  실패 이유를 담을 Map

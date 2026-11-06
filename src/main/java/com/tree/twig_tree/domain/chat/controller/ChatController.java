@@ -1,6 +1,6 @@
 package com.tree.twig_tree.domain.chat.controller;
 
-import com.tree.twig_tree.domain.chat.client.LlmProvider;
+import com.tree.twig_tree.domain.chat.dto.ChatFileReqDTO;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
@@ -20,13 +20,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -71,15 +72,17 @@ public class ChatController {
     public ResponseEntity<ApiResponse<Object>> generateTree(
         @AuthenticationPrincipal Long memberId,
         @RequestBody(required = false) @Valid ChatReqDTO req,
+        BindingResult bindingResult,
         @Parameter(
             description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않고 mock 트리를 반환합니다.",
             schema = @Schema(allowableValues = {"empty", "small", "large", "max"})
         )
         @RequestParam(required = false) String mock
-    ) {
+    ) throws BindException {
         if (mock != null) {
             return mockResponse(mock);
         }
+        throwIfInvalid(bindingResult);
 
         TreeGenResDTO tree = chatService.generateTree(memberId, req);
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
@@ -99,7 +102,7 @@ public class ChatController {
               - 스캔한 이미지 PDF 는 글자를 추출할 수 없어 400 입니다 (OCR 미지원)
               - 암호가 걸린 문서도 400 입니다
             - `message`: (선택) 추가 지시문, 500자 이내. 예) "3단계 깊이로 정리해줘"
-            - `provider`: LLM 제공자 (OPENAI / OLLAMA)
+            - `provider`: (선택) LLM 제공자 (OPENAI / OLLAMA), 생략 시 OPENAI
 
             `file` 과 `message` 는 각각 선택이지만 **둘 다 비어 있으면 400** 입니다.
             업로드한 파일은 저장하지 않고 요청 처리 중에만 사용합니다.
@@ -110,32 +113,37 @@ public class ChatController {
             content = @Content(schema = @Schema(implementation = TreeGenResDTO.class))
     )
     @ApiErrorCodeExample(value = ChatErrorCode.class,
-            only = {"INPUT_REQUIRED", "MESSAGE_TOO_LONG", "UNSUPPORTED_FILE_TYPE", "FILE_TOO_LARGE",
+            only = {"INPUT_REQUIRED", "UNSUPPORTED_FILE_TYPE", "FILE_TOO_LARGE",
                     "FILE_TEXT_TOO_LONG", "FILE_EMPTY", "FILE_READ_FAILED", "FILE_PARSE_FAILED", "FILE_ENCRYPTED",
                     "UNSUPPORTED_PROVIDER", "LLM_CALL_FAILED", "LLM_TIMEOUT", "LLM_RESPONSE_INVALID",
                     "TREE_SAVE_FAILED", "INVALID_MOCK_SCENARIO"})
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Object>> generateTreeFromFile(
         @AuthenticationPrincipal Long memberId,
-
-        @Parameter(description = "(선택) txt, md, pdf, docx, hwp, hwpx 파일")
-        @RequestPart(value = "file", required = false) MultipartFile file,
-
-        @Parameter(description = "(선택) 추가 지시문. 500자 이내", example = "3단계 깊이로 정리해줘")
-        @RequestParam(required = false) String message,
-
-        @Parameter(description = "LLM 제공자", schema = @Schema(allowableValues = {"OPENAI", "OLLAMA"}))
-        @RequestParam(required = false) LlmProvider provider,
-
+        @Valid @ModelAttribute ChatFileReqDTO req,
+        BindingResult bindingResult,
         @Parameter(description = "(선택) mock 시나리오. 지정 시 LLM 을 호출하지 않습니다.")
         @RequestParam(required = false) String mock
-    ) {
+    ) throws BindException {
         if (mock != null) {
             return mockResponse(mock);
         }
+        throwIfInvalid(bindingResult);
 
-        TreeGenResDTO tree = chatService.generateTree(memberId, provider, message, file);
+        TreeGenResDTO tree = chatService.generateTree(memberId, req.provider(), req.message(), req.file());
         return ApiResponse.onSuccess(ChatSuccessCode.TREE_GENERATED, tree);
+    }
+
+    /**
+     * 입력 검증 실패를 mock 분기 뒤에서 던진다.
+     *
+     * <p>BindingResult 를 받으면 Spring 이 검증 실패로 바로 400 을 내지 않으므로,
+     * mock 요청은 입력과 무관하게 mock 트리를 받고 실제 요청만 검증 결과를 따른다.
+     */
+    private void throwIfInvalid(BindingResult bindingResult) throws BindException {
+        if (bindingResult.hasErrors()) {
+            throw new BindException(bindingResult);
+        }
     }
 
     private ResponseEntity<ApiResponse<Object>> mockResponse(String scenario) {
