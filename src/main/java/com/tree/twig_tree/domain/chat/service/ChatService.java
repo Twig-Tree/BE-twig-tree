@@ -2,6 +2,7 @@ package com.tree.twig_tree.domain.chat.service;
 
 import com.tree.twig_tree.domain.chat.client.LlmClient;
 import com.tree.twig_tree.domain.chat.client.LlmProvider;
+import com.tree.twig_tree.domain.chat.client.StructuredJsonResult;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * 트리 생성 오케스트레이션.
  *
- * <p>흐름: provider 선택 → LLM 호출(트랜잭션 밖, 타임아웃 적용) → JSON 파싱 → 구조 검증 → DB 저장.
+ * <p>흐름: provider 선택 → LLM 호출(트랜잭션 밖, 타임아웃 적용) → JSON 파싱 → 구조 검증(실패 시 1회 재생성) → DB 저장.
  * LLM 응답을 기다리는 동안 DB 커넥션을 점유하지 않도록, 저장만 {@link GeneratedTreeWriter} 의
  * 트랜잭션 안에서 수행한다.
  */
@@ -33,6 +34,9 @@ public class ChatService {
 
     /** LLM 응답 대기 상한. WebClient responseTimeout(60s)보다 약간 크게 잡아 안전망으로 둔다. */
     private static final Duration LLM_TIMEOUT = Duration.ofSeconds(65);
+
+    /** 유효하지 않은 응답을 받았을 때를 포함한 트리 생성 시도 횟수 상한. 평가 하네스도 같은 값을 쓴다. */
+    public static final int MAX_GENERATION_ATTEMPTS = 2;
 
     /** 요청에서 provider 를 생략했을 때 사용할 제공자. */
     static final LlmProvider DEFAULT_PROVIDER = LlmProvider.OPENAI;
@@ -93,11 +97,34 @@ public class ChatService {
     private TreeGenResDTO generate(Long memberId, LlmProvider provider, String userMessage) {
         LlmClient client = resolveClient(provider);
 
-        String json = callLlm(client, userMessage);
-        LlmTreeDTO parsed = parse(json);
-        treeValidator.validate(parsed);
+        return generatedTreeWriter.save(memberId, generateValidTree(client, userMessage));
+    }
 
-        return generatedTreeWriter.save(memberId, parsed);
+    /**
+     * 검증을 통과한 트리를 생성한다.
+     *
+     * <p>노드 수 초과 같은 응답 오류는 호출마다 달라지므로 같은 요청을 다시 보낸다. 호출 실패·타임아웃은
+     * 대기 시간이 두 배가 되므로, 모델의 거절은 다시 보내도 결과가 같으므로 재시도하지 않는다.
+     */
+    private LlmTreeDTO generateValidTree(LlmClient client, String userMessage) {
+        for (int attempt = 1; ; attempt++) {
+            long startedAt = System.nanoTime();
+            StructuredJsonResult result = callLlm(client, userMessage);
+            logResponse(client.getProvider(), result, Duration.ofNanos(System.nanoTime() - startedAt).toMillis());
+
+            try {
+                LlmTreeDTO parsed = parse(result == null ? null : result.content());
+                // 검증에서 거부되는 트리의 모양도 볼 수 있도록 검증 전에 기록한다.
+                logTreeMetrics(TreeMetrics.from(parsed));
+                treeValidator.validate(parsed);
+                return parsed;
+            } catch (ChatException e) {
+                if (attempt >= MAX_GENERATION_ATTEMPTS || result == null || result.isRefused()) {
+                    throw e;
+                }
+                log.warn("LLM 트리 응답이 유효하지 않아 다시 생성합니다 (attempt={}/{})", attempt, MAX_GENERATION_ATTEMPTS);
+            }
+        }
     }
 
     private LlmClient resolveClient(LlmProvider provider) {
@@ -108,7 +135,33 @@ public class ChatService {
             .orElseThrow(() -> new ChatException(ChatErrorCode.UNSUPPORTED_PROVIDER));
     }
 
-    private String callLlm(LlmClient client, String message) {
+    /** 품질 비교와 실패 원인 분류에 쓰는 응답 메타데이터를 남긴다. 사용자 입력과 응답 본문은 기록하지 않는다. */
+    private void logResponse(LlmProvider provider, StructuredJsonResult result, long latencyMs) {
+        if (result == null) {
+            log.warn("LLM 응답 없음 (provider={}, latencyMs={})", provider, latencyMs);
+            return;
+        }
+        log.info("LLM 트리 응답 (provider={}, model={}, finishReason={}, inputTokens={}, outputTokens={}, latencyMs={})",
+            provider, result.model(), result.finishReason(), result.inputTokens(), result.outputTokens(), latencyMs);
+
+        if (result.isTruncated()) {
+            log.warn("LLM 트리 응답이 토큰 상한에 걸려 잘렸습니다 (provider={}, model={}, outputTokens={})",
+                provider, result.model(), result.outputTokens());
+        }
+        if (result.isRefused()) {
+            log.warn("LLM 이 트리 생성을 거절했습니다 (provider={}, model={}): {}",
+                provider, result.model(), result.refusal());
+        }
+    }
+
+    private void logTreeMetrics(TreeMetrics metrics) {
+        log.info("LLM 트리 지표 (nodes={}, maxDepth={}, leaves={}, singleChild={}, shellCandidates={}, "
+                + "duplicateSiblings={}, memos={})",
+            metrics.nodeCount(), metrics.maxDepth(), metrics.leafCount(), metrics.singleChildCount(),
+            metrics.shellCandidateCount(), metrics.duplicateSiblingCount(), metrics.memoCount());
+    }
+
+    private StructuredJsonResult callLlm(LlmClient client, String message) {
         try {
             return client.generateTreeJson(message)
                 .timeout(LLM_TIMEOUT)

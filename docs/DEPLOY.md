@@ -86,7 +86,7 @@ OPENAI_API_KEY
 ```
 
 기본 경로는 `/twigtree/prod`입니다. 배포 스크립트는 값을 파일에 저장하지 않고 현재 프로세스의
-환경변수로만 Compose에 전달합니다. `OPENAI_MODEL`은 지정하지 않으면 `gpt-4o-mini`,
+환경변수로만 Compose에 전달합니다. `OPENAI_MODEL`은 지정하지 않으면 `gpt-6-luna`,
 `DEV_TEST_TOKEN_ENABLED`는 항상 `false`입니다.
 
 ### EC2 인스턴스 역할

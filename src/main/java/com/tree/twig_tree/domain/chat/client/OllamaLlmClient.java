@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.chat.client;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tree.twig_tree.domain.chat.prompt.TreePrompt;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,11 +31,11 @@ public class OllamaLlmClient implements LlmClient {
             "stream", false
         );
 
-        return callChat(body);
+        return callChat(body).map(res -> res.message().content());
     }
 
     @Override
-    public Mono<String> generateTreeJson(String message) {
+    public Mono<StructuredJsonResult> generateTreeJson(String message) {
         Map<String, Object> body = Map.of(
             "model", model,
             "messages", List.of(
@@ -46,7 +47,7 @@ public class OllamaLlmClient implements LlmClient {
             "stream", false
         );
 
-        return callChat(body);
+        return callChat(body).map(OllamaLlmClient::toResult);
     }
 
     @Override
@@ -60,13 +61,23 @@ public class OllamaLlmClient implements LlmClient {
         throw new UnsupportedOperationException("Ollama 는 strict JSON Schema 를 지원하지 않습니다.");
     }
 
-    private Mono<String> callChat(Map<String, Object> body) {
+    private Mono<OllamaResponse> callChat(Map<String, Object> body) {
         return ollamaWebClient.post()
             .uri("/api/chat")
             .bodyValue(body)
             .retrieve()
-            .bodyToMono(OllamaResponse.class)
-            .map(res -> res.message().content());
+            .bodyToMono(OllamaResponse.class);
+    }
+
+    private static StructuredJsonResult toResult(OllamaResponse res) {
+        return new StructuredJsonResult(
+            res.message().content(),
+            res.model(),
+            res.doneReason(),
+            null,
+            res.promptEvalCount() == null ? 0L : res.promptEvalCount(),
+            res.evalCount() == null ? 0L : res.evalCount()
+        );
     }
 
     @Override
@@ -74,7 +85,13 @@ public class OllamaLlmClient implements LlmClient {
         return LlmProvider.OLLAMA;
     }
 
-    private record OllamaResponse(OllamaMessage message) {
+    private record OllamaResponse(
+        String model,
+        OllamaMessage message,
+        @JsonProperty("done_reason") String doneReason,
+        @JsonProperty("prompt_eval_count") Long promptEvalCount,
+        @JsonProperty("eval_count") Long evalCount
+    ) {
         private record OllamaMessage(String content) {}
     }
 }
