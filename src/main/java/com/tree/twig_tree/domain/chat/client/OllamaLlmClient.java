@@ -49,6 +49,17 @@ public class OllamaLlmClient implements LlmClient {
         return callChat(body);
     }
 
+    @Override
+    public boolean supportsStrictJsonSchema() {
+        // Ollama 는 JSON Schema 를 강제하는 strict 모드가 없어 응답 모양을 보장할 수 없다.
+        return false;
+    }
+
+    @Override
+    public Mono<StructuredJsonResult> generateStructuredJson(StructuredJsonRequest request) {
+        throw new UnsupportedOperationException("Ollama 는 strict JSON Schema 를 지원하지 않습니다.");
+    }
+
     private Mono<String> callChat(Map<String, Object> body) {
         return ollamaWebClient.post()
             .uri("/api/chat")
