@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.chat.prompt;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,13 +53,21 @@ public final class TreePrompt {
             "type", "object",
             "additionalProperties", false,
             "required", List.of("name", "memo", "children"),
-            "properties", Map.of(
-                "name", Map.of("type", "string"),
-                "memo", Map.of("type", List.of("string", "null")),
-                "children", Map.of("type", "array", "items", Map.of("$ref", "#/$defs/node"))
-            )
+            "properties", nodeProperties()
         ))
     );
+
+    /**
+     * OpenAI strict 모드는 스키마의 키 순서대로 출력을 생성한다. {@code Map.of} 는 순회 순서가 JVM 마다
+     * 달라, 노드 이름보다 하위 트리를 먼저 생성하는 일이 없도록 순서를 고정한다.
+     */
+    private static Map<String, Object> nodeProperties() {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("name", Map.of("type", "string"));
+        properties.put("memo", Map.of("type", List.of("string", "null")));
+        properties.put("children", Map.of("type", "array", "items", Map.of("$ref", "#/$defs/node")));
+        return properties;
+    }
 
     public static final String SYSTEM = """
         너는 학습 주제를 계층형 트리(마인드맵)로 분해하는 도우미다.
