@@ -35,6 +35,9 @@ public class ChatService {
     /** LLM 응답 대기 상한. WebClient responseTimeout(60s)보다 약간 크게 잡아 안전망으로 둔다. */
     private static final Duration LLM_TIMEOUT = Duration.ofSeconds(65);
 
+    /** 재생성까지 포함한 LLM 응답 대기 총량. 요청 스레드가 시도마다 상한만큼 묶이지 않게 한다. */
+    private static final Duration GENERATION_BUDGET = Duration.ofSeconds(90);
+
     /** 유효하지 않은 응답을 받았을 때를 포함한 트리 생성 시도 횟수 상한. 평가 하네스도 같은 값을 쓴다. */
     public static final int MAX_GENERATION_ATTEMPTS = 2;
 
@@ -107,9 +110,12 @@ public class ChatService {
      * 대기 시간이 두 배가 되므로, 모델의 거절은 다시 보내도 결과가 같으므로 재시도하지 않는다.
      */
     private LlmTreeDTO generateValidTree(LlmClient client, String userMessage) {
+        long generationStartedAt = System.nanoTime();
+
         for (int attempt = 1; ; attempt++) {
             long startedAt = System.nanoTime();
-            StructuredJsonResult result = callLlm(client, userMessage);
+            Duration timeout = attemptTimeout(Duration.ofNanos(startedAt - generationStartedAt));
+            StructuredJsonResult result = callLlm(client, userMessage, timeout);
             logResponse(client.getProvider(), result, Duration.ofNanos(System.nanoTime() - startedAt).toMillis());
 
             try {
@@ -133,6 +139,12 @@ public class ChatService {
             .filter(c -> c.getProvider() == target)
             .findFirst()
             .orElseThrow(() -> new ChatException(ChatErrorCode.UNSUPPORTED_PROVIDER));
+    }
+
+    /** 이번 시도의 응답 대기 상한. 시도별 상한과 전체 예산의 남은 시간 중 짧은 쪽이다. 평가 하네스도 같은 값을 쓴다. */
+    public static Duration attemptTimeout(Duration elapsed) {
+        Duration remaining = GENERATION_BUDGET.minus(elapsed);
+        return remaining.compareTo(LLM_TIMEOUT) < 0 ? remaining : LLM_TIMEOUT;
     }
 
     /** 품질 비교와 실패 원인 분류에 쓰는 응답 메타데이터를 남긴다. 사용자 입력과 응답 본문은 기록하지 않는다. */
@@ -161,10 +173,10 @@ public class ChatService {
             metrics.shellCandidateCount(), metrics.duplicateSiblingCount(), metrics.memoCount());
     }
 
-    private StructuredJsonResult callLlm(LlmClient client, String message) {
+    private StructuredJsonResult callLlm(LlmClient client, String message, Duration timeout) {
         try {
             return client.generateTreeJson(message)
-                .timeout(LLM_TIMEOUT)
+                .timeout(timeout)
                 .block();
         } catch (ChatException e) {
             throw e;

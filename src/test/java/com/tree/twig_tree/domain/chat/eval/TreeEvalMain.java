@@ -128,7 +128,8 @@ public final class TreeEvalMain {
             }
             return runs;
         } finally {
-            pool.shutdown();
+            // 예외로 빠져나올 때 남은 케이스가 API 를 계속 호출하지 않게 대기 작업까지 취소한다.
+            pool.shutdownNow();
         }
     }
 

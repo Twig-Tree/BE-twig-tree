@@ -18,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -264,6 +265,14 @@ class ChatServiceTest {
 
         verify(openAiClient, times(1)).generateTreeJson("거절");
         verify(openAiClient, times(1)).generateTreeJson("실패");
+    }
+
+    @Test
+    @DisplayName("재생성의 대기 상한은 전체 예산에서 이미 쓴 시간을 뺀 값이다")
+    void retryTimeoutUsesRemainingBudget() {
+        assertThat(ChatService.attemptTimeout(Duration.ZERO)).isEqualTo(Duration.ofSeconds(65));
+        assertThat(ChatService.attemptTimeout(Duration.ofSeconds(20))).isEqualTo(Duration.ofSeconds(65));
+        assertThat(ChatService.attemptTimeout(Duration.ofSeconds(50))).isEqualTo(Duration.ofSeconds(40));
     }
 
     private static Mono<StructuredJsonResult> result(String content) {

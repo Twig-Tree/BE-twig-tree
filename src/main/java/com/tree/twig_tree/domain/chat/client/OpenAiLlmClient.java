@@ -103,13 +103,15 @@ public class OpenAiLlmClient implements LlmClient {
 
     private static StructuredJsonResult toStructuredResult(OpenAiResponse response) {
         OpenAiResponse.Choice choice = firstChoice(response);
+        OpenAiResponse.Message message = choice.message();
         OpenAiResponse.Usage usage = response.usage();
 
+        // LLM 응답은 신뢰할 수 없는 입력이다. message 가 없으면 본문 없는 응답으로 넘겨 호출부에서 걸러지게 한다.
         return new StructuredJsonResult(
-            choice.message().content(),
+            message == null ? null : message.content(),
             response.model(),
             choice.finishReason(),
-            choice.message().refusal(),
+            message == null ? null : message.refusal(),
             usage == null || usage.promptTokens() == null ? 0L : usage.promptTokens(),
             usage == null || usage.completionTokens() == null ? 0L : usage.completionTokens()
         );

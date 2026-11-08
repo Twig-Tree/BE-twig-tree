@@ -31,7 +31,7 @@ public class OllamaLlmClient implements LlmClient {
             "stream", false
         );
 
-        return callChat(body).map(res -> res.message().content());
+        return callChat(body).mapNotNull(OllamaLlmClient::contentOf);
     }
 
     @Override
@@ -69,9 +69,14 @@ public class OllamaLlmClient implements LlmClient {
             .bodyToMono(OllamaResponse.class);
     }
 
+    /** LLM 응답은 신뢰할 수 없는 입력이다. message 가 없으면 본문 없는 응답으로 다룬다. */
+    private static String contentOf(OllamaResponse res) {
+        return res.message() == null ? null : res.message().content();
+    }
+
     private static StructuredJsonResult toResult(OllamaResponse res) {
         return new StructuredJsonResult(
-            res.message().content(),
+            contentOf(res),
             res.model(),
             res.doneReason(),
             null,

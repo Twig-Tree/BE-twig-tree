@@ -24,9 +24,6 @@ import java.util.concurrent.TimeoutException;
  */
 final class TreeEvalRunner {
 
-    /** ChatService 의 LLM 응답 대기 상한과 맞춘다. */
-    private static final Duration TIMEOUT = Duration.ofSeconds(65);
-
     private final LlmClient client;
     private final ObjectMapper mapper;
     private final TreeValidator validator;
@@ -51,7 +48,8 @@ final class TreeEvalRunner {
         for (int attempt = 1; ; attempt++) {
             StructuredJsonResult result;
             try {
-                result = client.generateTreeJson(prompt).timeout(TIMEOUT).block();
+                Duration timeout = ChatService.attemptTimeout(Duration.ofNanos(System.nanoTime() - startedAt));
+                result = client.generateTreeJson(prompt).timeout(timeout).block();
             } catch (RuntimeException e) {
                 Outcome outcome = isTimeout(e) ? Outcome.TIMEOUT : Outcome.CALL_FAILED;
                 return failure(evalCase, repeat, attempt, outcome, inputTokens, outputTokens,
