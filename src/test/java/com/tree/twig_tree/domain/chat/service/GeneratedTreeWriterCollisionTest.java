@@ -47,9 +47,7 @@ class GeneratedTreeWriterCollisionTest {
         when(workspaceRepository.save(any(Workspace.class)))
             .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint \"uk_workspace_root_name\""));
 
-        LlmTreeDTO tree = new LlmTreeDTO(List.of(
-            new LlmNode(1L, "루트", null, null, 1L)
-        ));
+        LlmTreeDTO tree = new LlmTreeDTO(new LlmNode("루트", null, List.of()));
 
         assertThatThrownBy(() -> writer.save(1L, tree))
             .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(ChatException.class))

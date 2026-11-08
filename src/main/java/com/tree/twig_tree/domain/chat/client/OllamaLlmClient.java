@@ -41,8 +41,8 @@ public class OllamaLlmClient implements LlmClient {
                 Map.of("role", "system", "content", TreePrompt.SYSTEM),
                 Map.of("role", "user", "content", message)
             ),
-            // Ollama 는 format: "json" 으로 JSON 응답을 강제한다.
-            "format", "json",
+            // format 에 스키마를 넘겨 응답 구조를 유도한다. OpenAI strict 와 같은 보장은 아니어서 서버 검증이 필요하다.
+            "format", TreePrompt.RESPONSE_SCHEMA,
             "stream", false
         );
 
