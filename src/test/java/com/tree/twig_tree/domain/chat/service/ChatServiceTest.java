@@ -74,6 +74,17 @@ class ChatServiceTest {
     }
 
     @Test
+    @DisplayName("provider 를 생략하면 기본 provider(OPENAI)로 호출한다")
+    void nullProviderFallsBackToDefault() {
+        stubTreeJson();
+
+        TreeGenResDTO result = chatService.generateTree(MEMBER_ID, null, "트리 만들어줘", file("note.md", "본문"));
+
+        assertThat(result.treeId()).isEqualTo(42L);
+        verify(openAiClient).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     @DisplayName("LLM 응답이 JSON 이 아니면 LLM_RESPONSE_INVALID")
     void invalidJson() {
         when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(Mono.just("이건 JSON 이 아님"));
@@ -86,7 +97,7 @@ class ChatServiceTest {
     @DisplayName("검증 실패 예외는 그대로 전파된다")
     void validationFailurePropagates() {
         when(openAiClient.generateTreeJson("트리 만들어줘"))
-            .thenReturn(Mono.just("{\"nodes\":[]}"));
+            .thenReturn(Mono.just("{\"root\":null}"));
         doThrow(new ChatException(ChatErrorCode.LLM_RESPONSE_INVALID))
             .when(treeValidator).validate(org.mockito.ArgumentMatchers.any());
 
@@ -98,9 +109,7 @@ class ChatServiceTest {
     @DisplayName("정상 응답이면 파싱→검증→저장 후 결과를 반환한다")
     void happyPath() {
         String json = """
-            {"nodes":[
-              {"tempId":1,"name":"루트","memo":null,"parentTempId":null,"orderId":1}
-            ]}
+            {"root":{"name":"루트","memo":null,"children":[]}}
             """;
         when(openAiClient.generateTreeJson("자료구조 트리 만들어줘")).thenReturn(Mono.just(json));
 
@@ -145,28 +154,6 @@ class ChatServiceTest {
     }
 
     @Test
-    @DisplayName("파일 업로드 경로의 지시문이 상한(500자)을 넘으면 MESSAGE_TOO_LONG")
-    void fileMessageTooLong() {
-        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
-
-        assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, tooLong, file("note.md", "본문")),
-            ChatErrorCode.MESSAGE_TOO_LONG);
-
-        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
-    }
-
-    @Test
-    @DisplayName("파일 업로드 경로의 지시문이 상한(500자)과 같으면 통과한다")
-    void fileMessageAtLimit() {
-        stubTreeJson();
-
-        TreeGenResDTO result = chatService.generateTree(
-            MEMBER_ID, LlmProvider.OPENAI, "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH), file("note.md", "본문"));
-
-        assertThat(result.treeId()).isEqualTo(42L);
-    }
-
-    @Test
     @DisplayName("지원하지 않는 확장자면 UNSUPPORTED_FILE_TYPE")
     void unsupportedExtension() {
         assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, null, file("report.pdf", "내용")),
@@ -182,9 +169,41 @@ class ChatServiceTest {
         verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
     }
 
+    @Test
+    @DisplayName("JSON 경로 메시지가 상한을 넘으면 LLM 호출 없이 MESSAGE_TOO_LONG")
+    void jsonMessageTooLong() {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        assertError(() -> chatService.generateTree(MEMBER_ID, req(tooLong, LlmProvider.OPENAI)),
+            ChatErrorCode.MESSAGE_TOO_LONG);
+        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("파일 경로 지시문이 상한을 넘으면 파일 추출·LLM 호출 없이 MESSAGE_TOO_LONG")
+    void fileMessageTooLong() {
+        String tooLong = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH + 1);
+
+        // 확장자가 잘못된 파일을 넣어, 파일 추출보다 길이 검사가 먼저인지도 함께 확인한다
+        assertError(() -> chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, tooLong, file("a.exe", "내용")),
+            ChatErrorCode.MESSAGE_TOO_LONG);
+        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("지시문이 상한과 같으면 통과한다")
+    void messageAtLimit() {
+        stubTreeJson();
+        String atLimit = "가".repeat(ChatReqDTO.MESSAGE_MAX_LENGTH);
+
+        chatService.generateTree(MEMBER_ID, LlmProvider.OPENAI, atLimit, null);
+
+        assertThat(capturedPrompt()).contains(atLimit);
+    }
+
     private void stubTreeJson() {
         String json = """
-            {"nodes":[{"tempId":1,"name":"루트","memo":null,"parentTempId":null,"orderId":1}]}
+            {"root":{"name":"루트","memo":null,"children":[]}}
             """;
         when(openAiClient.generateTreeJson(org.mockito.ArgumentMatchers.anyString()))
             .thenReturn(Mono.just(json));

@@ -1,0 +1,710 @@
+{
+  "type": "object",
+  "properties": {
+    "scenarioSchemaVersion": {
+      "type": "number",
+      "enum": [
+        1
+      ]
+    },
+    "recipeRegistryVersion": {
+      "type": "number",
+      "enum": [
+        1
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "scenes": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Scene"
+      }
+    }
+  },
+  "required": [
+    "scenarioSchemaVersion",
+    "recipeRegistryVersion",
+    "title",
+    "scenes"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Scene": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "nodeId": {
+          "$ref": "#/$defs/NodeId"
+        },
+        "beats": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Beat"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "nodeId",
+        "beats"
+      ],
+      "additionalProperties": false
+    },
+    "NodeId": {
+      "type": "string",
+      "pattern": "^[1-9]\\d*$"
+    },
+    "Beat": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "narration": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        "cues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Cue"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "narration",
+        "cues"
+      ],
+      "additionalProperties": false
+    },
+    "Cue": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "introduce"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "$ref": "#/$defs/NodeId"
+                },
+                "context": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NodeIdList"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "subject",
+                "context"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "emphasize"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "$ref": "#/$defs/NodeIdList"
+                }
+              },
+              "required": [
+                "subject"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "compare"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "left": {
+                  "$ref": "#/$defs/NodeIdList"
+                },
+                "right": {
+                  "$ref": "#/$defs/NodeIdList"
+                }
+              },
+              "required": [
+                "left",
+                "right"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "decompose"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "parent": {
+                  "$ref": "#/$defs/NodeId"
+                },
+                "children": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NodeIdList"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "parent",
+                "children"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "trace"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "$ref": "#/$defs/NodeId"
+                },
+                "destination": {
+                  "$ref": "#/$defs/NodeId"
+                }
+              },
+              "required": [
+                "source",
+                "destination"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "reveal"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "$ref": "#/$defs/NodeIdList"
+                }
+              },
+              "required": [
+                "subject"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "warn"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "$ref": "#/$defs/NodeIdList"
+                }
+              },
+              "required": [
+                "subject"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "correct"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "correctAnswer": {
+                  "$ref": "#/$defs/NodeIdList"
+                },
+                "incorrectAnswer": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NodeIdList"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "correctAnswer",
+                "incorrectAnswer"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "incorrect"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "incorrectAnswer": {
+                  "$ref": "#/$defs/NodeIdList"
+                },
+                "correctAnswer": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NodeIdList"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "incorrectAnswer",
+                "correctAnswer"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "transition"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "destination": {
+                  "$ref": "#/$defs/NodeId"
+                },
+                "source": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NodeId"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "destination",
+                "source"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "recap"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "$ref": "#/$defs/NodeIdList"
+                }
+              },
+              "required": [
+                "subject"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "intent": {
+              "type": "string",
+              "enum": [
+                "summarize"
+              ]
+            },
+            "roles": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "$ref": "#/$defs/NodeId"
+                },
+                "context": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/NodeIdList"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "subject",
+                "context"
+              ],
+              "additionalProperties": false
+            },
+            "delivery": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Delivery"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "intent",
+            "roles",
+            "delivery"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "NodeIdList": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/NodeId"
+      }
+    },
+    "Delivery": {
+      "type": "object",
+      "properties": {
+        "pace": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "slow",
+            "normal",
+            "quick",
+            null
+          ]
+        },
+        "intensity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "subtle",
+            "medium",
+            "strong",
+            null
+          ]
+        },
+        "tone": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "neutral",
+            "accent",
+            "positive",
+            "warning",
+            "danger",
+            null
+          ]
+        },
+        "continuity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "transient",
+            "persist",
+            null
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "pace",
+        "intensity",
+        "tone",
+        "continuity"
+      ]
+    }
+  }
+}

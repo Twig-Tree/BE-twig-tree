@@ -8,6 +8,7 @@ public class MemoConverter {
         return MemoResDTO.GetMemo.builder()
                 .title(node.getName())
                 .content(node.getMemo())
+                .version(node.getVersion())
                 .build();
     }
 }

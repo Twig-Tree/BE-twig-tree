@@ -41,12 +41,23 @@ public class OllamaLlmClient implements LlmClient {
                 Map.of("role", "system", "content", TreePrompt.SYSTEM),
                 Map.of("role", "user", "content", message)
             ),
-            // Ollama 는 format: "json" 으로 JSON 응답을 강제한다.
-            "format", "json",
+            // format 에 스키마를 넘겨 응답 구조를 유도한다. OpenAI strict 와 같은 보장은 아니어서 서버 검증이 필요하다.
+            "format", TreePrompt.RESPONSE_SCHEMA,
             "stream", false
         );
 
         return callChat(body);
+    }
+
+    @Override
+    public boolean supportsStrictJsonSchema() {
+        // Ollama 는 JSON Schema 를 강제하는 strict 모드가 없어 응답 모양을 보장할 수 없다.
+        return false;
+    }
+
+    @Override
+    public Mono<StructuredJsonResult> generateStructuredJson(StructuredJsonRequest request) {
+        throw new UnsupportedOperationException("Ollama 는 strict JSON Schema 를 지원하지 않습니다.");
     }
 
     private Mono<String> callChat(Map<String, Object> body) {
