@@ -22,9 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -39,7 +37,6 @@ import java.util.UUID;
 public class GeneratedTreeWriter {
 
     private static final int WORKSPACE_NAME_MAX_LENGTH = 30;
-    private static final String DEFAULT_WORKSPACE_BASE_NAME = "제목 없음";
 
     private final TreeRepository treeRepository;
     private final NodeRepository nodeRepository;
@@ -65,50 +62,34 @@ public class GeneratedTreeWriter {
         Workspace workspace = createWorkspace(memberId, llmTree);
         Tree tree = treeRepository.save(Tree.builder().workspace(workspace).build());
 
-        List<LlmNode> nodes = llmTree.nodes();
+        // 응답도 저장 순서(BFS)를 따르므로 부모가 항상 자식보다 먼저 나온다.
+        List<TreeGenResDTO.Node> resNodes = new ArrayList<>();
+        Deque<PendingNode> queue = new ArrayDeque<>();
+        queue.add(new PendingNode(llmTree.root(), null, 1L));
 
-        // parentTempId -> 자식 노드들 (부모가 없으면 루트)
-        Map<Long, List<LlmNode>> childrenOf = new HashMap<>();
-        List<LlmNode> roots = new ArrayList<>();
-        for (LlmNode node : nodes) {
-            if (node.parentTempId() == null) {
-                roots.add(node);
-            } else {
-                childrenOf.computeIfAbsent(node.parentTempId(), k -> new ArrayList<>()).add(node);
-            }
-        }
-
-        // 루트부터 BFS 로 저장하며 tempId -> 저장된 Node 를 매핑
-        Map<Long, Node> savedByTempId = new HashMap<>();
-        Deque<LlmNode> queue = new ArrayDeque<>(roots);
         while (!queue.isEmpty()) {
-            LlmNode dto = queue.poll();
-            Node parent = dto.parentTempId() == null ? null : savedByTempId.get(dto.parentTempId());
+            PendingNode pending = queue.poll();
 
             Node saved = nodeRepository.save(Node.builder()
-                .name(dto.name())
-                .memo(dto.memo())
-                .orderId(dto.orderId())
-                .parent(parent)
+                .name(pending.dto().name())
+                .memo(pending.dto().memo())
+                .orderId(pending.orderId())
+                .parent(pending.parent())
                 .tree(tree)
                 .build());
 
-            savedByTempId.put(dto.tempId(), saved);
-            queue.addAll(childrenOf.getOrDefault(dto.tempId(), List.of()));
-        }
-
-        // 응답은 입력 노드 순서를 유지한다.
-        List<TreeGenResDTO.Node> resNodes = new ArrayList<>();
-        for (LlmNode dto : nodes) {
-            Node saved = savedByTempId.get(dto.tempId());
-            Long parentId = saved.getParent() == null ? null : saved.getParent().getId();
             resNodes.add(TreeGenResDTO.Node.builder()
                 .nodeId(saved.getId())
                 .name(saved.getName())
                 .memo(saved.getMemo())
-                .parentId(parentId)
+                .parentId(pending.parent() == null ? null : pending.parent().getId())
                 .orderId(saved.getOrderId())
                 .build());
+
+            List<LlmNode> children = pending.dto().children();
+            for (int i = 0; i < children.size(); i++) {
+                queue.add(new PendingNode(children.get(i), saved, i + 1L));
+            }
         }
 
         return TreeGenResDTO.builder()
@@ -138,15 +119,15 @@ public class GeneratedTreeWriter {
     }
 
     private String buildWorkspaceName(LlmTreeDTO llmTree, Long workspaceId) {
-        String rootName = llmTree.nodes().stream()
-            .filter(node -> node.parentTempId() == null)
-            .map(LlmNode::name)
-            .findFirst()
-            .orElse(DEFAULT_WORKSPACE_BASE_NAME);
+        String rootName = llmTree.root().name();
 
         String suffix = " #" + workspaceId;
         int maxBaseLength = WORKSPACE_NAME_MAX_LENGTH - suffix.length();
         String base = rootName.length() > maxBaseLength ? rootName.substring(0, maxBaseLength) : rootName;
         return base + suffix;
+    }
+
+    /** 저장을 기다리는 노드. 부모는 이미 저장된 엔티티이고, 순서는 형제 배열의 위치(1부터)다. */
+    private record PendingNode(LlmNode dto, Node parent, long orderId) {
     }
 }

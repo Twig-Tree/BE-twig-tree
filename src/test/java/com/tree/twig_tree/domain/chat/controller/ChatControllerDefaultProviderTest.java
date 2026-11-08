@@ -45,9 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ChatControllerDefaultProviderTest {
 
     private static final String TREE_JSON = """
-        {"nodes":[
-          {"tempId":1,"name":"루트","memo":null,"parentTempId":null,"orderId":1}
-        ]}
+        {"root":{"name":"루트","memo":null,"children":[]}}
         """;
 
     private LlmClient openAiClient;
