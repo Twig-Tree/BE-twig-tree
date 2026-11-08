@@ -9,9 +9,11 @@ public interface LlmClient {
 
     /**
      * 트리 생성 전용 호출. system 프롬프트와 응답 스키마를 적용해
-     * {@link com.tree.twig_tree.domain.chat.prompt.TreePrompt#RESPONSE_SCHEMA} 형태의 JSON 문자열을 반환한다.
+     * {@link com.tree.twig_tree.domain.chat.prompt.TreePrompt#RESPONSE_SCHEMA} 형태의 JSON 을 본문으로 돌려준다.
+     *
+     * <p>잘림·거절과 토큰 사용량을 호출부에서 구분할 수 있도록 본문만이 아니라 응답 메타데이터를 함께 담는다.
      */
-    Mono<String> generateTreeJson(String message);
+    Mono<StructuredJsonResult> generateTreeJson(String message);
 
     /**
      * JSON Schema 를 강제하는 strict 모드를 지원하는지.
