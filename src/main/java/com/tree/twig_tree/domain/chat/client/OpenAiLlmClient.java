@@ -37,7 +37,7 @@ public class OpenAiLlmClient implements LlmClient {
     }
 
     @Override
-    public Mono<String> generateTreeJson(String message) {
+    public Mono<StructuredJsonResult> generateTreeJson(String message) {
         Map<String, Object> body = Map.of(
             "model", model,
             "messages", List.of(
@@ -53,12 +53,12 @@ public class OpenAiLlmClient implements LlmClient {
                     "schema", TreePrompt.RESPONSE_SCHEMA
                 )
             ),
-            "max_completion_tokens", treeMaxTokens,
-            "temperature", 0.4
+            // reasoning effort 가 none 이 아닌 GPT-6 계열에는 temperature 를 보내지 않는다.
+            "max_completion_tokens", treeMaxTokens
         );
 
-        // 모델이 거절하면 content 가 null 이다. 빈 응답으로 넘겨 호출부의 응답 검증에서 걸러지게 한다.
-        return callChatCompletions(body).mapNotNull(OpenAiLlmClient::firstContent);
+        // 모델이 거절하면 content 가 null 이다. 호출부의 응답 검증에서 걸러진다.
+        return callChatCompletions(body).map(OpenAiLlmClient::toStructuredResult);
     }
 
     @Override
@@ -103,13 +103,15 @@ public class OpenAiLlmClient implements LlmClient {
 
     private static StructuredJsonResult toStructuredResult(OpenAiResponse response) {
         OpenAiResponse.Choice choice = firstChoice(response);
+        OpenAiResponse.Message message = choice.message();
         OpenAiResponse.Usage usage = response.usage();
 
+        // LLM 응답은 신뢰할 수 없는 입력이다. message 가 없으면 본문 없는 응답으로 넘겨 호출부에서 걸러지게 한다.
         return new StructuredJsonResult(
-            choice.message().content(),
+            message == null ? null : message.content(),
             response.model(),
             choice.finishReason(),
-            choice.message().refusal(),
+            message == null ? null : message.refusal(),
             usage == null || usage.promptTokens() == null ? 0L : usage.promptTokens(),
             usage == null || usage.completionTokens() == null ? 0L : usage.completionTokens()
         );

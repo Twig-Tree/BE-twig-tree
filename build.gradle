@@ -158,3 +158,13 @@ tasks.named('bootRun') {
 		}
 	}
 }
+
+// 트리 생성 품질 평가. 실제 LLM API 를 호출해 비용이 발생하므로 test 와 분리한다. 사용법: TreeEvalMain 참고
+tasks.register('treeEval', JavaExec) {
+	group = 'verification'
+	description = '트리 생성 평가 세트를 실제 LLM API 로 실행한다.'
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.tree.twig_tree.domain.chat.eval.TreeEvalMain'
+	javaLauncher = javaToolchains.launcherFor(java.toolchain)
+	environment dotenvToInject
+}
