@@ -19,6 +19,9 @@ public class OpenAiLlmClient implements LlmClient {
     @Value("${openai.model}")
     private String model;
 
+    @Value("${openai.tree-max-tokens}")
+    private int treeMaxTokens;
+
     public OpenAiLlmClient(@Qualifier("openAiWebClient") WebClient openAiWebClient) {
         this.openAiWebClient = openAiWebClient;
     }
@@ -41,12 +44,21 @@ public class OpenAiLlmClient implements LlmClient {
                 Map.of("role", "system", "content", TreePrompt.SYSTEM),
                 Map.of("role", "user", "content", message)
             ),
-            // JSON 이외의 텍스트가 섞이지 않도록 강제해 파싱 실패를 줄인다.
-            "response_format", Map.of("type", "json_object"),
+            // strict 모드는 응답 구조가 스키마를 벗어나지 않게 모델 쪽에서 강제한다.
+            "response_format", Map.of(
+                "type", "json_schema",
+                "json_schema", Map.of(
+                    "name", TreePrompt.RESPONSE_SCHEMA_NAME,
+                    "strict", true,
+                    "schema", TreePrompt.RESPONSE_SCHEMA
+                )
+            ),
+            "max_completion_tokens", treeMaxTokens,
             "temperature", 0.4
         );
 
-        return callChatCompletions(body).map(OpenAiLlmClient::firstContent);
+        // 모델이 거절하면 content 가 null 이다. 빈 응답으로 넘겨 호출부의 응답 검증에서 걸러지게 한다.
+        return callChatCompletions(body).mapNotNull(OpenAiLlmClient::firstContent);
     }
 
     @Override

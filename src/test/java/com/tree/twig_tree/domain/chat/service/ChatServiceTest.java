@@ -97,7 +97,7 @@ class ChatServiceTest {
     @DisplayName("검증 실패 예외는 그대로 전파된다")
     void validationFailurePropagates() {
         when(openAiClient.generateTreeJson("트리 만들어줘"))
-            .thenReturn(Mono.just("{\"nodes\":[]}"));
+            .thenReturn(Mono.just("{\"root\":null}"));
         doThrow(new ChatException(ChatErrorCode.LLM_RESPONSE_INVALID))
             .when(treeValidator).validate(org.mockito.ArgumentMatchers.any());
 
@@ -109,9 +109,7 @@ class ChatServiceTest {
     @DisplayName("정상 응답이면 파싱→검증→저장 후 결과를 반환한다")
     void happyPath() {
         String json = """
-            {"nodes":[
-              {"tempId":1,"name":"루트","memo":null,"parentTempId":null,"orderId":1}
-            ]}
+            {"root":{"name":"루트","memo":null,"children":[]}}
             """;
         when(openAiClient.generateTreeJson("자료구조 트리 만들어줘")).thenReturn(Mono.just(json));
 
@@ -205,7 +203,7 @@ class ChatServiceTest {
 
     private void stubTreeJson() {
         String json = """
-            {"nodes":[{"tempId":1,"name":"루트","memo":null,"parentTempId":null,"orderId":1}]}
+            {"root":{"name":"루트","memo":null,"children":[]}}
             """;
         when(openAiClient.generateTreeJson(org.mockito.ArgumentMatchers.anyString()))
             .thenReturn(Mono.just(json));

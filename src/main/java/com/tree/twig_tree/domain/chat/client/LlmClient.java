@@ -8,8 +8,8 @@ public interface LlmClient {
     Mono<String> chat(String message);
 
     /**
-     * 트리 생성 전용 호출. system 프롬프트와 JSON 응답 강제를 적용해
-     * {@link com.tree.twig_tree.domain.chat.prompt.TreePrompt} 스키마의 JSON 문자열을 반환한다.
+     * 트리 생성 전용 호출. system 프롬프트와 응답 스키마를 적용해
+     * {@link com.tree.twig_tree.domain.chat.prompt.TreePrompt#RESPONSE_SCHEMA} 형태의 JSON 문자열을 반환한다.
      */
     Mono<String> generateTreeJson(String message);
 
