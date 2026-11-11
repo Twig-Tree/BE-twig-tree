@@ -2,6 +2,7 @@ package com.tree.twig_tree.domain.chat.controller;
 
 import com.tree.twig_tree.domain.chat.client.LlmClient;
 import com.tree.twig_tree.domain.chat.client.LlmProvider;
+import com.tree.twig_tree.domain.chat.client.StructuredJsonResult;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.parser.PlainTextParser;
 import com.tree.twig_tree.domain.chat.service.ChatService;
@@ -45,10 +46,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ChatControllerDefaultProviderTest {
 
     private static final String TREE_JSON = """
-        {"nodes":[
-          {"tempId":1,"name":"루트","memo":null,"parentTempId":null,"orderId":1}
-        ]}
+        {"root":{"name":"루트","memo":null,"children":[]}}
         """;
+    private static final StructuredJsonResult TREE_RESULT =
+        new StructuredJsonResult(TREE_JSON, "gpt-test", "stop", null, 10, 20);
 
     private LlmClient openAiClient;
     private LlmClient ollamaClient;
@@ -60,8 +61,8 @@ class ChatControllerDefaultProviderTest {
         ollamaClient = mock(LlmClient.class);
         lenient().when(openAiClient.getProvider()).thenReturn(LlmProvider.OPENAI);
         lenient().when(ollamaClient.getProvider()).thenReturn(LlmProvider.OLLAMA);
-        lenient().when(openAiClient.generateTreeJson(anyString())).thenReturn(Mono.just(TREE_JSON));
-        lenient().when(ollamaClient.generateTreeJson(anyString())).thenReturn(Mono.just(TREE_JSON));
+        lenient().when(openAiClient.generateTreeJson(anyString())).thenReturn(Mono.just(TREE_RESULT));
+        lenient().when(ollamaClient.generateTreeJson(anyString())).thenReturn(Mono.just(TREE_RESULT));
 
         GeneratedTreeWriter writer = mock(GeneratedTreeWriter.class);
         when(writer.save(any(), any()))

@@ -52,7 +52,13 @@ google:
 openai:
   api-key: ${OPENAI_API_KEY:dummy}
   base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
-  model: ${OPENAI_MODEL:gpt-4o-mini}
+  model: ${OPENAI_MODEL:gpt-6-luna}
+  # 트리 생성 응답 토큰 상한. 잘린 응답은 JSON 파싱에서 실패해 LLM_RESPONSE_INVALID 로 처리된다.
+  tree-max-tokens: ${OPENAI_TREE_MAX_TOKENS:16000}
+  # 강의 시나리오 생성은 트리 생성과 따로 모델을 바꿔 가며 평가하므로 설정을 분리한다.
+  lecture-model: ${OPENAI_LECTURE_MODEL:gpt-4o-mini}
+  # 시나리오 JSON 은 scene/beat/cue 로 중첩되어 응답이 길다. 상한이 없으면 비용과 대기 시간이 함께 늘어난다.
+  lecture-max-tokens: ${OPENAI_LECTURE_MAX_TOKENS:8000}
 
 # Ollama (Local LLM, mock 모드에서는 실제 호출되지 않음)
 ollama:

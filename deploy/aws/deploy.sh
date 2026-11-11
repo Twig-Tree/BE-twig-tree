@@ -64,7 +64,7 @@ DB_PASSWORD=$(get_parameter DB_PASSWORD)
 JWT_SECRET=$(get_parameter JWT_SECRET)
 GOOGLE_CLIENT_IDS=$(get_parameter GOOGLE_CLIENT_IDS)
 OPENAI_API_KEY=$(get_parameter OPENAI_API_KEY)
-export OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+export OPENAI_MODEL=${OPENAI_MODEL:-gpt-6-luna}
 export DEV_TEST_TOKEN_ENABLED=false
 export APP_IMAGE
 

@@ -1,5 +1,6 @@
 package com.tree.twig_tree.domain.chat.client;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tree.twig_tree.domain.chat.prompt.TreePrompt;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,32 +31,58 @@ public class OllamaLlmClient implements LlmClient {
             "stream", false
         );
 
-        return callChat(body);
+        return callChat(body).mapNotNull(OllamaLlmClient::contentOf);
     }
 
     @Override
-    public Mono<String> generateTreeJson(String message) {
+    public Mono<StructuredJsonResult> generateTreeJson(String message) {
         Map<String, Object> body = Map.of(
             "model", model,
             "messages", List.of(
                 Map.of("role", "system", "content", TreePrompt.SYSTEM),
                 Map.of("role", "user", "content", message)
             ),
-            // Ollama 는 format: "json" 으로 JSON 응답을 강제한다.
-            "format", "json",
+            // format 에 스키마를 넘겨 응답 구조를 유도한다. OpenAI strict 와 같은 보장은 아니어서 서버 검증이 필요하다.
+            "format", TreePrompt.RESPONSE_SCHEMA,
             "stream", false
         );
 
-        return callChat(body);
+        return callChat(body).map(OllamaLlmClient::toResult);
     }
 
-    private Mono<String> callChat(Map<String, Object> body) {
+    @Override
+    public boolean supportsStrictJsonSchema() {
+        // Ollama 는 JSON Schema 를 강제하는 strict 모드가 없어 응답 모양을 보장할 수 없다.
+        return false;
+    }
+
+    @Override
+    public Mono<StructuredJsonResult> generateStructuredJson(StructuredJsonRequest request) {
+        throw new UnsupportedOperationException("Ollama 는 strict JSON Schema 를 지원하지 않습니다.");
+    }
+
+    private Mono<OllamaResponse> callChat(Map<String, Object> body) {
         return ollamaWebClient.post()
             .uri("/api/chat")
             .bodyValue(body)
             .retrieve()
-            .bodyToMono(OllamaResponse.class)
-            .map(res -> res.message().content());
+            .bodyToMono(OllamaResponse.class);
+    }
+
+    /** LLM 응답은 신뢰할 수 없는 입력이다. message 가 없으면 본문 없는 응답으로 다룬다. */
+    private static String contentOf(OllamaResponse res) {
+        return res.message() == null ? null : res.message().content();
+    }
+
+    private static StructuredJsonResult toResult(OllamaResponse res) {
+        return new StructuredJsonResult(
+            contentOf(res),
+            res.model(),
+            res.doneReason(),
+            null,
+            res.promptEvalCount() == null ? 0L : res.promptEvalCount(),
+            res.evalCount() == null ? 0L : res.evalCount()
+        );
     }
 
     @Override
@@ -63,7 +90,13 @@ public class OllamaLlmClient implements LlmClient {
         return LlmProvider.OLLAMA;
     }
 
-    private record OllamaResponse(OllamaMessage message) {
+    private record OllamaResponse(
+        String model,
+        OllamaMessage message,
+        @JsonProperty("done_reason") String doneReason,
+        @JsonProperty("prompt_eval_count") Long promptEvalCount,
+        @JsonProperty("eval_count") Long evalCount
+    ) {
         private record OllamaMessage(String content) {}
     }
 }
