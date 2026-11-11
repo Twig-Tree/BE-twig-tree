@@ -55,6 +55,20 @@ class HwpDocumentParserTest {
     }
 
     @Test
+    @DisplayName("압축을 풀면 상한을 넘는 스트림이 있으면 hwplib 에 넘기기 전에 FILE_CONTENT_TOO_LARGE")
+    void rejectsInflatedStream() {
+        byte[] bomb = MaliciousSamples.hwpWithInflatedSection(MaliciousSamples.OVER_ENTRY_LIMIT);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @Test
+    @DisplayName("배포용 문서 복호화 메서드를 찾는다 — hwplib 업그레이드로 깨지면 여기서 잡힌다")
+    void canVerifyDistributionDocuments() {
+        assertThat(HwpOleGuard.canVerifyDistributionDocuments()).isTrue();
+    }
+
+    @Test
     @DisplayName("hwp 확장자를 담당한다")
     void supportsHwp() {
         assertThat(parser.supportedExtensions()).containsExactly("hwp");
