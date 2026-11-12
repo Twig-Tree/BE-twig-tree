@@ -21,5 +21,14 @@ public class FolderReqDTO {
             String name
     ){}
 
+    /**
+     * 폴더 이동 요청
+     * folderParentId 가 null 이면 최상위 루트로 이동합니다.
+     */
+    public record MoveFolder (
+            @Min(1) // null 가능 (루트로 이동)
+            Long folderParentId
+    ){}
+
 
 }

@@ -44,4 +44,17 @@ public class MemberService {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
+
+    /**
+     * 회원 행에 쓰기 락을 걸어, 그 회원의 폴더 계층을 바꾸는 요청들을 직렬화한다.
+     *
+     * <p>폴더 트리에는 노드의 트리처럼 계층 전체를 대표하는 행이 없고, 순환 검사는 조상 경로 전체를
+     * 읽으므로 폴더 두 개만 잠가서는 막을 수 없다. 폴더는 모두 한 회원 소유라 회원 행이 가장 작은
+     * 공통 잠금 대상이다. 호출자의 트랜잭션에 합류해야 하므로 반드시 쓰기 트랜잭션 안에서 부른다.
+     */
+    @Transactional
+    public Member lockById(Long memberId) {
+        return memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+    }
 }

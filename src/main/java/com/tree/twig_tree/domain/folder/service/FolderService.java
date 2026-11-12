@@ -114,6 +114,41 @@ public class FolderService {
     }
 
     /**
+     * 폴더 위치 이동
+     * @param folderId 이동할 폴더
+     * @param dto folderParentId 가 null 이면 최상위 루트로 이동
+     * @return
+     */
+    @Transactional
+    public FolderResDTO.GetFolder moveFolder(Long memberId, Long folderId, FolderReqDTO.MoveFolder dto) {
+        // 순환 검사와 부모 변경 사이에 다른 이동이 끼어들지 못하게, 읽기 전에 회원 단위 락을 먼저 잡습니다.
+        // 락이 없으면 A→B 와 B→A 가 동시에 들어올 때 양쪽 모두 순환 검사를 통과하고 서로 다른 행을
+        // 갱신해 커밋되어, 조상 경로 조회(findAncestorPathRaw)가 끝나지 않는 순환이 저장됩니다.
+        memberService.lockById(memberId);
+
+        Folder folder = validateFolder(folderId);
+        validateFolderOwner(memberId, folder);
+
+        Folder newParent = null;
+        if (dto.folderParentId() != null) {
+            newParent = folderRepository.findById(dto.folderParentId())
+                    .orElseThrow(() -> new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
+            validateFolderOwner(memberId, newParent);
+
+            // 목적지 부모가 이동 대상 자신이거나 그 하위 폴더이면 순환 구조가 생깁니다.
+            if (folderRepository.isSelfOrAncestor(folderId, newParent.getId())) {
+                throw new FolderException(FolderErrorCode.INVALID_MOVE_TARGET);
+            }
+        }
+
+        folder.moveTo(newParent);
+        // 목적지에 같은 이름의 폴더가 있으면 커밋 전에 DUPLICATE_FOLDER_NAME 으로 드러냅니다.
+        folderRepository.flush();
+
+        return FolderConverter.toGetFolder(folder);
+    }
+
+    /**
      * 폴더 삭제
      * @param folderId
      * @return
