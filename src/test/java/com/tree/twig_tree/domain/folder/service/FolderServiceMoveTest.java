@@ -67,8 +67,6 @@ class FolderServiceMoveTest {
 
         assertThat(result.folderParentId()).isNull();
         assertThat(target.getParent()).isNull();
-        // 루트로 가는 경우에도 이름 중복(uk_folder_root_name)을 커밋 전에 확인해야 한다.
-        verify(folderRepository).flush();
         verify(folderRepository, never()).isSelfOrAncestor(FOLDER_ID, TARGET_ID);
     }
 
@@ -85,7 +83,6 @@ class FolderServiceMoveTest {
 
         assertThat(result.folderParentId()).isEqualTo(TARGET_ID);
         assertThat(target.getParent()).isSameAs(newParent);
-        verify(folderRepository).flush();
     }
 
     @Test

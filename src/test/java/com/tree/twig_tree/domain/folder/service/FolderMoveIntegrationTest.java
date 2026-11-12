@@ -91,6 +91,25 @@ class FolderMoveIntegrationTest {
     }
 
     @Test
+    @DisplayName("현재 부모로 다시 옮기는 요청은 그대로 성공한다")
+    void moveToCurrentParent() {
+        FolderResDTO.GetFolder result = move(child, parent);
+
+        assertThat(result.folderParentId()).isEqualTo(parent.getId());
+        assertThat(folderRepository.findById(child.getId()).orElseThrow().getParent().getId())
+                .isEqualTo(parent.getId());
+    }
+
+    @Test
+    @DisplayName("루트에 있는 폴더를 루트로 옮기는 요청도 그대로 성공한다")
+    void moveRootFolderToRoot() {
+        FolderResDTO.GetFolder result = move(other, null);
+
+        assertThat(result.folderParentId()).isNull();
+        assertThat(folderRepository.findById(other.getId()).orElseThrow().getParent()).isNull();
+    }
+
+    @Test
     @DisplayName("자기 자신 밑으로 옮기면 INVALID_MOVE_TARGET")
     void movingIntoItself() {
         assertThatThrownBy(() -> move(parent, parent))

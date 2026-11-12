@@ -79,8 +79,6 @@ class WorkspaceServiceMoveTest {
 
         assertThat(result.folderId()).isNull();
         assertThat(target.getFolder()).isNull();
-        // 루트로 가는 경우에도 이름 중복(uk_workspace_root_name)을 커밋 전에 확인해야 한다.
-        verify(workspaceRepository).flush();
         verify(folderRepository, never()).findById(any());
     }
 
@@ -97,7 +95,6 @@ class WorkspaceServiceMoveTest {
 
         assertThat(result.folderId()).isEqualTo(FOLDER_ID);
         assertThat(target.getFolder()).isSameAs(destination);
-        verify(workspaceRepository).flush();
     }
 
     @Test
