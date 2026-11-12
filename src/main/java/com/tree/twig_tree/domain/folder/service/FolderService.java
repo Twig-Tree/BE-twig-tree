@@ -114,6 +114,36 @@ public class FolderService {
     }
 
     /**
+     * 폴더 위치 이동
+     * @param folderId 이동할 폴더
+     * @param dto folderParentId 가 null 이면 최상위 루트로 이동
+     * @return
+     */
+    @Transactional
+    public FolderResDTO.GetFolder moveFolder(Long memberId, Long folderId, FolderReqDTO.MoveFolder dto) {
+        Folder folder = validateFolder(folderId);
+        validateFolderOwner(memberId, folder);
+
+        Folder newParent = null;
+        if (dto.folderParentId() != null) {
+            newParent = folderRepository.findById(dto.folderParentId())
+                    .orElseThrow(() -> new FolderException(FolderErrorCode.PARENT_NOT_FOUND));
+            validateFolderOwner(memberId, newParent);
+
+            // 목적지 부모가 이동 대상 자신이거나 그 하위 폴더이면 순환 구조가 생깁니다.
+            if (folderRepository.isSelfOrAncestor(folderId, newParent.getId())) {
+                throw new FolderException(FolderErrorCode.INVALID_MOVE_TARGET);
+            }
+        }
+
+        folder.moveTo(newParent);
+        // 목적지에 같은 이름의 폴더가 있으면 커밋 전에 DUPLICATE_FOLDER_NAME 으로 드러냅니다.
+        folderRepository.flush();
+
+        return FolderConverter.toGetFolder(folder);
+    }
+
+    /**
      * 폴더 삭제
      * @param folderId
      * @return

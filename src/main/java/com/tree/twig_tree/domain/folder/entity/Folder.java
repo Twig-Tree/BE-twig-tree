@@ -58,5 +58,10 @@ public class Folder extends BaseEntity {
         this.name = newName;
     }
 
+    // 폴더 위치 이동 (newParent 가 null 이면 최상위 루트)
+    public void moveTo(Folder newParent) {
+        this.parent = newParent;
+    }
+
 
 }
