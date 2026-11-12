@@ -25,13 +25,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -50,6 +51,7 @@ class GeneratedTreeWriterWorkspaceTest {
     private static final Long OTHER_MEMBER_ID = 2L;
     private static final Long WORKSPACE_ID = 7L;
     private static final Long TREE_ID = 70L;
+    private static final long FIRST_NODE_ID = 700L;
 
     @Mock
     private TreeRepository treeRepository;
@@ -65,8 +67,21 @@ class GeneratedTreeWriterWorkspaceTest {
     @BeforeEach
     void setUp() {
         writer = new GeneratedTreeWriter(treeRepository, nodeRepository, workspaceRepository, memberService);
-        when(treeRepository.save(any(Tree.class))).thenAnswer(returnsFirstArg());
-        when(nodeRepository.save(any(Node.class))).thenAnswer(returnsFirstArg());
+
+        // 저장 mock 이 식별자를 부여하지 않으면 응답의 treeId·nodeId·parentId 가 모두 null 이어도
+        // 테스트가 통과한다. 실제 save 처럼 id 를 채워, 응답에 식별자가 실리는지까지 검증한다.
+        when(treeRepository.save(any(Tree.class))).thenAnswer(inv -> withId(inv.getArgument(0), TREE_ID));
+        AtomicLong nodeIds = new AtomicLong(FIRST_NODE_ID);
+        when(nodeRepository.save(any(Node.class)))
+            .thenAnswer(inv -> withId(inv.getArgument(0), nodeIds.getAndIncrement()));
+    }
+
+    /** JPA 가 persist 시 채우는 식별자를 흉내 낸다. 엔티티에 id setter 가 없으므로 필드로 넣는다. */
+    private static <T> T withId(T entity, Long id) throws Exception {
+        Field field = entity.getClass().getDeclaredField("id");
+        field.setAccessible(true);
+        field.set(entity, id);
+        return entity;
     }
 
     private Workspace workspace(Long ownerId, String name) {
@@ -98,7 +113,15 @@ class GeneratedTreeWriterWorkspaceTest {
         verify(treeRepository).save(any(Tree.class));
         verify(nodeRepository, org.mockito.Mockito.times(3)).save(any(Node.class));
         assertThat(result.workspaceId()).isEqualTo(WORKSPACE_ID);
+        assertThat(result.treeId()).isEqualTo(TREE_ID);
         assertThat(result.nodes()).extracting(TreeGenResDTO.Node::name).containsExactly("루트", "첫째", "둘째");
+
+        // 저장된 식별자가 응답에 그대로 실려야 한다. 루트는 parentId 가 없고, 자식은 루트를 가리킨다.
+        assertThat(result.nodes()).extracting(TreeGenResDTO.Node::nodeId)
+            .containsExactly(FIRST_NODE_ID, FIRST_NODE_ID + 1, FIRST_NODE_ID + 2);
+        assertThat(result.nodes()).extracting(TreeGenResDTO.Node::parentId)
+            .containsExactly(null, FIRST_NODE_ID, FIRST_NODE_ID);
+        assertThat(result.nodes()).extracting(TreeGenResDTO.Node::orderId).containsExactly(1L, 1L, 2L);
     }
 
     @Test
