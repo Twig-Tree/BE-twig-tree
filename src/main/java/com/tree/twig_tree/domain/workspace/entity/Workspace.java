@@ -8,7 +8,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
+@DynamicUpdate
 @Entity
 @Getter
 @Builder
@@ -41,6 +43,11 @@ public class Workspace extends BaseEntity {
             throw new IllegalArgumentException("워크스페이스 이름은 공백일 수 없습니다.");
         }
         this.name = newName;
+    }
+
+    // 워크스페이스 위치 이동 (newFolder 가 null 이면 폴더에 속하지 않는 최상위)
+    public void moveTo(Folder newFolder) {
+        this.folder = newFolder;
     }
 
 }

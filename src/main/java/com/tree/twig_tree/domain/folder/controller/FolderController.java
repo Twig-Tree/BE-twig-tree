@@ -113,6 +113,33 @@ public class FolderController {
     }
 
     /**
+     * 폴더 위치 이동
+     * folder_parent_id는 null이 가능하여 path variable이 아닌 request body로 받습니다.
+     * @param folderId
+     * @param dto
+     * @return
+     */
+    @Operation(
+            summary = "폴더 위치 이동",
+            description = "폴더를 다른 폴더 아래로 옮깁니다.<br>" +
+                    "folder_parent_id가 null이면 최상위 루트로 이동합니다. 요청 본문에서 생략해도 null과 같게 처리됩니다.<br>" +
+                    "자기 자신이나 자기 하위 폴더로는 이동할 수 없습니다.<br>" +
+                    "같은 부모를 갖는 폴더끼리는 이름이 겹칠 수 없습니다.<br>" +
+                    "현재 위치와 같은 곳으로 옮기는 요청은 그대로 성공 처리됩니다."
+    )
+    @ApiErrorCodeExample(value = FolderErrorCode.class,
+            only = {"FOLDER_NOT_FOUND", "PARENT_NOT_FOUND", "FOLDER_ACCESS_DENIED", "DUPLICATE_FOLDER_NAME", "INVALID_MOVE_TARGET"})
+    @PatchMapping("/{folderId}/move")
+    public ResponseEntity<ApiResponse<FolderResDTO.GetFolder>> moveFolder(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long folderId,
+            @RequestBody @Valid FolderReqDTO.MoveFolder dto
+    ) {
+        BaseSuccessCode code = FolderSuccessCode.FOLDER_MOVED;
+        return ApiResponse.onSuccess(code, folderService.moveFolder(memberId, folderId, dto));
+    }
+
+    /**
      * 폴더 삭제
      * @param folderId
      * @return

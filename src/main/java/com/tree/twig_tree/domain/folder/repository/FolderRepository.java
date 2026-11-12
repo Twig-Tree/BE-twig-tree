@@ -37,4 +37,21 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
     """, nativeQuery = true)
     List<FolderProjection.FolderAncestorProjection> findAncestorPathRaw(@Param("folderId") Long folderId);
 
+    // folderId가 targetId 자신이거나 targetId의 조상인지 확인 (targetId에서 루트까지 거슬러 올라가며 탐색)
+    @Query(value = """
+    WITH RECURSIVE ancestors AS (
+        SELECT folder_id, folder_parent_id
+        FROM folders
+        WHERE folder_id = :targetId
+
+        UNION ALL
+
+        SELECT f.folder_id, f.folder_parent_id
+        FROM folders f
+        INNER JOIN ancestors a ON f.folder_id = a.folder_parent_id
+    )
+    SELECT EXISTS (SELECT 1 FROM ancestors WHERE folder_id = :folderId)
+    """, nativeQuery = true)
+    boolean isSelfOrAncestor(@Param("folderId") Long folderId, @Param("targetId") Long targetId);
+
 }
