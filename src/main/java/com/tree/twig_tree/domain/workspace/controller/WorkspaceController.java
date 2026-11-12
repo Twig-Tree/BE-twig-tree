@@ -122,6 +122,34 @@ public class WorkspaceController {
     }
 
     /**
+     * 워크스페이스 위치 이동
+     * folderId는 null이 가능하여 path variable이 아닌 request body로 받습니다.
+     * @param workspaceId
+     * @param dto
+     * @return
+     */
+    @Operation(
+            summary = "워크스페이스 위치 이동",
+            description = "워크스페이스를 다른 폴더로 옮깁니다.<br>" +
+                    "folderId = null 이면 어떠한 폴더에도 속하지 않은 최상위로 이동합니다. 요청 본문에서 생략해도 null과 같게 처리됩니다.<br>" +
+                    "같은 폴더 안에서는 워크스페이스 이름이 겹칠 수 없습니다.<br>" +
+                    "이동하면 updatedAt 이 갱신되어 최근 목록(GET /workspaces/recent) 맨 앞으로 올라갑니다.<br>" +
+                    "현재 위치와 같은 곳으로 옮기는 요청은 그대로 성공 처리됩니다."
+    )
+    @ApiErrorCodeExample(value = FolderErrorCode.class, only = {"FOLDER_NOT_FOUND", "FOLDER_ACCESS_DENIED"})
+    @ApiErrorCodeExample(value = WorkspaceErrorCode.class,
+            only = {"WORKSPACE_NOT_FOUND", "WORKSPACE_ACCESS_DENIED", "DUPLICATE_WORKSPACE_NAME"})
+    @PatchMapping("/{workspaceId}/move")
+    public ResponseEntity<ApiResponse<WorkspaceResDTO.GetWorkspace>> moveWorkspace(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long workspaceId,
+            @RequestBody @Valid WorkspaceReqDTO.MoveWorkspace dto
+    ) {
+        BaseSuccessCode code = WorkspaceSuccessCode.WORKSPACE_MOVED;
+        return ApiResponse.onSuccess(code, workspaceService.moveWorkspace(memberId, workspaceId, dto));
+    }
+
+    /**
      * 워크스페이스 삭제
      * @param workspaceId
      * @return
