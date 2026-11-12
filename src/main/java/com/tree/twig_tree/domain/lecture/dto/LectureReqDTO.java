@@ -60,8 +60,14 @@ public record LectureReqDTO(
      */
     public static final int TREE_OUTLINE_MAX_LENGTH = 20_000;
 
-    /** repair 에 싣는 직전 응답 길이 상한. 응답 토큰 상한보다 넉넉하게 둔다. */
-    public static final int PREVIOUS_RESPONSE_MAX_LENGTH = 50_000;
+    /**
+     * repair 에 싣는 직전 응답 길이 상한.
+     *
+     * <p>응답 토큰 상한({@code openai.lecture-max-tokens}, 기본 16,000)의 토큰당 약 6자로 잡았다.
+     * 시나리오는 영문 키 위주의 JSON 이라 토큰당 글자 수가 높다. 모델이 끝까지 쓴 응답이 이 값을 넘으면
+     * 그 응답의 repair 요청이 검증에서 거부되므로, 토큰 상한을 올리면 이 값도 함께 올린다.
+     */
+    public static final int PREVIOUS_RESPONSE_MAX_LENGTH = 100_000;
 
     /** repair 한 번에 보낼 수 있는 문제 수. 프론트엔드의 {@code MAX_LECTURE_REPAIR_ISSUES} 와 같다. */
     public static final int MAX_REPAIR_ISSUES = 20;
