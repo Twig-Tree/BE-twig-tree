@@ -1,8 +1,10 @@
 package com.tree.twig_tree.domain.workspace.repository;
 
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
@@ -62,5 +65,19 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
     @Query("update Workspace w set w.updatedAt = :now "
             + "where w.id = (select t.workspace.id from Tree t where t.id = :treeId)")
     void touchByTreeId(@Param("treeId") Long treeId, @Param("now") Instant now);
+
+    /**
+     * 워크스페이스 소유자(멤버) ID 조회.
+     *
+     * <p>LLM 호출처럼 느린 작업 앞에서 소유권만 확인할 때 쓴다. 엔티티를 가져오면 member 가 지연 로딩이라
+     * 트랜잭션을 열어야 하고, 그 트랜잭션이 LLM 응답을 기다리는 동안 DB 커넥션을 점유한다.
+     */
+    @Query("SELECT w.member.id FROM Workspace w WHERE w.id = :workspaceId")
+    Optional<Long> findOwnerMemberIdById(@Param("workspaceId") Long workspaceId);
+
+    // 같은 워크스페이스를 대상으로 하는 트리 생성 요청을 직렬화하기 위한 비관적 락 조회
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT w FROM Workspace w WHERE w.id = :workspaceId")
+    Optional<Workspace> findByIdForUpdate(@Param("workspaceId") Long workspaceId);
 
 }

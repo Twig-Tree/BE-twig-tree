@@ -275,6 +275,65 @@ class ChatServiceTest {
         assertThat(ChatService.attemptTimeout(Duration.ofSeconds(50))).isEqualTo(Duration.ofSeconds(40));
     }
 
+    // --- 기존 워크스페이스에 채우는 경로 ---
+
+    @Test
+    @DisplayName("워크스페이스를 지정하면 saveToWorkspace 로 저장한다")
+    void workspacePathSavesToWorkspace() {
+        String json = """
+            {"root":{"name":"루트","memo":null,"children":[]}}
+            """;
+        when(openAiClient.generateTreeJson(org.mockito.ArgumentMatchers.anyString())).thenReturn(result(json));
+        when(writer.saveToWorkspace(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(7L),
+            org.mockito.ArgumentMatchers.any()))
+            .thenReturn(TreeGenResDTO.builder().treeId(9L).workspaceId(7L).nodes(List.of()).build());
+
+        TreeGenResDTO result = chatService.generateTreeInWorkspace(
+            MEMBER_ID, 7L, req("트리 만들어줘", LlmProvider.OPENAI));
+
+        assertThat(result.workspaceId()).isEqualTo(7L);
+        verify(writer).saveToWorkspace(org.mockito.ArgumentMatchers.eq(MEMBER_ID),
+            org.mockito.ArgumentMatchers.eq(7L), org.mockito.ArgumentMatchers.any());
+        // 워크스페이스를 새로 만드는 저장 경로는 쓰지 않아야 한다
+        verify(writer, never()).save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 검증이 실패하면 LLM 을 호출하지 않는다")
+    void workspaceCheckBeforeLlmCall() {
+        doThrow(new ChatException(ChatErrorCode.WORKSPACE_TREE_NOT_EMPTY))
+            .when(writer).validateWritableWorkspace(MEMBER_ID, 7L);
+
+        assertError(() -> chatService.generateTreeInWorkspace(MEMBER_ID, 7L, req("트리 만들어줘", LlmProvider.OPENAI)),
+            ChatErrorCode.WORKSPACE_TREE_NOT_EMPTY);
+
+        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("입력 검증이 워크스페이스 검증보다 먼저다")
+    void inputCheckBeforeWorkspaceCheck() {
+        assertError(() -> chatService.generateTreeInWorkspace(MEMBER_ID, 7L, req("  ", LlmProvider.OPENAI)),
+            ChatErrorCode.EMPTY_MESSAGE);
+
+        verify(writer, never()).validateWritableWorkspace(org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 검증이 문서 파싱보다 먼저다")
+    void workspaceCheckBeforeDocumentParsing() {
+        doThrow(new ChatException(ChatErrorCode.WORKSPACE_TREE_NOT_EMPTY))
+            .when(writer).validateWritableWorkspace(MEMBER_ID, 7L);
+
+        // 확장자가 잘못된 파일을 넣어도 워크스페이스 검증 결과가 먼저 나와야 한다
+        assertError(() -> chatService.generateTreeInWorkspace(
+                MEMBER_ID, 7L, LlmProvider.OPENAI, null, file("a.exe", "내용")),
+            ChatErrorCode.WORKSPACE_TREE_NOT_EMPTY);
+
+        verify(openAiClient, never()).generateTreeJson(org.mockito.ArgumentMatchers.anyString());
+    }
+
     private static Mono<StructuredJsonResult> result(String content) {
         return Mono.just(new StructuredJsonResult(content, "gpt-test", "stop", null, 10, 20));
     }

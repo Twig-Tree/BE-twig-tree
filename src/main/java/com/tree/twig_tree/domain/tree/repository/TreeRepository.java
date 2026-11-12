@@ -30,6 +30,14 @@ public interface TreeRepository extends JpaRepository<Tree, Long> {
     @Query("SELECT t.workspace.member.id FROM Tree t WHERE t.id = :treeId")
     Optional<Long> findOwnerMemberIdById(@Param("treeId") Long treeId);
 
+    /**
+     * 워크스페이스에 있는 트리의 ID 조회.
+     *
+     * <p>{@link #findOwnerMemberIdById} 와 같은 이유로, LLM 호출 전 상태 확인에는 엔티티 대신 ID 만 읽는다.
+     */
+    @Query("SELECT t.id FROM Tree t WHERE t.workspace.id = :workspaceId")
+    Optional<Long> findIdByWorkspaceId(@Param("workspaceId") Long workspaceId);
+
     // 노드 이동처럼 형제 순서를 다시 매기는 작업을 트리 단위로 직렬화하기 위한 비관적 락 조회
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Tree t WHERE t.id = :treeId")
