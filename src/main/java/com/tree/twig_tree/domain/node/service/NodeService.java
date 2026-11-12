@@ -41,6 +41,12 @@ public class NodeService {
         Tree tree = validateTree(treeId);
         validateTreeOwner(memberId, tree);
 
+        // AI 트리 생성(GeneratedTreeWriter.saveToWorkspace)과 같은 워크스페이스 락을 잡아 두 경로를 직렬화한다.
+        // 락이 없으면 커밋되지 않은 루트 삽입을 트리 생성 쪽 노드 존재 검사가 보지 못해, 그 요청이 의도한
+        // CHAT409-1 대신 uk_nodes_root_per_tree 위반으로 끝난다. 이 트랜잭션은 touchByTreeId 로 어차피
+        // 같은 행을 갱신하므로, 락 획득 시점만 앞으로 옮기는 것이고 새로 생기는 경합은 없다.
+        workspaceRepository.findByIdForUpdate(tree.getWorkspace().getId());
+
         Node parentNode = null;
         if (dto.parentId() != null) {
             parentNode = nodeRepository.findById(dto.parentId()) // findById(null)은 불가능함

@@ -23,7 +23,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * 트리 생성 오케스트레이션.
  *
- * <p>흐름: provider 선택 → LLM 호출(트랜잭션 밖, 타임아웃 적용) → JSON 파싱 → 구조 검증(실패 시 1회 재생성) → DB 저장.
+ * <p>흐름: 입력 검증 → (워크스페이스 지정 시) 대상 검증 → provider 선택 → LLM 호출(트랜잭션 밖, 타임아웃 적용)
+ * → JSON 파싱 → 구조 검증(실패 시 1회 재생성) → DB 저장.
  * LLM 응답을 기다리는 동안 DB 커넥션을 점유하지 않도록, 저장만 {@link GeneratedTreeWriter} 의
  * 트랜잭션 안에서 수행한다.
  */
@@ -51,12 +52,9 @@ public class ChatService {
     private final DocumentTextExtractor documentTextExtractor;
 
     public TreeGenResDTO generateTree(Long memberId, ChatReqDTO req) {
-        if (req == null || req.message() == null || req.message().isBlank()) {
-            throw new ChatException(ChatErrorCode.EMPTY_MESSAGE);
-        }
-        validateMessageLength(req.message());
+        validateMessageRequest(req);
 
-        return generate(memberId, req.provider(), TreePrompt.userMessage(req.message(), null));
+        return generate(memberId, null, req.provider(), TreePrompt.userMessage(req.message(), null));
     }
 
     /**
@@ -69,20 +67,65 @@ public class ChatService {
      * @param file     업로드 파일 (선택)
      */
     public TreeGenResDTO generateTree(Long memberId, LlmProvider provider, String message, MultipartFile file) {
-        boolean hasMessage = message != null && !message.isBlank();
-        boolean hasFile = file != null && !file.isEmpty();
+        validateFileRequest(message, file);
 
-        if (!hasMessage && !hasFile) {
+        return generate(memberId, null, provider, buildUserMessage(message, file));
+    }
+
+    /**
+     * 이미 있는 워크스페이스를 채우는 트리 생성.
+     *
+     * <p>워크스페이스를 새로 만들지 않고 경로의 워크스페이스에 트리와 노드를 저장한다.
+     * 그 밖의 흐름(검증, LLM 호출, 저장 분리)은 {@link #generateTree(Long, ChatReqDTO)} 와 같다.
+     */
+    public TreeGenResDTO generateTreeInWorkspace(Long memberId, Long workspaceId, ChatReqDTO req) {
+        validateMessageRequest(req);
+        generatedTreeWriter.validateWritableWorkspace(memberId, workspaceId);
+
+        return generate(memberId, workspaceId, req.provider(), TreePrompt.userMessage(req.message(), null));
+    }
+
+    /**
+     * 이미 있는 워크스페이스를 채우는 트리 생성 (파일 입력).
+     *
+     * <p>워크스페이스 검증을 문서 파싱 앞에 두어, 거절될 요청으로 큰 문서를 읽지 않게 한다.
+     */
+    public TreeGenResDTO generateTreeInWorkspace(Long memberId, Long workspaceId,
+                                                 LlmProvider provider, String message, MultipartFile file) {
+        validateFileRequest(message, file);
+        generatedTreeWriter.validateWritableWorkspace(memberId, workspaceId);
+
+        return generate(memberId, workspaceId, provider, buildUserMessage(message, file));
+    }
+
+    private void validateMessageRequest(ChatReqDTO req) {
+        if (req == null || req.message() == null || req.message().isBlank()) {
+            throw new ChatException(ChatErrorCode.EMPTY_MESSAGE);
+        }
+        validateMessageLength(req.message());
+    }
+
+    private void validateFileRequest(String message, MultipartFile file) {
+        if (!hasText(message) && !hasFile(file)) {
             throw new ChatException(ChatErrorCode.INPUT_REQUIRED);
         }
-        if (hasMessage) {
+        if (hasText(message)) {
             validateMessageLength(message);
         }
+    }
 
-        // 파일 검증을 LLM 호출 전에 끝내, 잘못된 입력으로 비용이 발생하지 않게 한다.
-        String documentText = hasFile ? documentTextExtractor.extract(file) : null;
+    /** 파일 검증을 LLM 호출 전에 끝내, 잘못된 입력으로 비용이 발생하지 않게 한다. */
+    private String buildUserMessage(String message, MultipartFile file) {
+        String documentText = hasFile(file) ? documentTextExtractor.extract(file) : null;
+        return TreePrompt.userMessage(message, documentText);
+    }
 
-        return generate(memberId, provider, TreePrompt.userMessage(message, documentText));
+    private boolean hasText(String message) {
+        return message != null && !message.isBlank();
+    }
+
+    private boolean hasFile(MultipartFile file) {
+        return file != null && !file.isEmpty();
     }
 
     /**
@@ -97,10 +140,14 @@ public class ChatService {
         }
     }
 
-    private TreeGenResDTO generate(Long memberId, LlmProvider provider, String userMessage) {
+    /** workspaceId 가 null 이면 트리를 담을 워크스페이스를 새로 만들고, 있으면 그 워크스페이스를 채운다. */
+    private TreeGenResDTO generate(Long memberId, Long workspaceId, LlmProvider provider, String userMessage) {
         LlmClient client = resolveClient(provider);
+        LlmTreeDTO tree = generateValidTree(client, userMessage);
 
-        return generatedTreeWriter.save(memberId, generateValidTree(client, userMessage));
+        return workspaceId == null
+            ? generatedTreeWriter.save(memberId, tree)
+            : generatedTreeWriter.saveToWorkspace(memberId, workspaceId, tree);
     }
 
     /**

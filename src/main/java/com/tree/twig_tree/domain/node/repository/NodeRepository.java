@@ -72,6 +72,9 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
     // 같은 부모를 갖는 형제 노드들을 순서대로 조회
     List<Node> findAllByParentIdOrderByOrderIdAsc(Long parentId);
 
+    // 트리에 노드가 하나라도 있는지 확인 (빈 트리에만 AI 트리를 채우기 위한 검사)
+    boolean existsByTree_Id(Long treeId);
+
     // 형제 노드 재정렬 중에는 order_id가 잠깐 겹칠 수 있으므로 현재 트랜잭션에서 유니크 검사를 미룹니다.
     @Modifying
     @Query(value = "SET CONSTRAINTS uk_nodes_parent_order_id DEFERRED", nativeQuery = true)
