@@ -43,4 +43,9 @@ public class Workspace extends BaseEntity {
         this.name = newName;
     }
 
+    // 워크스페이스 위치 이동 (newFolder 가 null 이면 폴더에 속하지 않는 최상위)
+    public void moveTo(Folder newFolder) {
+        this.folder = newFolder;
+    }
+
 }
