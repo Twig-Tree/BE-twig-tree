@@ -2,6 +2,7 @@ package com.tree.twig_tree.domain.chat.service;
 
 import com.tree.twig_tree.domain.chat.client.LlmClient;
 import com.tree.twig_tree.domain.chat.client.LlmProvider;
+import com.tree.twig_tree.domain.chat.client.StructuredJsonResult;
 import com.tree.twig_tree.domain.chat.dto.ChatReqDTO;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.ChatException;
@@ -17,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,6 +27,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -87,7 +90,7 @@ class ChatServiceTest {
     @Test
     @DisplayName("LLM 응답이 JSON 이 아니면 LLM_RESPONSE_INVALID")
     void invalidJson() {
-        when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(Mono.just("이건 JSON 이 아님"));
+        when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(result("이건 JSON 이 아님"));
 
         assertError(() -> chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OPENAI)),
             ChatErrorCode.LLM_RESPONSE_INVALID);
@@ -97,7 +100,7 @@ class ChatServiceTest {
     @DisplayName("검증 실패 예외는 그대로 전파된다")
     void validationFailurePropagates() {
         when(openAiClient.generateTreeJson("트리 만들어줘"))
-            .thenReturn(Mono.just("{\"root\":null}"));
+            .thenReturn(result("{\"root\":null}"));
         doThrow(new ChatException(ChatErrorCode.LLM_RESPONSE_INVALID))
             .when(treeValidator).validate(org.mockito.ArgumentMatchers.any());
 
@@ -111,7 +114,7 @@ class ChatServiceTest {
         String json = """
             {"root":{"name":"루트","memo":null,"children":[]}}
             """;
-        when(openAiClient.generateTreeJson("자료구조 트리 만들어줘")).thenReturn(Mono.just(json));
+        when(openAiClient.generateTreeJson("자료구조 트리 만들어줘")).thenReturn(result(json));
 
         TreeGenResDTO expected = TreeGenResDTO.builder().treeId(42L).nodes(List.of()).build();
         when(writer.save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(expected);
@@ -201,12 +204,87 @@ class ChatServiceTest {
         assertThat(capturedPrompt()).contains(atLimit);
     }
 
+    @Test
+    @DisplayName("토큰 상한에 걸려 잘린 응답이면 LLM_RESPONSE_INVALID")
+    void truncatedResponse() {
+        when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(Mono.just(
+            new StructuredJsonResult("{\"root\":{\"name\":\"루", "gpt-test", "length", null, 10, 16000)));
+
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OPENAI)),
+            ChatErrorCode.LLM_RESPONSE_INVALID);
+        verify(writer, never()).save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("모델이 거절해 본문이 없으면 LLM_RESPONSE_INVALID")
+    void refusedResponse() {
+        when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(Mono.just(
+            new StructuredJsonResult(null, "gpt-test", "stop", "거절합니다", 10, 3)));
+
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OPENAI)),
+            ChatErrorCode.LLM_RESPONSE_INVALID);
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 응답을 받으면 한 번 다시 생성해 저장한다")
+    void retriesInvalidResponseOnce() {
+        String valid = """
+            {"root":{"name":"루트","memo":null,"children":[]}}
+            """;
+        when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(result("JSON 아님"), result(valid));
+        when(writer.save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+            .thenReturn(TreeGenResDTO.builder().treeId(42L).nodes(List.of()).build());
+
+        TreeGenResDTO saved = chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OPENAI));
+
+        assertThat(saved.treeId()).isEqualTo(42L);
+        verify(openAiClient, times(2)).generateTreeJson("트리 만들어줘");
+    }
+
+    @Test
+    @DisplayName("재생성도 실패하면 호출을 멈추고 LLM_RESPONSE_INVALID")
+    void stopsAfterMaxAttempts() {
+        when(openAiClient.generateTreeJson("트리 만들어줘")).thenReturn(result("JSON 아님"));
+
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("트리 만들어줘", LlmProvider.OPENAI)),
+            ChatErrorCode.LLM_RESPONSE_INVALID);
+        verify(openAiClient, times(ChatService.MAX_GENERATION_ATTEMPTS)).generateTreeJson("트리 만들어줘");
+    }
+
+    @Test
+    @DisplayName("모델의 거절과 호출 실패는 재생성하지 않는다")
+    void doesNotRetryRefusalOrCallFailure() {
+        when(openAiClient.generateTreeJson("거절")).thenReturn(Mono.just(
+            new StructuredJsonResult(null, "gpt-test", "stop", "거절합니다", 10, 3)));
+        when(openAiClient.generateTreeJson("실패")).thenReturn(Mono.error(new IllegalStateException("500")));
+
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("거절", LlmProvider.OPENAI)),
+            ChatErrorCode.LLM_RESPONSE_INVALID);
+        assertError(() -> chatService.generateTree(MEMBER_ID, req("실패", LlmProvider.OPENAI)),
+            ChatErrorCode.LLM_CALL_FAILED);
+
+        verify(openAiClient, times(1)).generateTreeJson("거절");
+        verify(openAiClient, times(1)).generateTreeJson("실패");
+    }
+
+    @Test
+    @DisplayName("재생성의 대기 상한은 전체 예산에서 이미 쓴 시간을 뺀 값이다")
+    void retryTimeoutUsesRemainingBudget() {
+        assertThat(ChatService.attemptTimeout(Duration.ZERO)).isEqualTo(Duration.ofSeconds(65));
+        assertThat(ChatService.attemptTimeout(Duration.ofSeconds(20))).isEqualTo(Duration.ofSeconds(65));
+        assertThat(ChatService.attemptTimeout(Duration.ofSeconds(50))).isEqualTo(Duration.ofSeconds(40));
+    }
+
+    private static Mono<StructuredJsonResult> result(String content) {
+        return Mono.just(new StructuredJsonResult(content, "gpt-test", "stop", null, 10, 20));
+    }
+
     private void stubTreeJson() {
         String json = """
             {"root":{"name":"루트","memo":null,"children":[]}}
             """;
         when(openAiClient.generateTreeJson(org.mockito.ArgumentMatchers.anyString()))
-            .thenReturn(Mono.just(json));
+            .thenReturn(result(json));
         when(writer.save(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
             .thenReturn(TreeGenResDTO.builder().treeId(42L).nodes(List.of()).build());
     }

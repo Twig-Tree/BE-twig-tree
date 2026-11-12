@@ -1,0 +1,29 @@
+[
+  {"id": "topic-data-structures", "category": "topic", "message": "자료구조 트리 만들어줘", "minNodes": 15, "maxNodes": 25},
+  {"id": "topic-machine-learning", "category": "topic", "message": "머신러닝 입문 내용을 정리해줘", "minNodes": 15, "maxNodes": 25},
+  {"id": "topic-calculus", "category": "topic", "message": "미적분 학습 내용을 트리로 만들어줘", "minNodes": 15, "maxNodes": 25},
+  {"id": "topic-modern-history", "category": "topic", "message": "세계 근대사의 흐름", "minNodes": 15, "maxNodes": 25},
+  {"id": "topic-financial-statements", "category": "topic", "message": "재무제표 읽는 법", "minNodes": 15, "maxNodes": 25},
+  {"id": "topic-french-grammar", "category": "topic", "message": "프랑스어 기초 문법", "minNodes": 15, "maxNodes": 25},
+  {"id": "topic-korean-cooking", "category": "topic", "message": "한식 조리 기초", "minNodes": 15, "maxNodes": 25},
+  {"id": "topic-ambiguous", "category": "topic", "message": "시간 관리", "minNodes": 15, "maxNodes": 25},
+
+  {"id": "depth-3-network", "category": "depth", "message": "컴퓨터 네트워크를 3단계 깊이로 정리해줘", "expectedDepth": 3, "minNodes": 15, "maxNodes": 25},
+  {"id": "depth-3-biology", "category": "depth", "message": "세포 생물학을 3단계 깊이로 정리해줘", "expectedDepth": 3, "minNodes": 15, "maxNodes": 25},
+  {"id": "depth-5-os", "category": "depth", "message": "운영체제를 5단계 깊이로 정리해줘", "expectedDepth": 5, "minNodes": 15, "maxNodes": 25},
+  {"id": "depth-5-economics", "category": "depth", "message": "거시경제학을 5단계 깊이로 정리해줘", "expectedDepth": 5, "minNodes": 15, "maxNodes": 25},
+  {"id": "depth-10-music", "category": "depth", "message": "서양 음악사를 10단계 깊이로 정리해줘", "expectedDepth": 10},
+  {"id": "depth-10-database", "category": "depth", "message": "데이터베이스를 10단계 깊이로 정리해줘", "expectedDepth": 10},
+  {"id": "depth-15-architecture", "category": "depth", "message": "컴퓨터 구조를 15단계 깊이로 정리해줘", "expectedDepth": 15},
+  {"id": "depth-15-chemistry", "category": "depth", "message": "유기화학을 15단계 깊이로 정리해줘", "expectedDepth": 15},
+
+  {"id": "instruction-10-nodes", "category": "instruction", "message": "알고리즘을 노드 10개 정도로 간단히 정리해줘", "minNodes": 8, "maxNodes": 12},
+  {"id": "instruction-50-nodes", "category": "instruction", "message": "알고리즘을 노드 50개 정도로 자세히 정리해줘", "minNodes": 40, "maxNodes": 60},
+  {"id": "instruction-beginner", "category": "instruction", "message": "초등학생 눈높이로 태양계를 정리해줘", "minNodes": 15, "maxNodes": 25},
+  {"id": "instruction-expert", "category": "instruction", "message": "대학원 수준으로 분산 시스템 합의 알고리즘을 정리해줘", "minNodes": 15, "maxNodes": 25},
+
+  {"id": "document-process", "category": "document", "documentFile": "process-management.md", "minNodes": 15, "maxNodes": 25},
+  {"id": "document-photosynthesis", "category": "document", "documentFile": "photosynthesis.txt", "minNodes": 15, "maxNodes": 25},
+  {"id": "document-inventory", "category": "document", "documentFile": "inventory-management.md", "minNodes": 15, "maxNodes": 25},
+  {"id": "document-process-depth-3", "category": "document", "message": "3단계 깊이로 정리해줘", "documentFile": "process-management.md", "expectedDepth": 3, "minNodes": 15, "maxNodes": 25}
+]
