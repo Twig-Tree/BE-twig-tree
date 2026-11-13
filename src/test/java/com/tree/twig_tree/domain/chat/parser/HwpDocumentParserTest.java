@@ -63,6 +63,14 @@ class HwpDocumentParserTest {
     }
 
     @Test
+    @DisplayName("블록 체인이 손상되어 스트림을 열 때 비검사 예외가 나면 FILE_PARSE_FAILED")
+    void brokenBlockChain() {
+        byte[] broken = MaliciousSamples.hwpWithEmptyMiniStreamChain();
+
+        assertError(() -> parser.parse(broken), ChatErrorCode.FILE_PARSE_FAILED);
+    }
+
+    @Test
     @DisplayName("배포용 문서 복호화 메서드를 찾는다 — hwplib 업그레이드로 깨지면 여기서 잡힌다")
     void canVerifyDistributionDocuments() {
         assertThat(HwpOleGuard.canVerifyDistributionDocuments()).isTrue();

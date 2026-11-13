@@ -6,6 +6,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.ZipEntry;
@@ -87,6 +89,31 @@ final class MaliciousSamples {
             throw new IllegalStateException("테스트용 OLE 생성 실패", e);
         }
     }
+
+    /**
+     * 소형 스트림 {@code DocInfo} 의 크기는 그대로 두고, 소형 스트림이 담기는 루트 엔트리의 블록 체인만
+     * 비운 OLE 복합문서. 스트림을 여는 순간 POIFS 가 배열 범위 예외를 던진다.
+     */
+    static byte[] hwpWithEmptyMiniStreamChain() {
+        try {
+            POIFSFileSystem fs = new POIFSFileSystem();
+            fs.createDocument(new ByteArrayInputStream(new byte[100]), "DocInfo");
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            fs.writeFilesystem(out);
+            byte[] bytes = out.toByteArray();
+
+            // 헤더(512바이트) 바로 뒤가 첫 디렉터리 섹터이고, 그 첫 엔트리(128바이트)가 루트 엔트리다.
+            ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+            int rootEntry = 512;
+            buffer.putInt(rootEntry + 0x74, END_OF_CHAIN);  // 시작 블록
+            buffer.putInt(rootEntry + 0x78, 0);             // 소형 스트림 컨테이너 크기
+            return bytes;
+        } catch (IOException e) {
+            throw new IllegalStateException("테스트용 OLE 생성 실패", e);
+        }
+    }
+
+    private static final int END_OF_CHAIN = -2;
 
     private static void writeZeros(OutputStream out, long size) throws IOException {
         byte[] chunk = new byte[64 * 1024];

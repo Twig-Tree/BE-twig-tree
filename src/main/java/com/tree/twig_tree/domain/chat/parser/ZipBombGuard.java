@@ -38,7 +38,7 @@ final class ZipBombGuard {
             while ((entry = zip.getNextEntry()) != null) {
                 budget.consume(entry.getName(), zip);
             }
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             throw parseFailed(e);
         }
     }
@@ -57,14 +57,21 @@ final class ZipBombGuard {
                     budget.consume(entry.getName(), in);
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             throw parseFailed(e);
         }
     }
 
-    /** zip 이 손상되었거나 zip 이 아니면 라이브러리도 읽지 못하므로, 파싱 실패와 같이 취급한다. */
-    private static ChatException parseFailed(IOException e) {
-        log.warn("zip 압축 해제 검사 실패: {}", e.getMessage());
+    /**
+     * zip 이 손상되었거나 zip 이 아니면 라이브러리도 읽지 못하므로, 파싱 실패와 같이 취급한다.
+     * 손상된 헤더(잘못된 엔트리 이름 인코딩 등)는 비검사 예외로 나오기도 해서 함께 받는다.
+     * 상한 초과로 던진 {@link ChatException} 은 그대로 다시 던진다.
+     */
+    private static ChatException parseFailed(Exception e) {
+        if (e instanceof ChatException chatException) {
+            return chatException;
+        }
+        log.warn("zip 압축 해제 검사 실패: {}", e.toString());
         return new ChatException(ChatErrorCode.FILE_PARSE_FAILED);
     }
 }

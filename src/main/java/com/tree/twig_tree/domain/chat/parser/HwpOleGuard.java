@@ -52,7 +52,16 @@ final class HwpOleGuard {
         }
 
         // hwplib 에 포함된 구버전 POIFS 는 Closeable 이 아니다. 바이트 배열 기반이라 닫을 자원도 없다.
-        walk(fs.getRoot(), new InflationBudget(), false);
+        try {
+            walk(fs.getRoot(), new InflationBudget(), false);
+        } catch (ChatException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            // 블록 체인이 손상된 문서는 스트림을 여는 시점에 POIFS 가 비검사 예외를 던진다.
+            // (예: 선언된 크기는 양수인데 소형 스트림 체인이 비어 있으면 배열 범위 예외)
+            log.warn("HWP 스트림 순회 실패: {}", e.toString());
+            throw new ChatException(ChatErrorCode.FILE_PARSE_FAILED);
+        }
     }
 
     /** 배포용 문서를 검사할 수 있는지. 라이브러리 업그레이드 후 회귀를 테스트에서 잡기 위해 둔다. */
