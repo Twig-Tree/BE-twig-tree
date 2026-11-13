@@ -136,6 +136,17 @@ class MemberWithdrawIntegrationTest {
         verify(refreshTokenStore, org.mockito.Mockito.never()).deleteAll(Long.MAX_VALUE);
     }
 
+    @Test
+    @DisplayName("토큰 저장소가 AuthException 이 아닌 런타임 예외를 던져도 탈퇴는 성공한다")
+    void withdrawsEvenWhenTokenStoreThrowsUnexpectedException() {
+        Member target = register();
+        doThrow(new IllegalStateException("redis connection closed"))
+            .when(refreshTokenStore).deleteAll(target.getId());
+
+        assertThatCode(() -> authService.withdraw(target.getId())).doesNotThrowAnyException();
+        assertThat(memberRepository.findById(target.getId())).isEmpty();
+    }
+
     private Member register() {
         String providerId = UUID.randomUUID().toString();
         login(providerId);

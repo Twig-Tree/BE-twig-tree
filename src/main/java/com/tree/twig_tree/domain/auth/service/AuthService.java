@@ -108,8 +108,9 @@ public class AuthService {
 
         try {
             refreshTokenStore.deleteAll(memberId);
-        } catch (AuthException e) {
-            log.warn("탈퇴 회원의 refresh 토큰 폐기 실패, 재발급 시 회원 조회로 차단됩니다. memberId={}", memberId);
+        } catch (RuntimeException e) {
+            // DB 삭제는 이미 커밋됐으므로 어떤 예외든 탈퇴 실패로 올리지 않는다
+            log.warn("탈퇴 회원의 refresh 토큰 폐기 실패, 재발급 시 회원 조회로 차단됩니다. memberId={}", memberId, e);
         }
     }
 
