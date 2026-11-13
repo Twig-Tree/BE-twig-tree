@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -160,6 +161,55 @@ class PdfDocumentParserTest {
 
             assertThat(scan.decodedBytes()).isEqualTo(2 * MaliciousSamples.MB);
             assertThat(scan.chargedBytes()).isEqualTo(60 * MaliciousSamples.MB);
+        }
+    }
+
+    @Test
+    @DisplayName("한 페이지에 글리프가 몰려 있으면 모으는 단계에서 끊고 FILE_TEXT_TOO_LONG")
+    void stopsOnGlyphsConcentratedInOnePage() {
+        byte[] pdf = singlePageDenseTextPdf(PdfDocumentParser.MAX_GLYPH_CHARS + 1_000);
+
+        assertError(() -> parser.parse(pdf), ChatErrorCode.FILE_TEXT_TOO_LONG);
+    }
+
+    @Test
+    @DisplayName("글리프 상한은 페이지를 출력(writePage)하기 전, 글리프를 모으는 중에 걸린다")
+    void glyphLimitTriggersBeforeWritePage() throws Exception {
+        byte[] pdf = singlePageDenseTextPdf(PdfDocumentParser.MAX_GLYPH_CHARS + 1_000);
+
+        try (PDDocument document = Loader.loadPDF(pdf)) {
+            PdfDocumentParser.LimitedTextStripper stripper =
+                new PdfDocumentParser.LimitedTextStripper(PdfDocumentParser.MAX_GLYPH_CHARS);
+            StringWriter writer = new StringWriter();
+
+            assertThatThrownBy(() -> stripper.writeText(document, writer))
+                .isInstanceOf(PdfDocumentParser.LimitedTextStripper.LimitExceededException.class);
+            assertThat(stripper.limitExceeded()).isTrue();
+            assertThat(writer.toString()).isEmpty();
+        }
+    }
+
+    /** 한 페이지에 {@code glyphs} 개 이상의 글자를 1pt 글씨로 채운 PDF. */
+    private byte[] singlePageDenseTextPdf(int glyphs) {
+        String line = "a".repeat(1_000);
+        int lines = glyphs / line.length() + 1;
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+                content.beginText();
+                content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 1);
+                content.setLeading(1);
+                content.newLineAtOffset(20, 750);
+                for (int l = 0; l < lines; l++) {
+                    content.showText(line);
+                    content.newLine();
+                }
+                content.endText();
+            }
+            return toBytes(document);
+        } catch (Exception e) {
+            throw new IllegalStateException("테스트용 PDF 생성 실패", e);
         }
     }
 
