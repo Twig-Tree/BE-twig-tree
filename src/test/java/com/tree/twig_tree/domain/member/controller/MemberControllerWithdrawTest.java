@@ -1,8 +1,6 @@
 package com.tree.twig_tree.domain.member.controller;
 
 import com.tree.twig_tree.domain.auth.service.AuthService;
-import com.tree.twig_tree.domain.member.exception.MemberException;
-import com.tree.twig_tree.domain.member.exception.code.MemberErrorCode;
 import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.global.apiPayload.handler.GeneralExceptionAdvice;
 import com.tree.twig_tree.global.security.cookie.AuthCookieProperties;
@@ -23,7 +21,6 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -71,15 +68,5 @@ class MemberControllerWithdrawTest {
             .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"));
 
         verify(authService).withdraw(MEMBER_ID);
-    }
-
-    @Test
-    @DisplayName("이미 탈퇴한 회원이면 404 MEMBER404-1 이다")
-    void rejectsWithdrawnMember() throws Exception {
-        doThrow(new MemberException(MemberErrorCode.MEMBER_NOT_FOUND)).when(authService).withdraw(MEMBER_ID);
-
-        mockMvc.perform(delete("/members/me"))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.code").value("MEMBER404-1"));
     }
 }

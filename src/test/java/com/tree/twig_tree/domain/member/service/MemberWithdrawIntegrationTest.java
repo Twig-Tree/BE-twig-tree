@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -128,12 +129,13 @@ class MemberWithdrawIntegrationTest {
     }
 
     @Test
-    @DisplayName("없는 회원이 탈퇴하면 MEMBER_NOT_FOUND 이고 토큰 저장소를 건드리지 않는다")
-    void rejectsUnknownMember() {
-        assertThatThrownBy(() -> authService.withdraw(Long.MAX_VALUE))
-            .isInstanceOf(MemberException.class)
-            .extracting("errorCode").isEqualTo(MemberErrorCode.MEMBER_NOT_FOUND);
-        verify(refreshTokenStore, org.mockito.Mockito.never()).deleteAll(Long.MAX_VALUE);
+    @DisplayName("이미 탈퇴한 회원이 다시 탈퇴해도 성공하고, 남은 refresh 토큰 폐기를 다시 시도한다")
+    void withdrawIsIdempotent() {
+        Member target = register();
+        authService.withdraw(target.getId());
+
+        assertThatCode(() -> authService.withdraw(target.getId())).doesNotThrowAnyException();
+        verify(refreshTokenStore, times(2)).deleteAll(target.getId());
     }
 
     @Test
