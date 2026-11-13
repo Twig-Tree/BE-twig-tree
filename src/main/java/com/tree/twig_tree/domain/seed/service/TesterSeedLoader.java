@@ -4,7 +4,9 @@ import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.service.TreeValidator;
 import com.tree.twig_tree.domain.seed.dto.TesterSeedDTO;
 import com.tree.twig_tree.domain.seed.dto.TesterSeedDTO.SeedNode;
+import com.tree.twig_tree.domain.tag.entity.Tag;
 import com.tree.twig_tree.domain.tag.service.TagService;
+import com.tree.twig_tree.domain.workspace.entity.Workspace;
 import lombok.Getter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
@@ -27,8 +29,6 @@ import java.util.Set;
 public class TesterSeedLoader {
 
     static final String SEED_PATH = "seed/tester-tree.json";
-    private static final int WORKSPACE_NAME_MAX_LENGTH = 30;
-    private static final int TAG_NAME_MAX_LENGTH = 30;
 
     @Getter
     private final TesterSeedDTO seed;
@@ -51,9 +51,9 @@ public class TesterSeedLoader {
 
     static void validate(TesterSeedDTO seed, TreeValidator treeValidator) {
         String name = seed.workspaceName();
-        if (name == null || name.isBlank() || name.length() > WORKSPACE_NAME_MAX_LENGTH) {
+        if (name == null || name.isBlank() || name.length() > Workspace.NAME_MAX_LENGTH) {
             throw new IllegalStateException(
-                "테스터 시드의 워크스페이스 이름은 1~" + WORKSPACE_NAME_MAX_LENGTH + "자여야 합니다: " + name);
+                "테스터 시드의 워크스페이스 이름은 1~" + Workspace.NAME_MAX_LENGTH + "자여야 합니다: " + name);
         }
         if (seed.root() == null) {
             throw new IllegalStateException("테스터 시드에 루트 노드가 없습니다: " + SEED_PATH);
@@ -71,9 +71,9 @@ public class TesterSeedLoader {
     private static void validateTags(TesterSeedDTO seed) {
         Set<String> defined = new HashSet<>();
         for (String tag : seed.tags()) {
-            if (tag == null || tag.isBlank() || tag.length() > TAG_NAME_MAX_LENGTH) {
+            if (tag == null || tag.isBlank() || tag.length() > Tag.NAME_MAX_LENGTH) {
                 throw new IllegalStateException(
-                    "테스터 시드의 태그 이름은 1~" + TAG_NAME_MAX_LENGTH + "자여야 합니다: " + tag);
+                    "테스터 시드의 태그 이름은 1~" + Tag.NAME_MAX_LENGTH + "자여야 합니다: " + tag);
             }
             if (!defined.add(tag)) {
                 throw new IllegalStateException("테스터 시드에 같은 태그가 두 번 정의되어 있습니다: " + tag);

@@ -2,7 +2,6 @@ package com.tree.twig_tree.domain.chat.service;
 
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO;
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO.LlmNode;
-import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
@@ -28,9 +27,9 @@ public class TreeNodeWriter {
 
     private final NodeRepository nodeRepository;
 
-    /** 반환하는 응답 노드도 저장 순서(BFS)이므로 부모가 항상 자식보다 먼저 나온다. */
-    public List<TreeGenResDTO.Node> saveNodes(Tree tree, LlmTreeDTO llmTree) {
-        List<TreeGenResDTO.Node> resNodes = new ArrayList<>();
+    /** 저장된 엔티티를 저장 순서(BFS)대로 돌려주므로 부모가 항상 자식보다 먼저 나온다. 응답 변환은 호출자가 한다. */
+    public List<Node> saveNodes(Tree tree, LlmTreeDTO llmTree) {
+        List<Node> savedNodes = new ArrayList<>();
         Deque<PendingNode> queue = new ArrayDeque<>();
         queue.add(new PendingNode(llmTree.root(), null, 1L));
 
@@ -45,13 +44,7 @@ public class TreeNodeWriter {
                 .tree(tree)
                 .build());
 
-            resNodes.add(TreeGenResDTO.Node.builder()
-                .nodeId(saved.getId())
-                .name(saved.getName())
-                .memo(saved.getMemo())
-                .parentId(pending.parent() == null ? null : pending.parent().getId())
-                .orderId(saved.getOrderId())
-                .build());
+            savedNodes.add(saved);
 
             List<LlmNode> children = pending.dto().children();
             for (int i = 0; i < children.size(); i++) {
@@ -59,7 +52,7 @@ public class TreeNodeWriter {
             }
         }
 
-        return resNodes;
+        return savedNodes;
     }
 
     /** 저장을 기다리는 노드. 부모는 이미 저장된 엔티티이고, 순서는 형제 배열의 위치(1부터)다. */

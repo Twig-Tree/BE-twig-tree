@@ -1,11 +1,9 @@
 package com.tree.twig_tree.domain.seed.service;
 
-import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.service.TreeNodeWriter;
 import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.domain.node.entity.Node;
-import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.seed.dto.TesterSeedDTO;
 import com.tree.twig_tree.domain.seed.dto.TesterSeedDTO.SeedNode;
 import com.tree.twig_tree.domain.tag.entity.NodeTag;
@@ -48,7 +46,6 @@ public class TesterSeedService {
     private final WorkspaceRepository workspaceRepository;
     private final TreeRepository treeRepository;
     private final TreeNodeWriter treeNodeWriter;
-    private final NodeRepository nodeRepository;
     private final TagRepository tagRepository;
     private final NodeTagRepository nodeTagRepository;
     private final PlatformTransactionManager transactionManager;
@@ -80,7 +77,7 @@ public class TesterSeedService {
             .member(member)
             .build());
         Tree tree = treeRepository.save(Tree.builder().workspace(workspace).build());
-        List<TreeGenResDTO.Node> savedNodes = treeNodeWriter.saveNodes(tree, seed.toTree());
+        List<Node> savedNodes = treeNodeWriter.saveNodes(tree, seed.toTree());
         saveTags(tree, seed, savedNodes);
 
         log.info("테스터 시드 트리 생성 완료 memberId={}, workspaceId={}", member.getId(), workspace.getId());
@@ -92,7 +89,7 @@ public class TesterSeedService {
      * <p>TreeNodeWriter 는 노드를 BFS 순서로 저장해 같은 순서로 돌려주므로, 시드 노드를 BFS 로 나열하면
      * 저장된 노드와 위치로 짝지을 수 있다.
      */
-    private void saveTags(Tree tree, TesterSeedDTO seed, List<TreeGenResDTO.Node> savedNodes) {
+    private void saveTags(Tree tree, TesterSeedDTO seed, List<Node> savedNodes) {
         Map<String, Tag> tagsByName = new HashMap<>();
         for (String name : seed.tags()) {
             tagsByName.put(name, tagRepository.save(Tag.builder().name(name).tree(tree).build()));
@@ -109,7 +106,7 @@ public class TesterSeedService {
             if (tagNames.isEmpty()) {
                 continue;
             }
-            Node node = nodeRepository.getReferenceById(savedNodes.get(i).nodeId());
+            Node node = savedNodes.get(i);
             for (String tagName : tagNames) {
                 nodeTagRepository.save(NodeTag.builder().node(node).tag(tagsByName.get(tagName)).build());
             }

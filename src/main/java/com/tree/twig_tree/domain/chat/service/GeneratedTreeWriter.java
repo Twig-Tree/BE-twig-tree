@@ -6,6 +6,7 @@ import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
 import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.member.service.MemberService;
+import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
@@ -36,8 +37,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GeneratedTreeWriter {
 
-    private static final int WORKSPACE_NAME_MAX_LENGTH = 30;
-
     private final TreeRepository treeRepository;
     private final NodeRepository nodeRepository;
     private final TreeNodeWriter treeNodeWriter;
@@ -66,7 +65,7 @@ public class GeneratedTreeWriter {
         return TreeGenResDTO.builder()
             .treeId(tree.getId())
             .workspaceId(workspace.getId())
-            .nodes(treeNodeWriter.saveNodes(tree, llmTree))
+            .nodes(toResNodes(treeNodeWriter.saveNodes(tree, llmTree)))
             .build();
     }
 
@@ -101,7 +100,7 @@ public class GeneratedTreeWriter {
             throw new ChatException(ChatErrorCode.WORKSPACE_TREE_NOT_EMPTY);
         }
 
-        List<TreeGenResDTO.Node> resNodes = treeNodeWriter.saveNodes(tree, llmTree);
+        List<TreeGenResDTO.Node> resNodes = toResNodes(treeNodeWriter.saveNodes(tree, llmTree));
         workspaceRepository.touchById(workspaceId, Instant.now());
 
         return TreeGenResDTO.builder()
@@ -133,6 +132,19 @@ public class GeneratedTreeWriter {
         });
     }
 
+    /** 저장 순서(BFS)를 유지하므로 응답에서도 부모가 항상 자식보다 먼저 나온다. */
+    private static List<TreeGenResDTO.Node> toResNodes(List<Node> savedNodes) {
+        return savedNodes.stream()
+            .map(node -> TreeGenResDTO.Node.builder()
+                .nodeId(node.getId())
+                .name(node.getName())
+                .memo(node.getMemo())
+                .parentId(node.getParent() == null ? null : node.getParent().getId())
+                .orderId(node.getOrderId())
+                .build())
+            .toList();
+    }
+
     private void validateWorkspaceOwner(Long memberId, Workspace workspace) {
         if (!workspace.getMember().getId().equals(memberId)) {
             throw new WorkspaceException(WorkspaceErrorCode.WORKSPACE_ACCESS_DENIED);
@@ -162,7 +174,7 @@ public class GeneratedTreeWriter {
         String rootName = llmTree.root().name();
 
         String suffix = " #" + workspaceId;
-        int maxBaseLength = WORKSPACE_NAME_MAX_LENGTH - suffix.length();
+        int maxBaseLength = Workspace.NAME_MAX_LENGTH - suffix.length();
         String base = rootName.length() > maxBaseLength ? rootName.substring(0, maxBaseLength) : rootName;
         return base + suffix;
     }
