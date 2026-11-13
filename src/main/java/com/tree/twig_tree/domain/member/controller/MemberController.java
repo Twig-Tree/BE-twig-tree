@@ -44,7 +44,7 @@ public class MemberController {
     @Operation(summary = "회원 탈퇴",
             description = "로그인한 회원과 그 회원의 폴더·워크스페이스·트리를 모두 즉시 삭제하고, 모든 세션의 Refresh Token을 폐기한 뒤 refresh_token 쿠키를 삭제합니다.<br>"
                     + "삭제한 데이터는 복구할 수 없습니다. 같은 구글 계정으로 다시 로그인하면 새 회원으로 가입됩니다.<br>"
-                    + "이미 발급된 액세스 토큰은 만료(최대 30분)까지 남아 있지만, 회원 정보가 필요한 요청은 MEMBER404-1 로 실패합니다.<br>"
+                    + "탈퇴 후에는 이미 발급된 액세스 토큰으로 다른 API를 호출하면 401 AUTH401-6(탈퇴한 회원)으로 실패합니다.<br>"
                     + "이미 탈퇴한 회원이 다시 요청해도 같은 성공 응답을 주고 쿠키를 삭제합니다(재시도 안전).")
     public ResponseEntity<ApiResponse<Void>> withdraw(@AuthenticationPrincipal Long memberId) {
         authService.withdraw(memberId);
