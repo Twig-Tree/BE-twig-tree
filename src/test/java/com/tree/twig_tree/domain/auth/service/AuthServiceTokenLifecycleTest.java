@@ -53,7 +53,7 @@ class AuthServiceTokenLifecycleTest {
         store = new FakeRefreshTokenStore();
 
         // MemberService 는 재발급 시 role 을 다시 읽는 용도로만 쓰인다
-        MemberService memberService = new MemberService(null) {
+        MemberService memberService = new MemberService(null, null) {
             @Override
             public Member getById(Long memberId) {
                 return member;

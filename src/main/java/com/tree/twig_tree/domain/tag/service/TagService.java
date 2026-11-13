@@ -30,7 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TagService {
 
-    private static final int MAX_NODE_TAG_COUNT = 10;
+    public static final int MAX_NODE_TAG_COUNT = 10;
 
     private final TreeRepository treeRepository;
     private final NodeRepository nodeRepository;
