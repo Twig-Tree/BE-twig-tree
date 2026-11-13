@@ -9,6 +9,7 @@ import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -114,6 +116,97 @@ class PdfDocumentParserTest {
         byte[] pdf = denseTextPdf(PdfDocumentParser.MAX_EXTRACTED_LENGTH + 10_000);
 
         assertError(() -> parser.parse(pdf), ChatErrorCode.FILE_TEXT_TOO_LONG);
+    }
+
+    @Test
+    @DisplayName("여러 페이지가 같은 본문 스트림을 참조하면 한 번만 풀고, 참조마다 작업량에 센다")
+    void decodesSharedContentOnce() throws Exception {
+        byte[] pdf = pdfWithSharedContent(60, MaliciousSamples.MB);
+
+        try (PDDocument document = Loader.loadPDF(pdf)) {
+            PdfDecodeLimiter.PageContentScan scan = PdfDecodeLimiter.verifyPageContents(document);
+
+            assertThat(scan.decodedBytes()).isEqualTo(MaliciousSamples.MB);
+            assertThat(scan.chargedBytes()).isEqualTo(60 * MaliciousSamples.MB);
+        }
+        assertThat(parser.parse(pdf).strip()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("같은 본문 스트림을 반복 참조해 문서 전체 작업량이 상한을 넘으면 FILE_CONTENT_TOO_LARGE")
+    void rejectsRepeatedlySharedContent() {
+        long pages = PdfDecodeLimiter.MAX_PAGE_CONTENT_BYTES / MaliciousSamples.MB + 1;
+        byte[] pdf = pdfWithSharedContent((int) pages, MaliciousSamples.MB);
+
+        assertThat(pdf.length).isLessThan((int) MaliciousSamples.MB);
+        assertError(() -> parser.parse(pdf), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @Test
+    @DisplayName("본문 스트림마다는 상한 안쪽이어도 문서 전체가 상한을 넘으면 FILE_CONTENT_TOO_LARGE")
+    void rejectsHugeTotalContent() {
+        byte[] pdf = pdfWithDistinctContents(3, 40 * MaliciousSamples.MB);
+
+        assertError(() -> parser.parse(pdf), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @Test
+    @DisplayName("본문이 스트림 배열이어도 문서 전체 작업량에 센다")
+    void chargesContentArrays() throws Exception {
+        byte[] pdf = pdfWithSharedContentArray(30, MaliciousSamples.MB);
+
+        try (PDDocument document = Loader.loadPDF(pdf)) {
+            PdfDecodeLimiter.PageContentScan scan = PdfDecodeLimiter.verifyPageContents(document);
+
+            assertThat(scan.decodedBytes()).isEqualTo(2 * MaliciousSamples.MB);
+            assertThat(scan.chargedBytes()).isEqualTo(60 * MaliciousSamples.MB);
+        }
+    }
+
+    /** {@code pages} 개 페이지가 공백 {@code size} 바이트짜리 본문 스트림 하나를 함께 참조하는 PDF. */
+    private byte[] pdfWithSharedContent(int pages, long size) {
+        try (PDDocument document = new PDDocument()) {
+            PDStream shared = new PDStream(document, spaces(size), COSName.FLATE_DECODE);
+            for (int i = 0; i < pages; i++) {
+                PDPage page = new PDPage();
+                document.addPage(page);
+                page.setContents(shared);
+            }
+            return toBytes(document);
+        } catch (Exception e) {
+            throw new IllegalStateException("테스트용 PDF 생성 실패", e);
+        }
+    }
+
+    /** 페이지마다 공백 {@code size} 바이트짜리 본문 스트림을 따로 가진 PDF. */
+    private byte[] pdfWithDistinctContents(int pages, long size) {
+        try (PDDocument document = new PDDocument()) {
+            for (int i = 0; i < pages; i++) {
+                PDPage page = new PDPage();
+                document.addPage(page);
+                page.setContents(new PDStream(document, spaces(size), COSName.FLATE_DECODE));
+            }
+            return toBytes(document);
+        } catch (Exception e) {
+            throw new IllegalStateException("테스트용 PDF 생성 실패", e);
+        }
+    }
+
+    /** {@code pages} 개 페이지가 같은 본문 스트림 두 개를 배열로 함께 참조하는 PDF. */
+    private byte[] pdfWithSharedContentArray(int pages, long size) {
+        try (PDDocument document = new PDDocument()) {
+            List<PDStream> shared = List.of(
+                new PDStream(document, spaces(size), COSName.FLATE_DECODE),
+                new PDStream(document, spaces(size), COSName.FLATE_DECODE));
+            for (int i = 0; i < pages; i++) {
+                PDPage page = new PDPage();
+                document.addPage(page);
+                page.setContents(shared);
+            }
+            return toBytes(document);
+        } catch (Exception e) {
+            throw new IllegalStateException("테스트용 PDF 생성 실패", e);
+        }
     }
 
     /** 본문 스트림이 공백 {@code size} 바이트로 풀리는 PDF. 공백은 본문 문법상 유효하다. */
