@@ -9,8 +9,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum MemberSuccessCode implements BaseSuccessCode {
 
-    ME_FOUND(HttpStatus.OK, "MEMBER200-1", "성공적으로 내 정보를 조회했습니다."),
-    WITHDRAWN(HttpStatus.OK, "MEMBER200-2", "성공적으로 회원 탈퇴했습니다.");
+    ME_FOUND(HttpStatus.OK, "MEMBER200-1", "성공적으로 내 정보를 조회했습니다.");
 
     private final HttpStatus status;
     private final String code;
