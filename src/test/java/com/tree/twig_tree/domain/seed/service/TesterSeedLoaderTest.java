@@ -5,8 +5,10 @@ import com.tree.twig_tree.domain.seed.dto.TesterSeedDTO;
 import com.tree.twig_tree.domain.seed.dto.TesterSeedDTO.SeedNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -28,6 +30,26 @@ class TesterSeedLoaderTest {
         assertThat(seed.workspaceName()).isEqualTo("고구려");
         assertThat(seed.tags()).hasSize(7);
         assertThat(seed.nodesInBfsOrder()).hasSize(14);
+    }
+
+    @Test
+    @DisplayName("시드 JSON 문법이 틀리면 시드 파일 경로를 담은 IllegalStateException 으로 실패한다")
+    void rejectsMalformedJson() {
+        ByteArrayResource broken = new ByteArrayResource("{\"workspaceName\": ".getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> TesterSeedLoader.load(JsonMapper.builder().build(), broken))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining(TesterSeedLoader.SEED_PATH);
+    }
+
+    @Test
+    @DisplayName("시드 JSON 타입이 틀리면 시드 파일 경로를 담은 IllegalStateException 으로 실패한다")
+    void rejectsMismatchedJsonType() {
+        ByteArrayResource mismatched = new ByteArrayResource("{\"tags\": 1}".getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> TesterSeedLoader.load(JsonMapper.builder().build(), mismatched))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining(TesterSeedLoader.SEED_PATH);
     }
 
     @Test

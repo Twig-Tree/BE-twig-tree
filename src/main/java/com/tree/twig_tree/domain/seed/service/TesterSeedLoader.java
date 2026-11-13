@@ -8,7 +8,9 @@ import com.tree.twig_tree.domain.tag.service.TagService;
 import lombok.Getter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -18,10 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 테스터 시드 트리를 앱 기동 시점에 한 번 읽고 검증한다.
- *
- * <p>시드가 잘못되어 있으면 가입하는 순간이 아니라 배포 시점에 앱이 뜨지 않도록 여기서 실패시킨다.
- * 가입 트랜잭션 안에서 터지면 그 회원은 로그인 자체를 할 수 없기 때문이다.
+ * 테스터 시드 트리를 앱 기동 시점에 한 번 읽고 검증한다. 시드가 잘못되어 있으면 앱이 뜨지 않는다.
  */
 @Component
 @ConditionalOnProperty(name = "tester-seed.enabled", havingValue = "true")
@@ -35,15 +34,18 @@ public class TesterSeedLoader {
     private final TesterSeedDTO seed;
 
     public TesterSeedLoader(ObjectMapper objectMapper, TreeValidator treeValidator) {
-        this.seed = load(objectMapper);
+        this.seed = load(objectMapper, new ClassPathResource(SEED_PATH));
         validate(seed, treeValidator);
     }
 
-    private static TesterSeedDTO load(ObjectMapper objectMapper) {
-        try (InputStream is = new ClassPathResource(SEED_PATH).getInputStream()) {
+    static TesterSeedDTO load(ObjectMapper objectMapper, Resource resource) {
+        try (InputStream is = resource.getInputStream()) {
             return objectMapper.readValue(is, TesterSeedDTO.class);
         } catch (IOException e) {
             throw new IllegalStateException("테스터 시드 파일을 읽을 수 없습니다: " + SEED_PATH, e);
+        } catch (JacksonException e) {
+            // Jackson 3 은 파싱·매핑 오류를 IOException 이 아닌 런타임 예외로 던진다
+            throw new IllegalStateException("테스터 시드 파일의 JSON 이 올바르지 않습니다: " + SEED_PATH, e);
         }
     }
 
