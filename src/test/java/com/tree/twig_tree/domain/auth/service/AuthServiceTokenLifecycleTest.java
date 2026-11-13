@@ -60,7 +60,7 @@ class AuthServiceTokenLifecycleTest {
             }
         };
 
-        authService = new AuthService(null, memberService, jwtProvider, store);
+        authService = new AuthService(null, memberService, jwtProvider, store, null);
     }
 
     /** 로그인 직후 상태, 즉 저장소에 등록된 유효한 refresh 토큰을 만든다. */

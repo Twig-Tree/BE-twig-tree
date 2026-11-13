@@ -1,7 +1,6 @@
 package com.tree.twig_tree.domain.chat.service;
 
 import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO;
-import com.tree.twig_tree.domain.chat.dto.LlmTreeDTO.LlmNode;
 import com.tree.twig_tree.domain.chat.dto.TreeGenResDTO;
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
@@ -22,30 +21,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * 검증이 끝난 LLM 트리 DTO 를 실제 Tree/Node 엔티티로 저장한다.
  *
- * <p>부모가 먼저 persist 되어야 자식의 FK(parent_id)가 잡히므로, 루트부터 BFS 순서로 저장한다.
- * LLM 호출은 이 트랜잭션 밖에서 이뤄지도록 오케스트레이션(ChatService)에서 분리한다.
+ * <p>노드 저장(BFS)은 {@link TreeNodeWriter} 가 맡는다. LLM 호출은 이 트랜잭션 밖에서 이뤄지도록 오케스트레이션(ChatService)에서 분리한다.
  *
  * <p>저장 대상 워크스페이스는 두 가지다. {@link #save}는 트리를 담을 워크스페이스를 새로 만들고,
- * {@link #saveToWorkspace}는 사용자가 이미 만들어 둔 빈 워크스페이스를 채운다. 노드 저장(BFS)은 둘이 공유한다.
+ * {@link #saveToWorkspace}는 사용자가 이미 만들어 둔 빈 워크스페이스를 채운다.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeneratedTreeWriter {
 
-    private static final int WORKSPACE_NAME_MAX_LENGTH = 30;
-
     private final TreeRepository treeRepository;
     private final NodeRepository nodeRepository;
+    private final TreeNodeWriter treeNodeWriter;
     private final WorkspaceRepository workspaceRepository;
     private final MemberService memberService;
 
@@ -71,7 +65,7 @@ public class GeneratedTreeWriter {
         return TreeGenResDTO.builder()
             .treeId(tree.getId())
             .workspaceId(workspace.getId())
-            .nodes(saveNodes(tree, llmTree))
+            .nodes(toResNodes(treeNodeWriter.saveNodes(tree, llmTree)))
             .build();
     }
 
@@ -106,7 +100,7 @@ public class GeneratedTreeWriter {
             throw new ChatException(ChatErrorCode.WORKSPACE_TREE_NOT_EMPTY);
         }
 
-        List<TreeGenResDTO.Node> resNodes = saveNodes(tree, llmTree);
+        List<TreeGenResDTO.Node> resNodes = toResNodes(treeNodeWriter.saveNodes(tree, llmTree));
         workspaceRepository.touchById(workspaceId, Instant.now());
 
         return TreeGenResDTO.builder()
@@ -138,48 +132,23 @@ public class GeneratedTreeWriter {
         });
     }
 
+    /** 저장 순서(BFS)를 유지하므로 응답에서도 부모가 항상 자식보다 먼저 나온다. */
+    private static List<TreeGenResDTO.Node> toResNodes(List<Node> savedNodes) {
+        return savedNodes.stream()
+            .map(node -> TreeGenResDTO.Node.builder()
+                .nodeId(node.getId())
+                .name(node.getName())
+                .memo(node.getMemo())
+                .parentId(node.getParent() == null ? null : node.getParent().getId())
+                .orderId(node.getOrderId())
+                .build())
+            .toList();
+    }
+
     private void validateWorkspaceOwner(Long memberId, Workspace workspace) {
         if (!workspace.getMember().getId().equals(memberId)) {
             throw new WorkspaceException(WorkspaceErrorCode.WORKSPACE_ACCESS_DENIED);
         }
-    }
-
-    /**
-     * 트리의 노드를 루트부터 BFS 순서로 저장한다.
-     *
-     * <p>반환하는 응답 노드도 같은 순서이므로 부모가 항상 자식보다 먼저 나온다.
-     */
-    private List<TreeGenResDTO.Node> saveNodes(Tree tree, LlmTreeDTO llmTree) {
-        List<TreeGenResDTO.Node> resNodes = new ArrayList<>();
-        Deque<PendingNode> queue = new ArrayDeque<>();
-        queue.add(new PendingNode(llmTree.root(), null, 1L));
-
-        while (!queue.isEmpty()) {
-            PendingNode pending = queue.poll();
-
-            Node saved = nodeRepository.save(Node.builder()
-                .name(pending.dto().name())
-                .memo(pending.dto().memo())
-                .orderId(pending.orderId())
-                .parent(pending.parent())
-                .tree(tree)
-                .build());
-
-            resNodes.add(TreeGenResDTO.Node.builder()
-                .nodeId(saved.getId())
-                .name(saved.getName())
-                .memo(saved.getMemo())
-                .parentId(pending.parent() == null ? null : pending.parent().getId())
-                .orderId(saved.getOrderId())
-                .build());
-
-            List<LlmNode> children = pending.dto().children();
-            for (int i = 0; i < children.size(); i++) {
-                queue.add(new PendingNode(children.get(i), saved, i + 1L));
-            }
-        }
-
-        return resNodes;
     }
 
     /**
@@ -205,12 +174,8 @@ public class GeneratedTreeWriter {
         String rootName = llmTree.root().name();
 
         String suffix = " #" + workspaceId;
-        int maxBaseLength = WORKSPACE_NAME_MAX_LENGTH - suffix.length();
+        int maxBaseLength = Workspace.NAME_MAX_LENGTH - suffix.length();
         String base = rootName.length() > maxBaseLength ? rootName.substring(0, maxBaseLength) : rootName;
         return base + suffix;
-    }
-
-    /** 저장을 기다리는 노드. 부모는 이미 저장된 엔티티이고, 순서는 형제 배열의 위치(1부터)다. */
-    private record PendingNode(LlmNode dto, Node parent, long orderId) {
     }
 }

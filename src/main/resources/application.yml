@@ -70,6 +70,10 @@ dev:
   test-token:
     enabled: ${DEV_TEST_TOKEN_ENABLED:false}
 
+# 사용자 테스트용. 켜면 신규 가입 회원에게 resources/seed/tester-tree.json 의 트리를 넣어 준다.
+tester-seed:
+  enabled: ${TESTER_SEED_ENABLED:false}
+
 # Logging & Debugging
 logging:
   level:

@@ -19,25 +19,26 @@ public class MemberService {
 
     /**
      * 구글 sub(providerId) 기준으로 회원 조회, 없으면 자동 가입.
-     * 기존 회원이면 구글 프로필(이름/사진)을 최신값으로 갱신한다.
+     * 기존 회원이면 구글 프로필(이름/사진)을 최신값으로 갱신한다. 신규 가입 여부를 함께 돌려준다.
      */
     @Transactional
-    public Member findOrCreateByGoogle(String providerId, String email, String name, String profileImage) {
+    public FindOrCreateResult findOrCreateByGoogle(String providerId, String email, String name, String profileImage) {
         return memberRepository.findByProviderAndProviderId(Provider.GOOGLE, providerId)
                 .map(member -> {
                     member.updateProfile(name, profileImage);
-                    return member;
+                    return new FindOrCreateResult(member, false);
                 })
-                .orElseGet(() -> memberRepository.save(
-                        Member.builder()
-                                .email(email)
-                                .name(name)
-                                .profileImage(profileImage)
-                                .provider(Provider.GOOGLE)
-                                .providerId(providerId)
-                                .role(Role.ROLE_USER)
-                                .build()
-                ));
+                .orElseGet(() -> new FindOrCreateResult(memberRepository.save(Member.builder()
+                        .email(email)
+                        .name(name)
+                        .profileImage(profileImage)
+                        .provider(Provider.GOOGLE)
+                        .providerId(providerId)
+                        .role(Role.ROLE_USER)
+                        .build()), true));
+    }
+
+    public record FindOrCreateResult(Member member, boolean created) {
     }
 
     public Member getById(Long memberId) {

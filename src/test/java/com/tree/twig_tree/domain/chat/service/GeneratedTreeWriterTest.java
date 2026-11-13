@@ -43,7 +43,7 @@ class GeneratedTreeWriterTest {
         when(treeRepository.save(any(Tree.class))).thenAnswer(returnsFirstArg());
         when(nodeRepository.save(any(Node.class))).thenAnswer(returnsFirstArg());
         GeneratedTreeWriter writer =
-            new GeneratedTreeWriter(treeRepository, nodeRepository, workspaceRepository, memberService);
+            new GeneratedTreeWriter(treeRepository, nodeRepository, new TreeNodeWriter(nodeRepository), workspaceRepository, memberService);
 
         LlmTreeDTO tree = new LlmTreeDTO(new LlmNode("루트", "설명", List.of(
             new LlmNode("첫째", null, List.of(new LlmNode("손자", null, List.of()))),

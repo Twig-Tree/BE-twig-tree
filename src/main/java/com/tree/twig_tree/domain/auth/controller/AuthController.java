@@ -34,13 +34,15 @@ public class AuthController {
     private final RefreshTokenCookieFactory refreshTokenCookieFactory;
 
     @PostMapping("/google")
-    @Operation(summary = "구글 로그인", description = "구글 ID 토큰을 검증합니다. Access Token과 회원 정보는 응답 본문으로, Refresh Token은 HttpOnly 쿠키로 전달합니다. 첫 로그인 시 자동 가입됩니다.")
+    @Operation(summary = "구글 로그인", description = "구글 ID 토큰을 검증합니다. Access Token과 회원 정보는 응답 본문으로, Refresh Token은 HttpOnly 쿠키로 전달합니다. 첫 로그인 시 자동 가입됩니다.<br>"
+            + "테스터 시드가 켜진 환경에서 가입 시 시드 트리 생성에 실패하면 로그인은 성공하고 seedFailed=true 로 알립니다.")
     @PublicApi
     @ApiErrorCodeExample(value = AuthErrorCode.class, only = {"INVALID_GOOGLE_TOKEN", "TOKEN_STORE_UNAVAILABLE"})
     @ApiErrorCodeExample(value = GeneralErrorCode.class, only = "FORBIDDEN")
-    public ResponseEntity<ApiResponse<AuthResDTO.TokenResponse>> googleLogin(@RequestBody @Valid AuthReqDTO.GoogleLogin request) {
-        AuthResDTO.TokenPair tokens = authService.googleLogin(request.idToken());
-        AuthResDTO.TokenResponse data = new AuthResDTO.TokenResponse(tokens.accessToken(), tokens.member());
+    public ResponseEntity<ApiResponse<AuthResDTO.LoginResponse>> googleLogin(@RequestBody @Valid AuthReqDTO.GoogleLogin request) {
+        AuthResDTO.LoginResult login = authService.googleLogin(request.idToken());
+        AuthResDTO.TokenPair tokens = login.tokens();
+        AuthResDTO.LoginResponse data = new AuthResDTO.LoginResponse(tokens.accessToken(), tokens.member(), login.seedFailed());
         return ResponseEntity.status(AuthSuccessCode.LOGIN_OK.getStatus())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookieFactory.create(tokens.refreshToken()).toString())
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")

@@ -7,6 +7,7 @@ import com.tree.twig_tree.domain.auth.service.GoogleIdTokenVerifier.GoogleUserIn
 import com.tree.twig_tree.domain.member.converter.MemberConverter;
 import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.member.service.MemberService;
+import com.tree.twig_tree.domain.seed.service.TesterSeedService;
 import com.tree.twig_tree.global.security.jwt.JwtProvider;
 import com.tree.twig_tree.global.security.jwt.RefreshTokenStore;
 import com.tree.twig_tree.global.security.jwt.TokenType;
@@ -15,6 +16,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -26,21 +28,30 @@ public class AuthService {
     private final MemberService memberService;
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
+    /** tester-seed.enabled=true 일 때만 빈이 있다 */
+    private final ObjectProvider<TesterSeedService> testerSeedService;
 
     /**
-     * 구글 로그인: ID 토큰 검증 -> 회원 조회/자동가입 -> 자체 토큰 발급.
+     * 구글 로그인: ID 토큰 검증 -> 회원 조회/자동가입 -> (신규면) 테스터 시드 트리 생성 -> 자체 토큰 발급.
+     * 시드는 가입이 커밋된 뒤 만들며, 실패해도 로그인은 성공시키고 seedFailed 로 알린다.
      */
-    public AuthResDTO.TokenPair googleLogin(String idToken) {
+    public AuthResDTO.LoginResult googleLogin(String idToken) {
         GoogleUserInfo userInfo = googleIdTokenVerifier.verify(idToken);
 
-        Member member = memberService.findOrCreateByGoogle(
+        MemberService.FindOrCreateResult result = memberService.findOrCreateByGoogle(
                 userInfo.providerId(),
                 userInfo.email(),
                 userInfo.name(),
                 userInfo.profileImage()
         );
 
-        return issueTokens(member);
+        boolean seedFailed = false;
+        if (result.created()) {
+            TesterSeedService seeder = testerSeedService.getIfAvailable();
+            seedFailed = seeder != null && !seeder.seed(result.member().getId());
+        }
+
+        return new AuthResDTO.LoginResult(issueTokens(result.member()), seedFailed);
     }
 
     /**
