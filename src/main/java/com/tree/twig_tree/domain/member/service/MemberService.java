@@ -58,4 +58,16 @@ public class MemberService {
         return memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
+
+    /**
+     * 회원을 즉시 삭제한다(하드 삭제).
+     *
+     * <p>폴더·워크스페이스와 그 아래 트리·노드·태그는 DB FK 의 ON DELETE CASCADE 로 함께 지워진다.
+     * 회원 행을 먼저 잠가, 진행 중인 폴더 계층 변경 요청과 겹치지 않게 한다.
+     * 이미 없는 회원이면 아무것도 하지 않는다(탈퇴 재요청을 성공으로 처리하기 위해).
+     */
+    @Transactional
+    public void delete(Long memberId) {
+        memberRepository.findByIdForUpdate(memberId).ifPresent(memberRepository::delete);
+    }
 }
