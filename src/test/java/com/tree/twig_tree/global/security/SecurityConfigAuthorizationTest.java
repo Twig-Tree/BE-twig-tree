@@ -1,6 +1,7 @@
 package com.tree.twig_tree.global.security;
 
 import com.tree.twig_tree.domain.member.entity.enums.Role;
+import com.tree.twig_tree.domain.member.repository.MemberRepository;
 import com.tree.twig_tree.global.security.handler.JwtAccessDeniedHandler;
 import com.tree.twig_tree.global.security.handler.JwtAuthenticationEntryPoint;
 import com.tree.twig_tree.global.security.jwt.JwtAuthenticationFilter;
@@ -61,6 +62,7 @@ class SecurityConfigAuthorizationTest {
 
     private static final String SECRET =
             Base64.getEncoder().encodeToString("test-secret-key-for-security-config-test-48bytes!!".getBytes());
+    static final Long WITHDRAWN_MEMBER_ID = 999L;
 
     @EnableWebMvc
     @Configuration
@@ -79,6 +81,15 @@ class SecurityConfigAuthorizationTest {
         @Bean
         JwtProperties jwtProperties() {
             return new JwtProperties(SECRET, 1_800_000L, 1_209_600_000L);
+        }
+
+        // 인가 규칙만 본다. WITHDRAWN_MEMBER_ID 외의 회원은 모두 존재하는 것으로 둔다
+        @Bean
+        MemberRepository memberRepository() {
+            MemberRepository repository = org.mockito.Mockito.mock(MemberRepository.class);
+            org.mockito.Mockito.when(repository.existsById(org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
+            org.mockito.Mockito.when(repository.existsById(WITHDRAWN_MEMBER_ID)).thenReturn(false);
+            return repository;
         }
 
         @Bean
@@ -144,6 +155,15 @@ class SecurityConfigAuthorizationTest {
 
         mockMvc.perform(get("/trees").header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void 탈퇴한_회원의_액세스_토큰이면_401_AUTH401_6이다() throws Exception {
+        String token = jwtProvider.createAccessToken(WITHDRAWN_MEMBER_ID, Role.ROLE_USER);
+
+        mockMvc.perform(get("/trees").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH401-6"));
     }
 
     /**
