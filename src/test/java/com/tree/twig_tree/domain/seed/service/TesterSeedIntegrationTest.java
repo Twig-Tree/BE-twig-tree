@@ -17,6 +17,7 @@ import com.tree.twig_tree.domain.tree.entity.Tree;
 import com.tree.twig_tree.domain.tree.repository.TreeRepository;
 import com.tree.twig_tree.domain.workspace.entity.Workspace;
 import com.tree.twig_tree.domain.workspace.repository.WorkspaceRepository;
+import com.tree.twig_tree.global.security.jwt.RefreshTokenStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +64,9 @@ class TesterSeedIntegrationTest {
     private TreeNodeWriter treeNodeWriter;
     @MockitoBean
     private GoogleIdTokenVerifier googleIdTokenVerifier;
+    // 토큰 저장은 이 테스트의 관심사가 아니다. Redis 없이(CI) 돌도록 대체한다
+    @MockitoBean
+    private RefreshTokenStore refreshTokenStore;
 
     @Test
     @DisplayName("신규 가입 회원에게 최상위 '고구려' 워크스페이스와 시드 트리가 생긴다")
