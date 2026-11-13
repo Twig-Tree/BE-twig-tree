@@ -2,11 +2,13 @@ package com.tree.twig_tree.domain.chat.parser;
 
 import com.tree.twig_tree.domain.chat.exception.ChatException;
 import com.tree.twig_tree.domain.chat.exception.code.ChatErrorCode;
+import kr.dogfoot.hwplib.object.fileheader.FileHeader;
 import kr.dogfoot.hwplib.org.apache.poi.poifs.filesystem.DirectoryEntry;
 import kr.dogfoot.hwplib.org.apache.poi.poifs.filesystem.DocumentEntry;
 import kr.dogfoot.hwplib.org.apache.poi.poifs.filesystem.DocumentInputStream;
 import kr.dogfoot.hwplib.org.apache.poi.poifs.filesystem.Entry;
 import kr.dogfoot.hwplib.org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import kr.dogfoot.hwplib.reader.ForFileHeader;
 import kr.dogfoot.hwplib.util.compoundFile.reader.StreamReader;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Set;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
@@ -26,15 +29,24 @@ import java.util.zip.InflaterInputStream;
  * 여기서는 플래그를 따지지 않고 모든 스트림을 raw deflate 로 풀어본다. 압축되지 않은 스트림은
  * 금방 형식 오류가 나서 원래 크기 이하만 세고 끝난다.
  *
- * <p>배포용 문서는 본문이 {@code ViewText} 아래에 AES 로 암호화된 뒤 압축되어 있다. 복호화는
- * hwplib 내부 메서드를 그대로 써야 똑같이 풀리므로 리플렉션으로 호출한다. 라이브러리 업그레이드로
- * 메서드를 찾지 못하면 배포용 문서는 검사할 수 없으니 받지 않는다.
+ * <p>배포용 문서는 일부 스트림이 AES 로 암호화된 뒤 압축되어 있다. hwplib 1.1.10 은 파일 헤더의
+ * 배포용 플래그가 켜져 있으면 {@code ViewText/Section*} 와 {@code Scripts/DefaultJScript} ·
+ * {@code Scripts/JScriptVersion} 을 복호화한 뒤 푼다. 암호문 그대로 풀어보면 형식 오류로 끝나 크기를
+ * 재지 못하므로, 이 스트림들은 같은 방식으로 복호화한 뒤 검사한다. 배포용 여부와 복호화는 hwplib
+ * 과 똑같이 판단해야 하므로 hwplib 코드를 그대로 쓰고, 복호화 메서드는 private 이라 리플렉션으로
+ * 호출한다. 라이브러리 업그레이드로 메서드를 찾지 못하면 배포용 문서는 검사할 수 없으니 받지 않는다.
  */
 @Slf4j
 final class HwpOleGuard {
 
-    /** 배포용 문서의 본문 스토리지. 이 아래 스트림은 암호화되어 있다. */
-    private static final String DISTRIBUTION_STORAGE = "ViewText";
+    private static final String FILE_HEADER = "FileHeader";
+
+    /** 배포용 문서의 본문 스토리지. 이 아래 스트림은 모두 암호화되어 있다. */
+    private static final String VIEW_TEXT = "ViewText";
+
+    /** 스크립트 스토리지. 배포용 문서에서는 이 아래 두 스트림이 암호화되어 있다. */
+    private static final String SCRIPTS = "Scripts";
+    private static final Set<String> ENCRYPTED_SCRIPTS = Set.of("DefaultJScript", "JScriptVersion");
 
     /** hwplib 의 {@code StreamReader.documentInputStream(DocumentEntry, boolean)} — 복호화된(압축 상태) 스트림. */
     private static final Method DISTRIBUTION_STREAM = resolveDistributionStream();
@@ -53,7 +65,8 @@ final class HwpOleGuard {
 
         // hwplib 에 포함된 구버전 POIFS 는 Closeable 이 아니다. 바이트 배열 기반이라 닫을 자원도 없다.
         try {
-            walk(fs.getRoot(), new InflationBudget(), false);
+            DirectoryEntry root = fs.getRoot();
+            walk(root, new InflationBudget(), isDistribution(root), 0);
         } catch (ChatException e) {
             throw e;
         } catch (RuntimeException e) {
@@ -69,14 +82,46 @@ final class HwpOleGuard {
         return DISTRIBUTION_STREAM != null;
     }
 
-    private static void walk(DirectoryEntry directory, InflationBudget budget, boolean encrypted) {
+    /**
+     * 파일 헤더의 배포용 플래그. hwplib 과 같은 코드로 읽는다.
+     * 헤더가 없거나 읽을 수 없으면 hwplib 도 파싱에 실패하므로, 일반 문서로 보고 검사만 계속한다.
+     */
+    private static boolean isDistribution(DirectoryEntry root) {
+        try {
+            if (!root.hasEntry(FILE_HEADER)) {
+                return false;
+            }
+            DocumentEntry entry = (DocumentEntry) root.getEntry(FILE_HEADER);
+            StreamReader reader = StreamReader.create(entry, false, false, null);
+            try {
+                FileHeader header = new FileHeader();
+                ForFileHeader.read(header, reader);
+                return header.isDistribution();
+            } finally {
+                reader.close();
+            }
+        } catch (Exception e) {
+            log.debug("HWP 파일 헤더 읽기 실패: {}", e.toString());
+            return false;
+        }
+    }
+
+    /** {@code depth} 는 루트가 0 이다. hwplib 은 루트 바로 아래 스토리지만 읽는다. */
+    private static void walk(DirectoryEntry directory, InflationBudget budget, boolean distribution, int depth) {
         for (Entry entry : directory) {
             if (entry instanceof DirectoryEntry child) {
-                walk(child, budget, encrypted || DISTRIBUTION_STORAGE.equals(child.getName()));
+                walk(child, budget, distribution, depth + 1);
             } else if (entry instanceof DocumentEntry document) {
+                boolean encrypted = distribution && depth == 1 && isEncryptedStream(directory.getName(), document.getName());
                 inflate(document, budget, encrypted);
             }
         }
+    }
+
+    /** 배포용 문서에서 hwplib 이 복호화한 뒤 푸는 스트림인지. */
+    private static boolean isEncryptedStream(String storage, String stream) {
+        return VIEW_TEXT.equals(storage)
+            || (SCRIPTS.equals(storage) && ENCRYPTED_SCRIPTS.contains(stream));
     }
 
     /**

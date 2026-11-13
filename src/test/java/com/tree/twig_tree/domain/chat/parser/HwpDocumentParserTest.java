@@ -9,6 +9,8 @@ import kr.dogfoot.hwplib.tool.blankfilemaker.BlankFileMaker;
 import kr.dogfoot.hwplib.writer.HWPWriter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -58,6 +60,24 @@ class HwpDocumentParserTest {
     @DisplayName("압축을 풀면 상한을 넘는 스트림이 있으면 hwplib 에 넘기기 전에 FILE_CONTENT_TOO_LARGE")
     void rejectsInflatedStream() {
         byte[] bomb = MaliciousSamples.hwpWithInflatedSection(MaliciousSamples.OVER_ENTRY_LIMIT);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DefaultJScript", "JScriptVersion"})
+    @DisplayName("배포용 문서의 암호화된 스크립트도 복호화한 뒤 풀어보고, 상한을 넘으면 FILE_CONTENT_TOO_LARGE")
+    void rejectsInflatedDistributionScript(String scriptName) {
+        byte[] bomb = MaliciousSamples.hwpWithInflatedScript(scriptName, MaliciousSamples.OVER_ENTRY_LIMIT, true);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DefaultJScript", "JScriptVersion"})
+    @DisplayName("일반 문서의 스크립트는 복호화 없이 풀어보고, 상한을 넘으면 FILE_CONTENT_TOO_LARGE")
+    void rejectsInflatedScript(String scriptName) {
+        byte[] bomb = MaliciousSamples.hwpWithInflatedScript(scriptName, MaliciousSamples.OVER_ENTRY_LIMIT, false);
 
         assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
     }

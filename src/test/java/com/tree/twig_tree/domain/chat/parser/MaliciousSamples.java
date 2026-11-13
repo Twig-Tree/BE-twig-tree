@@ -1,6 +1,10 @@
 package com.tree.twig_tree.domain.chat.parser;
 
 import kr.dogfoot.hwplib.org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import kr.dogfoot.hwplib.util.binary.Obfuscation;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,6 +12,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.util.Arrays;
+import java.util.Random;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.ZipEntry;
@@ -89,6 +97,65 @@ final class MaliciousSamples {
             throw new IllegalStateException("테스트용 OLE 생성 실패", e);
         }
     }
+
+    /**
+     * {@code Scripts/<scriptName>} 스트림이 {@code size} 바이트로 풀리는 OLE 복합문서.
+     *
+     * <p>{@code distribution} 이면 파일 헤더에 배포용 플래그를 켜고, 스크립트를 hwplib 1.1.10 의
+     * 배포용 형식(레코드 헤더 4바이트 + 난독화된 256바이트 + AES/ECB 암호문)으로 암호화한다.
+     * 아니면 raw deflate 만 한다.
+     */
+    static byte[] hwpWithInflatedScript(String scriptName, long size, boolean distribution) {
+        try {
+            byte[] compressed = rawDeflatedZeros(size);
+            POIFSFileSystem fs = new POIFSFileSystem();
+            fs.createDocument(new ByteArrayInputStream(hwpFileHeader(distribution)), "FileHeader");
+            fs.createDirectory("Scripts").createDocument(scriptName,
+                new ByteArrayInputStream(distribution ? encryptForDistribution(compressed) : compressed));
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            fs.writeFilesystem(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException("테스트용 OLE 생성 실패", e);
+        }
+    }
+
+    /** 압축 플래그를 켠 HWP 5.0 파일 헤더(256바이트). */
+    private static byte[] hwpFileHeader(boolean distribution) {
+        ByteBuffer header = ByteBuffer.allocate(256).order(ByteOrder.LITTLE_ENDIAN);
+        header.put("HWP Document File".getBytes(StandardCharsets.US_ASCII));
+        header.position(32);
+        header.putInt(0x05000300);                               // 버전 5.0.3.0
+        header.putInt(COMPRESSED | (distribution ? DISTRIBUTION : 0));
+        return header.array();
+    }
+
+    private static byte[] encryptForDistribution(byte[] payload) {
+        byte[] data = new byte[256];
+        new Random(38).nextBytes(data);                          // 앞 4바이트가 난독화 시드가 된다
+        int keyOffset = 4 + (data[0] & 0x0F);
+        byte[] key = Arrays.copyOfRange(data, keyOffset, keyOffset + 16);
+
+        // 난독화는 시드로 만든 값과 XOR 하는 변환이라, 한 번 더 적용하면 원래대로 돌아간다.
+        byte[] obfuscated = data.clone();
+        Obfuscation.transform(obfuscated);
+
+        try {
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"));
+            ByteBuffer stream = ByteBuffer.allocate(4 + 256 + payload.length + 16).order(ByteOrder.LITTLE_ENDIAN);
+            stream.putInt(HWPTAG_DISTRIBUTE_DOC_DATA | (256 << 20));
+            stream.put(obfuscated);
+            stream.put(cipher.doFinal(payload));
+            return Arrays.copyOf(stream.array(), stream.position());
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("테스트용 배포용 스트림 암호화 실패", e);
+        }
+    }
+
+    private static final int COMPRESSED = 1;
+    private static final int DISTRIBUTION = 1 << 2;
+    private static final int HWPTAG_DISTRIBUTE_DOC_DATA = 0x10 + 12;
 
     /**
      * 소형 스트림 {@code DocInfo} 의 크기는 그대로 두고, 소형 스트림이 담기는 루트 엔트리의 블록 체인만
