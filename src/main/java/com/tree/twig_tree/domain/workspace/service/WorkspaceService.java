@@ -168,6 +168,34 @@ public class WorkspaceService {
     }
 
     /**
+     * 워크스페이스 위치 이동
+     * @param workspaceId 이동할 워크스페이스
+     * @param dto folderId 가 null 이면 폴더에 속하지 않는 최상위로 이동
+     * @return
+     */
+    @Transactional
+    public WorkspaceResDTO.GetWorkspace moveWorkspace(Long memberId, Long workspaceId, WorkspaceReqDTO.MoveWorkspace dto) {
+        Workspace workspace = validateWorkspace(workspaceId);
+        validateWorkspaceOwner(memberId, workspace);
+
+        Folder newFolder = null;
+        if (dto.folderId() != null) {
+            newFolder = validateFolder(dto.folderId());
+            validateFolderOwner(memberId, newFolder);
+        }
+
+        // folder 가 바뀌면 BaseEntity 의 @LastModifiedDate 가 updatedAt 을 갱신하므로
+        // 이동한 워크스페이스는 최근 목록 맨 앞으로 올라갑니다.
+        workspace.moveTo(newFolder);
+        // 목적지에 같은 이름의 워크스페이스가 있으면 커밋 전에 DUPLICATE_WORKSPACE_NAME 으로 드러냅니다.
+        workspaceRepository.flush();
+
+        Long treeId = treeRepository.findByWorkspace(workspace).map(Tree::getId).orElse(null);
+
+        return WorkspaceConverter.toGetWorkspace(workspace, treeId);
+    }
+
+    /**
      * 워크스페이스 삭제
      * @param workspaceId
      * @return

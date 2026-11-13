@@ -8,10 +8,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@DynamicUpdate
 @Entity
 @Getter
 @Builder
@@ -56,6 +58,11 @@ public class Folder extends BaseEntity {
             throw new IllegalArgumentException("폴더 제목은 공백일 수 없습니다.");
         }
         this.name = newName;
+    }
+
+    // 폴더 위치 이동 (newParent 가 null 이면 최상위 루트)
+    public void moveTo(Folder newParent) {
+        this.parent = newParent;
     }
 
 

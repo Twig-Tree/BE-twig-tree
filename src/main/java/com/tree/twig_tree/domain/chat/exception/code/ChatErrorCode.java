@@ -21,6 +21,7 @@ public enum ChatErrorCode implements BaseErrorCode {
     FILE_ENCRYPTED(HttpStatus.BAD_REQUEST, "CHAT400-10", "암호가 설정된 문서는 읽을 수 없습니다. 암호를 해제한 뒤 업로드해주세요."),
     MESSAGE_TOO_LONG(HttpStatus.BAD_REQUEST, "CHAT400-11", "요청 메시지가 너무 깁니다. 500자 이내로 줄여주세요."),
     INVALID_MOCK_SCENARIO(HttpStatus.BAD_REQUEST, "CHAT400-12", "허용되지 않는 형식의 mock 시나리오입니다. 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다."),
+    WORKSPACE_TREE_NOT_EMPTY(HttpStatus.CONFLICT, "CHAT409-1", "이 워크스페이스에는 이미 노드가 있는 트리가 있습니다. 비어 있는 워크스페이스에만 AI 로 트리를 생성할 수 있습니다."),
     FILE_CONTENT_TOO_LARGE(HttpStatus.BAD_REQUEST, "CHAT400-13", "압축을 푼 문서 내용이 너무 큽니다. 문서를 나누어 업로드해주세요."),
     LLM_CALL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CHAT500-1", "AI 모델 호출에 실패했습니다."),
     TREE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CHAT500-2", "생성된 트리를 저장하지 못했습니다. 다시 시도해주세요."),
