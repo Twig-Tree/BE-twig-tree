@@ -14,6 +14,9 @@ public interface DocumentParser {
     /** 모든 지원 파일 형식에 적용하는 기본 크기 상한(25 MiB). */
     long DEFAULT_MAX_BYTES = 25L * 1024L * 1024L;
 
+    /** 본문 길이 상한. LLM 컨텍스트 한계와 호출 비용을 고려한 값. */
+    int MAX_TEXT_LENGTH = 50_000;
+
     /** 이 파서가 처리하는 확장자. 소문자로 반환한다. */
     Set<String> supportedExtensions();
 

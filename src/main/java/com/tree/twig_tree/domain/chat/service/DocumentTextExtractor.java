@@ -28,8 +28,8 @@ import java.util.TreeSet;
 @Component
 public class DocumentTextExtractor {
 
-    /** 본문 길이 상한. LLM 컨텍스트 한계와 호출 비용을 고려한 값. */
-    static final int MAX_TEXT_LENGTH = 50_000;
+    /** 본문 길이 상한. 파서가 추출 도중 끊을 때도 같은 값을 쓰도록 {@link DocumentParser} 에 둔다. */
+    static final int MAX_TEXT_LENGTH = DocumentParser.MAX_TEXT_LENGTH;
 
     /** 확장자 → 담당 파서. 스프링이 주입한 구현체로부터 한 번만 만든다. */
     private final Map<String, DocumentParser> parsersByExtension;

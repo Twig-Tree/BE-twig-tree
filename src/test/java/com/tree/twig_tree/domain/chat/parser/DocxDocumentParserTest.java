@@ -57,6 +57,14 @@ class DocxDocumentParserTest {
         assertThat(parser.supportedExtensions()).containsExactly("docx");
     }
 
+    @Test
+    @DisplayName("압축을 풀면 상한을 넘는 docx 는 POI 에 넘기기 전에 FILE_CONTENT_TOO_LARGE")
+    void rejectsZipBomb() {
+        byte[] bomb = MaliciousSamples.zipOfZeros(MaliciousSamples.OVER_ENTRY_LIMIT);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
     private byte[] docx(String... paragraphs) {
         try (XWPFDocument document = new XWPFDocument()) {
             for (String text : paragraphs) {

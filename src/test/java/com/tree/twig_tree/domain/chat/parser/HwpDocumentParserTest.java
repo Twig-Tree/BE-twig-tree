@@ -9,6 +9,8 @@ import kr.dogfoot.hwplib.tool.blankfilemaker.BlankFileMaker;
 import kr.dogfoot.hwplib.writer.HWPWriter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -52,6 +54,46 @@ class HwpDocumentParserTest {
         byte[] garbage = "이건 그냥 텍스트입니다".getBytes(StandardCharsets.UTF_8);
 
         assertError(() -> parser.parse(garbage), ChatErrorCode.FILE_PARSE_FAILED);
+    }
+
+    @Test
+    @DisplayName("압축을 풀면 상한을 넘는 스트림이 있으면 hwplib 에 넘기기 전에 FILE_CONTENT_TOO_LARGE")
+    void rejectsInflatedStream() {
+        byte[] bomb = MaliciousSamples.hwpWithInflatedSection(MaliciousSamples.OVER_ENTRY_LIMIT);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DefaultJScript", "JScriptVersion"})
+    @DisplayName("배포용 문서의 암호화된 스크립트도 복호화한 뒤 풀어보고, 상한을 넘으면 FILE_CONTENT_TOO_LARGE")
+    void rejectsInflatedDistributionScript(String scriptName) {
+        byte[] bomb = MaliciousSamples.hwpWithInflatedScript(scriptName, MaliciousSamples.OVER_ENTRY_LIMIT, true);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DefaultJScript", "JScriptVersion"})
+    @DisplayName("일반 문서의 스크립트는 복호화 없이 풀어보고, 상한을 넘으면 FILE_CONTENT_TOO_LARGE")
+    void rejectsInflatedScript(String scriptName) {
+        byte[] bomb = MaliciousSamples.hwpWithInflatedScript(scriptName, MaliciousSamples.OVER_ENTRY_LIMIT, false);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @Test
+    @DisplayName("블록 체인이 손상되어 스트림을 열 때 비검사 예외가 나면 FILE_PARSE_FAILED")
+    void brokenBlockChain() {
+        byte[] broken = MaliciousSamples.hwpWithEmptyMiniStreamChain();
+
+        assertError(() -> parser.parse(broken), ChatErrorCode.FILE_PARSE_FAILED);
+    }
+
+    @Test
+    @DisplayName("배포용 문서 복호화 메서드를 찾는다 — hwplib 업그레이드로 깨지면 여기서 잡힌다")
+    void canVerifyDistributionDocuments() {
+        assertThat(HwpOleGuard.canVerifyDistributionDocuments()).isTrue();
     }
 
     @Test
