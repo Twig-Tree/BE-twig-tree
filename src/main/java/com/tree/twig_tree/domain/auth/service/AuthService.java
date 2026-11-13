@@ -96,6 +96,23 @@ public class AuthService {
         refreshTokenStore.delete(jwtProvider.getMemberId(claims), claims.getId());
     }
 
+    /**
+     * 회원 탈퇴: 회원과 소유 데이터를 삭제한 뒤 모든 refresh 토큰을 폐기한다.
+     *
+     * <p>DB 삭제가 커밋된 다음에 토큰을 지운다. 순서를 바꾸면 삭제가 실패했을 때 로그아웃만 된 채로 남는다.
+     * 토큰 폐기가 실패해도 탈퇴는 성공으로 본다. 남은 refresh 토큰은 재발급 때 회원 조회에서 막힌다.
+     * 이미 발급된 access 토큰은 만료까지 유효하지만, 회원을 조회하는 API 에서 404 가 난다.
+     */
+    public void withdraw(Long memberId) {
+        memberService.delete(memberId);
+
+        try {
+            refreshTokenStore.deleteAll(memberId);
+        } catch (AuthException e) {
+            log.warn("탈퇴 회원의 refresh 토큰 폐기 실패, 재발급 시 회원 조회로 차단됩니다. memberId={}", memberId);
+        }
+    }
+
     private AuthResDTO.TokenPair issueTokens(Member member) {
         String accessToken = jwtProvider.createAccessToken(member.getId(), member.getRole());
         JwtProvider.IssuedToken refreshToken = jwtProvider.createRefreshToken(member.getId());
