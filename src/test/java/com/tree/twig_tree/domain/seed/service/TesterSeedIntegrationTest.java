@@ -1,11 +1,14 @@
 package com.tree.twig_tree.domain.seed.service;
 
 import com.tree.twig_tree.TestcontainersConfiguration;
+import com.tree.twig_tree.domain.auth.dto.AuthResDTO;
+import com.tree.twig_tree.domain.auth.service.AuthService;
+import com.tree.twig_tree.domain.auth.service.GoogleIdTokenVerifier;
+import com.tree.twig_tree.domain.auth.service.GoogleIdTokenVerifier.GoogleUserInfo;
 import com.tree.twig_tree.domain.chat.service.TreeNodeWriter;
 import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.member.entity.enums.Provider;
 import com.tree.twig_tree.domain.member.repository.MemberRepository;
-import com.tree.twig_tree.domain.member.service.MemberService;
 import com.tree.twig_tree.domain.node.entity.Node;
 import com.tree.twig_tree.domain.node.repository.NodeRepository;
 import com.tree.twig_tree.domain.tag.entity.Tag;
@@ -20,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.util.List;
@@ -28,14 +32,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 /**
  * 실제 PostgreSQL 에서 신규 가입 시 테스터 시드 트리가 만들어지는지 검증한다.
- * 가입과 시드가 한 트랜잭션으로 묶이는지(함께 롤백되는지)는 DB 없이 확인할 수 없다.
+ * 시드 실패가 가입을 되돌리지 않는지(트랜잭션 분리)는 DB 없이 확인할 수 없다.
  */
 @SpringBootTest(properties = "tester-seed.enabled=true")
 @ActiveProfiles("test")
@@ -43,7 +47,7 @@ import static org.mockito.Mockito.reset;
 class TesterSeedIntegrationTest {
 
     @Autowired
-    private MemberService memberService;
+    private AuthService authService;
     @Autowired
     private MemberRepository memberRepository;
     @Autowired
@@ -57,12 +61,17 @@ class TesterSeedIntegrationTest {
 
     @MockitoSpyBean
     private TreeNodeWriter treeNodeWriter;
+    @MockitoBean
+    private GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Test
     @DisplayName("신규 가입 회원에게 최상위 '고구려' 워크스페이스와 시드 트리가 생긴다")
     void seedsTreeOnRegistration() {
-        Member member = signUp(UUID.randomUUID().toString());
+        String providerId = UUID.randomUUID().toString();
+        AuthResDTO.LoginResult login = login(providerId);
+        Member member = member(providerId);
 
+        assertThat(login.seedFailed()).isFalse();
         List<Workspace> workspaces = workspaceRepository.findAllByFolderIsNullAndMember_IdOrderByUpdatedAtDesc(member.getId());
         assertThat(workspaces).extracting(Workspace::getName).containsExactly("고구려");
 
@@ -102,32 +111,47 @@ class TesterSeedIntegrationTest {
     @DisplayName("기존 회원이 다시 로그인하면 시드 트리를 또 만들지 않는다")
     void doesNotSeedAgainOnLogin() {
         String providerId = UUID.randomUUID().toString();
-        Member member = signUp(providerId);
+        login(providerId);
+        Member member = member(providerId);
 
-        signUp(providerId);
-
+        assertThat(login(providerId).seedFailed()).isFalse();
         assertThat(workspaceRepository.findAllByFolderIsNullAndMember_IdOrderByUpdatedAtDesc(member.getId()))
             .hasSize(1);
     }
 
     @Test
-    @DisplayName("시드 저장이 실패하면 가입도 롤백되고, 다음 로그인에서 다시 시도된다")
-    void rollsBackRegistrationWhenSeedFails() {
+    @DisplayName("시드 저장이 실패해도 로그인은 성공해 seedFailed 로 알리고, 시드에서 만든 데이터만 롤백된다")
+    void keepsRegistrationWhenSeedFails() {
         String providerId = UUID.randomUUID().toString();
         doThrow(new IllegalStateException("시드 저장 실패")).when(treeNodeWriter).saveNodes(any(), any());
 
-        assertThatThrownBy(() -> signUp(providerId)).isInstanceOf(IllegalStateException.class);
-        assertThat(memberRepository.findByProviderAndProviderId(Provider.GOOGLE, providerId)).isEmpty();
+        AuthResDTO.LoginResult login;
+        try {
+            login = login(providerId);
+        } finally {
+            reset(treeNodeWriter);
+        }
 
-        reset(treeNodeWriter);
-        Member member = signUp(providerId);
-
+        assertThat(login.seedFailed()).isTrue();
+        assertThat(login.tokens().accessToken()).isNotBlank();
+        Member member = member(providerId);
+        // 노드 저장 전에 만든 워크스페이스·트리도 시드 트랜잭션과 함께 롤백된다
         assertThat(workspaceRepository.findAllByFolderIsNullAndMember_IdOrderByUpdatedAtDesc(member.getId()))
-            .extracting(Workspace::getName).containsExactly("고구려");
+            .isEmpty();
+
+        // 다시 시도하지 않으므로 다음 로그인에서는 알리지 않는다
+        assertThat(login(providerId).seedFailed()).isFalse();
     }
 
-    private Member signUp(String providerId) {
-        return memberService.findOrCreateByGoogle(providerId, "seed-" + providerId + "@test.com", "테스터", null);
+    private AuthResDTO.LoginResult login(String providerId) {
+        String idToken = "id-token-" + providerId;
+        when(googleIdTokenVerifier.verify(idToken))
+            .thenReturn(new GoogleUserInfo(providerId, "seed-" + providerId + "@test.com", "테스터", null));
+        return authService.googleLogin(idToken);
+    }
+
+    private Member member(String providerId) {
+        return memberRepository.findByProviderAndProviderId(Provider.GOOGLE, providerId).orElseThrow();
     }
 
     private Node child(Node parent, String name) {

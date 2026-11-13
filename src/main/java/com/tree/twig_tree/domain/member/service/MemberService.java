@@ -3,12 +3,10 @@ package com.tree.twig_tree.domain.member.service;
 import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.member.entity.enums.Provider;
 import com.tree.twig_tree.domain.member.entity.enums.Role;
-import com.tree.twig_tree.domain.member.event.MemberRegisteredEvent;
 import com.tree.twig_tree.domain.member.exception.MemberException;
 import com.tree.twig_tree.domain.member.exception.code.MemberErrorCode;
 import com.tree.twig_tree.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,37 +16,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
 
     private final MemberRepository memberRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 구글 sub(providerId) 기준으로 회원 조회, 없으면 자동 가입.
-     * 기존 회원이면 구글 프로필(이름/사진)을 최신값으로 갱신하고, 신규 회원이면 가입 이벤트를 발행한다.
+     * 기존 회원이면 구글 프로필(이름/사진)을 최신값으로 갱신한다. 신규 가입 여부를 함께 돌려준다.
      */
     @Transactional
-    public Member findOrCreateByGoogle(String providerId, String email, String name, String profileImage) {
+    public FindOrCreateResult findOrCreateByGoogle(String providerId, String email, String name, String profileImage) {
         return memberRepository.findByProviderAndProviderId(Provider.GOOGLE, providerId)
                 .map(member -> {
                     member.updateProfile(name, profileImage);
-                    return member;
+                    return new FindOrCreateResult(member, false);
                 })
-                .orElseGet(() -> register(Member.builder()
+                .orElseGet(() -> new FindOrCreateResult(memberRepository.save(Member.builder()
                         .email(email)
                         .name(name)
                         .profileImage(profileImage)
                         .provider(Provider.GOOGLE)
                         .providerId(providerId)
                         .role(Role.ROLE_USER)
-                        .build()));
+                        .build()), true));
     }
 
-    /**
-     * 신규 회원을 저장하고 가입 이벤트를 발행한다.
-     * 리스너는 이 트랜잭션 안에서 동기로 실행되므로, 리스너가 실패하면 가입도 롤백된다.
-     */
-    private Member register(Member member) {
-        Member saved = memberRepository.save(member);
-        eventPublisher.publishEvent(new MemberRegisteredEvent(saved.getId()));
-        return saved;
+    public record FindOrCreateResult(Member member, boolean created) {
     }
 
     public Member getById(Long memberId) {

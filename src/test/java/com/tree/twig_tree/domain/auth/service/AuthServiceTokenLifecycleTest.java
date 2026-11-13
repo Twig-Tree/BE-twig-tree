@@ -53,14 +53,14 @@ class AuthServiceTokenLifecycleTest {
         store = new FakeRefreshTokenStore();
 
         // MemberService 는 재발급 시 role 을 다시 읽는 용도로만 쓰인다
-        MemberService memberService = new MemberService(null, null) {
+        MemberService memberService = new MemberService(null) {
             @Override
             public Member getById(Long memberId) {
                 return member;
             }
         };
 
-        authService = new AuthService(null, memberService, jwtProvider, store);
+        authService = new AuthService(null, memberService, jwtProvider, store, null);
     }
 
     /** 로그인 직후 상태, 즉 저장소에 등록된 유효한 refresh 토큰을 만든다. */
