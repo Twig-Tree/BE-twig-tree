@@ -42,7 +42,7 @@ class GeneratedTreeWriterCollisionTest {
 
     @Test
     void 워크스페이스_저장중_제약조건_위반이_TREE_SAVE_FAILED로_변환된다() {
-        GeneratedTreeWriter writer = new GeneratedTreeWriter(treeRepository, nodeRepository, workspaceRepository, memberService);
+        GeneratedTreeWriter writer = new GeneratedTreeWriter(treeRepository, nodeRepository, new TreeNodeWriter(nodeRepository), workspaceRepository, memberService);
 
         when(workspaceRepository.save(any(Workspace.class)))
             .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint \"uk_workspace_root_name\""));

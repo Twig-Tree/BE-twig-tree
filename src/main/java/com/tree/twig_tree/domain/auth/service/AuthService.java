@@ -7,6 +7,7 @@ import com.tree.twig_tree.domain.auth.service.GoogleIdTokenVerifier.GoogleUserIn
 import com.tree.twig_tree.domain.member.converter.MemberConverter;
 import com.tree.twig_tree.domain.member.entity.Member;
 import com.tree.twig_tree.domain.member.service.MemberService;
+import com.tree.twig_tree.domain.seed.service.TesterSeedService;
 import com.tree.twig_tree.global.security.jwt.JwtProvider;
 import com.tree.twig_tree.global.security.jwt.RefreshTokenStore;
 import com.tree.twig_tree.global.security.jwt.TokenType;
@@ -15,6 +16,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -26,21 +28,30 @@ public class AuthService {
     private final MemberService memberService;
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
+    /** tester-seed.enabled=true 일 때만 빈이 있다 */
+    private final ObjectProvider<TesterSeedService> testerSeedService;
 
     /**
-     * 구글 로그인: ID 토큰 검증 -> 회원 조회/자동가입 -> 자체 토큰 발급.
+     * 구글 로그인: ID 토큰 검증 -> 회원 조회/자동가입 -> (신규면) 테스터 시드 트리 생성 -> 자체 토큰 발급.
+     * 시드는 가입이 커밋된 뒤 만들며, 실패해도 로그인은 성공시키고 seedFailed 로 알린다.
      */
-    public AuthResDTO.TokenPair googleLogin(String idToken) {
+    public AuthResDTO.LoginResult googleLogin(String idToken) {
         GoogleUserInfo userInfo = googleIdTokenVerifier.verify(idToken);
 
-        Member member = memberService.findOrCreateByGoogle(
+        MemberService.FindOrCreateResult result = memberService.findOrCreateByGoogle(
                 userInfo.providerId(),
                 userInfo.email(),
                 userInfo.name(),
                 userInfo.profileImage()
         );
 
-        return issueTokens(member);
+        boolean seedFailed = false;
+        if (result.created()) {
+            TesterSeedService seeder = testerSeedService.getIfAvailable();
+            seedFailed = seeder != null && !seeder.seed(result.member().getId());
+        }
+
+        return new AuthResDTO.LoginResult(issueTokens(result.member()), seedFailed);
     }
 
     /**
@@ -83,6 +94,27 @@ public class AuthService {
         }
 
         refreshTokenStore.delete(jwtProvider.getMemberId(claims), claims.getId());
+    }
+
+    /**
+     * 회원 탈퇴: 회원과 소유 데이터를 삭제한 뒤 모든 refresh 토큰을 폐기한다.
+     *
+     * <p>DB 삭제가 커밋된 다음에 토큰을 지운다. 순서를 바꾸면 삭제가 실패했을 때 로그아웃만 된 채로 남는다.
+     * 토큰 폐기가 실패해도 탈퇴는 성공으로 본다. 남은 refresh 토큰은 재발급 때 회원 조회에서 막힌다.
+     * 이미 발급된 access 토큰은 만료까지 서명이 유효하지만, 인증 필터가 회원 존재를 확인해 AUTH401-6 으로 막는다.
+     *
+     * <p>멱등하다. 이미 탈퇴한 회원이 다시 요청해도(첫 응답 유실 후 재시도 등) 성공으로 처리하고,
+     * 지난번에 남았을 수 있는 refresh 토큰 폐기를 다시 시도한다.
+     */
+    public void withdraw(Long memberId) {
+        memberService.delete(memberId);
+
+        try {
+            refreshTokenStore.deleteAll(memberId);
+        } catch (RuntimeException e) {
+            // DB 삭제는 이미 커밋됐으므로 어떤 예외든 탈퇴 실패로 올리지 않는다
+            log.warn("탈퇴 회원의 refresh 토큰 폐기 실패, 재발급 시 회원 조회로 차단됩니다. memberId={}", memberId, e);
+        }
     }
 
     private AuthResDTO.TokenPair issueTokens(Member member) {

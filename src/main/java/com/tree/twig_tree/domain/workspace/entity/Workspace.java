@@ -19,12 +19,15 @@ import org.hibernate.annotations.DynamicUpdate;
 @Table(name = "workspaces")
 public class Workspace extends BaseEntity {
 
+    /** 이름 최대 길이. DB 컬럼 길이이자 API·시드·자동 생성 이름의 검증 기준이다. */
+    public static final int NAME_MAX_LENGTH = 30;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "workspace_id")
     private Long id;
 
-    @Column(length = 30, nullable = false)
+    @Column(length = NAME_MAX_LENGTH, nullable = false)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
