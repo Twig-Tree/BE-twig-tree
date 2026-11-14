@@ -17,6 +17,8 @@ import java.util.Set;
  *
  * <p>구형 바이너리 {@code .doc} 는 별도 포맷이라 지원하지 않는다. 확장자만 docx 로 바꾼
  * doc 파일은 파싱 단계에서 걸러진다.
+ *
+ * <p>docx 는 zip 컨테이너라 POI 에 넘기기 전에 {@link ZipBombGuard} 로 압축 해제 크기를 먼저 검사한다.
  */
 @Slf4j
 @Component
@@ -29,6 +31,8 @@ public class DocxDocumentParser implements DocumentParser {
 
     @Override
     public String parse(byte[] bytes) {
+        ZipBombGuard.verifyStream(bytes);
+
         try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bytes));
              XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
             return extractor.getText();

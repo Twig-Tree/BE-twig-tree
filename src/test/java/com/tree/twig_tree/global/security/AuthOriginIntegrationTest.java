@@ -83,7 +83,7 @@ class AuthOriginIntegrationTest {
     void allowedOriginCanLoginRefreshAndLogoutWithoutCsrfToken() throws Exception {
         MemberResDTO.Me member = new MemberResDTO.Me(1L, "user@example.com", "사용자", null);
         when(authService.googleLogin("google-token"))
-                .thenReturn(new AuthResDTO.TokenPair("access-1", "refresh-1", member));
+                .thenReturn(new AuthResDTO.LoginResult(new AuthResDTO.TokenPair("access-1", "refresh-1", member), false));
         when(authService.reissue("refresh-1"))
                 .thenReturn(new AuthResDTO.TokenPair("access-2", "refresh-2", member));
 

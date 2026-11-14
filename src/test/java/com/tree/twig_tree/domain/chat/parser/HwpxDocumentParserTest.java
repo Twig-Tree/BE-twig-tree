@@ -47,6 +47,25 @@ class HwpxDocumentParserTest {
     }
 
     @Test
+    @DisplayName("압축을 풀면 상한을 넘는 hwpx 는 hwpxlib 에 넘기기 전에 FILE_CONTENT_TOO_LARGE")
+    void rejectsZipBomb() {
+        byte[] bomb = MaliciousSamples.zipOfZeros(MaliciousSamples.OVER_ENTRY_LIMIT);
+
+        assertError(() -> parser.parse(bomb), ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+    }
+
+    @Test
+    @DisplayName("압축 해제 상한에 걸려도 임시 파일을 남기지 않는다")
+    void cleansUpTempFileOnZipBomb() {
+        long before = countTempUploads();
+
+        assertError(() -> parser.parse(MaliciousSamples.zipOfZeros(MaliciousSamples.OVER_ENTRY_LIMIT)),
+            ChatErrorCode.FILE_CONTENT_TOO_LARGE);
+
+        assertThat(countTempUploads()).isEqualTo(before);
+    }
+
+    @Test
     @DisplayName("hwpx 확장자를 담당한다")
     void supportsHwpx() {
         assertThat(parser.supportedExtensions()).containsExactly("hwpx");

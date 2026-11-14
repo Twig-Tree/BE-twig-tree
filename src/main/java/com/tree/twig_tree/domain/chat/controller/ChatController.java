@@ -123,6 +123,7 @@ public class ChatController {
     @ApiErrorCodeExample(value = ChatErrorCode.class,
             only = {"INPUT_REQUIRED", "UNSUPPORTED_FILE_TYPE", "FILE_TOO_LARGE",
                     "FILE_TEXT_TOO_LONG", "FILE_EMPTY", "FILE_READ_FAILED", "FILE_PARSE_FAILED", "FILE_ENCRYPTED",
+                    "FILE_CONTENT_TOO_LARGE",
                     "UNSUPPORTED_PROVIDER", "LLM_CALL_FAILED", "LLM_TIMEOUT", "LLM_RESPONSE_INVALID",
                     "TREE_SAVE_FAILED", "INVALID_MOCK_SCENARIO"})
     @PostMapping(path = "/tree-request", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

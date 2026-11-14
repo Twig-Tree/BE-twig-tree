@@ -66,7 +66,7 @@ class GeneratedTreeWriterWorkspaceTest {
 
     @BeforeEach
     void setUp() {
-        writer = new GeneratedTreeWriter(treeRepository, nodeRepository, workspaceRepository, memberService);
+        writer = new GeneratedTreeWriter(treeRepository, nodeRepository, new TreeNodeWriter(nodeRepository), workspaceRepository, memberService);
 
         // 저장 mock 이 식별자를 부여하지 않으면 응답의 treeId·nodeId·parentId 가 모두 null 이어도
         // 테스트가 통과한다. 실제 save 처럼 id 를 채워, 응답에 식별자가 실리는지까지 검증한다.

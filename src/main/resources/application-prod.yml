@@ -24,3 +24,8 @@ cors:
   allowed-origins:
     - https://app.twig-tree.com
     - https://api.twig-tree.com
+
+# 사용자 테스트 기간 동안 신규 가입 회원에게 시드 트리(resources/seed/tester-tree.json)를 넣어 준다.
+# 테스트가 끝나면 이 설정을 지우고 다시 배포한다.
+tester-seed:
+  enabled: true

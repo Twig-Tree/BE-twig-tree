@@ -1,6 +1,7 @@
 package com.tree.twig_tree.global.security.jwt;
 
 import com.tree.twig_tree.domain.auth.exception.code.AuthErrorCode;
+import com.tree.twig_tree.domain.member.repository.MemberRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -9,6 +10,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,8 +30,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String WITHDRAW_PATH = "/members/me";
 
     private final JwtProvider jwtProvider;
+    private final MemberRepository memberRepository;
 
     @Override
     protected void doFilterInternal(
@@ -49,8 +53,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     throw new JwtException("access 토큰이 아닙니다.");
                 }
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(createAuthentication(claims));
+                Authentication authentication = createAuthentication(claims);
+
+                // access 토큰은 탈퇴 후에도 만료까지 서명이 유효하다. 회원이 남아 있는지 확인해 막는다
+                if (!isWithdrawRequest(request) && !memberRepository.existsById((Long) authentication.getPrincipal())) {
+                    request.setAttribute(AUTH_ERROR_ATTRIBUTE, AuthErrorCode.WITHDRAWN_MEMBER);
+                } else {
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             } catch (ExpiredJwtException e) {
                 request.setAttribute(AUTH_ERROR_ATTRIBUTE, AuthErrorCode.EXPIRED_ACCESS_TOKEN);
             } catch (JwtException | IllegalArgumentException e) {
@@ -59,6 +69,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 탈퇴 API 는 회원이 이미 없어도 통과시킨다.
+     * 첫 응답이 유실돼 재시도한 클라이언트도 성공 응답과 쿠키 삭제를 받아야 하기 때문이다(탈퇴는 멱등).
+     */
+    private boolean isWithdrawRequest(HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        return HttpMethod.DELETE.matches(request.getMethod()) && WITHDRAW_PATH.equals(path);
     }
 
     // Bearer ... 형식에서 토큰만 추출

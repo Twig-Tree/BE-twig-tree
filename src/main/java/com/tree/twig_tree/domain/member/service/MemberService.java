@@ -19,25 +19,26 @@ public class MemberService {
 
     /**
      * 구글 sub(providerId) 기준으로 회원 조회, 없으면 자동 가입.
-     * 기존 회원이면 구글 프로필(이름/사진)을 최신값으로 갱신한다.
+     * 기존 회원이면 구글 프로필(이름/사진)을 최신값으로 갱신한다. 신규 가입 여부를 함께 돌려준다.
      */
     @Transactional
-    public Member findOrCreateByGoogle(String providerId, String email, String name, String profileImage) {
+    public FindOrCreateResult findOrCreateByGoogle(String providerId, String email, String name, String profileImage) {
         return memberRepository.findByProviderAndProviderId(Provider.GOOGLE, providerId)
                 .map(member -> {
                     member.updateProfile(name, profileImage);
-                    return member;
+                    return new FindOrCreateResult(member, false);
                 })
-                .orElseGet(() -> memberRepository.save(
-                        Member.builder()
-                                .email(email)
-                                .name(name)
-                                .profileImage(profileImage)
-                                .provider(Provider.GOOGLE)
-                                .providerId(providerId)
-                                .role(Role.ROLE_USER)
-                                .build()
-                ));
+                .orElseGet(() -> new FindOrCreateResult(memberRepository.save(Member.builder()
+                        .email(email)
+                        .name(name)
+                        .profileImage(profileImage)
+                        .provider(Provider.GOOGLE)
+                        .providerId(providerId)
+                        .role(Role.ROLE_USER)
+                        .build()), true));
+    }
+
+    public record FindOrCreateResult(Member member, boolean created) {
     }
 
     public Member getById(Long memberId) {
@@ -56,5 +57,17 @@ public class MemberService {
     public Member lockById(Long memberId) {
         return memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    /**
+     * 회원을 즉시 삭제한다(하드 삭제).
+     *
+     * <p>폴더·워크스페이스와 그 아래 트리·노드·태그는 DB FK 의 ON DELETE CASCADE 로 함께 지워진다.
+     * 회원 행을 먼저 잠가, 진행 중인 폴더 계층 변경 요청과 겹치지 않게 한다.
+     * 이미 없는 회원이면 아무것도 하지 않는다(탈퇴 재요청을 성공으로 처리하기 위해).
+     */
+    @Transactional
+    public void delete(Long memberId) {
+        memberRepository.findByIdForUpdate(memberId).ifPresent(memberRepository::delete);
     }
 }

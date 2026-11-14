@@ -17,6 +17,9 @@ import java.util.Set;
  *
  * <p>표준 라이브러리가 없어 서드파티 hwplib 에 의존한다. 암호 문서와 DRM 문서는 본문을 읽을 수
  * 없으므로 파싱 전에 헤더에서 걸러낸다.
+ *
+ * <p>hwplib 은 압축된 스트림을 통째로 풀어 메모리에 올리므로, 넘기기 전에 {@link HwpOleGuard} 로
+ * 압축 해제 크기를 먼저 검사한다.
  */
 @Slf4j
 @Component
@@ -29,6 +32,7 @@ public class HwpDocumentParser implements DocumentParser {
 
     @Override
     public String parse(byte[] bytes) {
+        HwpOleGuard.verify(bytes);
         return extractFrom(read(bytes));
     }
 

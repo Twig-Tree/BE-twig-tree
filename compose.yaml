@@ -44,6 +44,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
       DEV_TEST_TOKEN_ENABLED: ${DEV_TEST_TOKEN_ENABLED:-false}
+      TESTER_SEED_ENABLED: ${TESTER_SEED_ENABLED:-false}
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70.0 -XX:InitialRAMPercentage=40.0"
     restart: unless-stopped
     mem_limit: 600m

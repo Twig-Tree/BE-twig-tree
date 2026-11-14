@@ -57,7 +57,7 @@ class AuthControllerTest {
     void loginReturnsAccessTokenInBodyAndRefreshTokenOnlyInCookie() throws Exception {
         MemberResDTO.Me member = new MemberResDTO.Me(1L, "user@example.com", "사용자", null);
         when(authService.googleLogin("google-id-token"))
-                .thenReturn(new AuthResDTO.TokenPair("access-value", "refresh-value", member));
+                .thenReturn(new AuthResDTO.LoginResult(new AuthResDTO.TokenPair("access-value", "refresh-value", member), false));
 
         var result = mockMvc.perform(post("/auth/google")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -67,6 +67,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value("AUTH200-1"))
                 .andExpect(jsonPath("$.data.accessToken").value("access-value"))
                 .andExpect(jsonPath("$.data.member.memberId").value(1))
+                .andExpect(jsonPath("$.data.seedFailed").value(false))
                 .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
                 .andReturn();
