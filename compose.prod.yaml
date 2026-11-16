@@ -56,6 +56,11 @@ services:
     image: ${APP_IMAGE:?APP_IMAGE must be an immutable ECR image tagged with a commit SHA}
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # 사용자 테스트 기간 동안 신규 가입 회원에게 시드 트리(resources/seed/tester-tree.json)를 넣어 준다.
+      # 운영에서 이 기능을 켜고 끄는 곳은 여기 한 곳이다. 테스트가 끝나면 이 줄을 지우고 다시 배포한다.
+      # application-prod.yml 에 두면 안 된다. compose.yaml 이 이 변수를 기본값 false 로 컨테이너에 넣고,
+      # Spring 은 OS 환경 변수를 yml 보다 우선하므로 yml 의 값이 무시된다.
+      TESTER_SEED_ENABLED: "true"
       # 힙은 비율(-XX:MaxRAMPercentage)이 아니라 절대값으로 고정한다.
       # 이 환경에서는 JVM 의 컨테이너 한도 인식이 실패하므로, 비율로 주면
       # 호스트 RAM 기준으로 힙을 잡아 한도를 계속 치면서 스왑으로 밀린다.
