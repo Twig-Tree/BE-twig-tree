@@ -34,8 +34,8 @@ final class TreeEvalReport {
 
         if (runs.stream().anyMatch(run -> run.judgement() != null)) {
             out.append("\n## LLM 채점 (참고용 근사치)\n\n");
-            table(out, groups, List.of("채점 수", "MECE", "추상화 일관성", "학습 순서", "껍데기 비율", "범용 노드 비율",
-                "문서 근거 없는 노드 비율"), TreeEvalReport::judgementRow);
+            table(out, groups, List.of("채점 수", "MECE", "추상화 일관성", "학습 순서", "구체성", "정보성", "껍데기 비율",
+                "범용 노드 비율", "문서 근거 없는 노드 비율"), TreeEvalReport::judgementRow);
         }
         return out.toString();
     }
@@ -97,6 +97,8 @@ final class TreeEvalReport {
             decimal(runs, judged, run -> run.judgement().mece(), 2),
             decimal(runs, judged, run -> run.judgement().granularity(), 2),
             decimal(runs, judged, run -> run.judgement().ordering(), 2),
+            decimal(runs, judged, run -> run.judgement().specificity(), 2),
+            decimal(runs, judged, run -> run.judgement().informativeness(), 2),
             percentAverage(runs, judged, run -> nodeRatio(run, run.judgement().shellNodeCount())),
             percentAverage(runs, judged, run -> nodeRatio(run, run.judgement().genericNodeCount())),
             percentAverage(runs, documentJudged, run -> nodeRatio(run, run.judgement().ungroundedNodeCount()))
