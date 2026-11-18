@@ -22,12 +22,14 @@ final class TreeEvalJudge {
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["mece", "granularity", "ordering", "shellNodeCount", "ungroundedNodeCount", "comment"],
+          "required": ["mece", "granularity", "ordering", "shellNodeCount", "genericNodeCount", "ungroundedNodeCount",
+                       "comment"],
           "properties": {
             "mece": {"type": "integer"},
             "granularity": {"type": "integer"},
             "ordering": {"type": "integer"},
             "shellNodeCount": {"type": "integer"},
+            "genericNodeCount": {"type": "integer"},
             "ungroundedNodeCount": {"type": ["integer", "null"]},
             "comment": {"type": "string"}
           }
@@ -45,6 +47,9 @@ final class TreeEvalJudge {
 
         개수는 다음 기준으로 센다.
         - shellNodeCount: 부모와 사실상 같은 뜻이라 없어도 되는 중간 노드의 수
+        - genericNodeCount: 이름이 어느 주제의 트리에나 붙을 수 있어, 이름만 보고는 무엇을 배우는지 알 수 없는 노드의 수.
+          예: 개요, 특징, 장단점, 활용, 핵심 개념, 심화. 부모 이름을 앞에 붙였을 뿐인 이름(예: 스택의 특징)도 센다.
+          "퀵 정렬", "TCP 3-way 핸드셰이크"처럼 이름만으로 학습 대상이 특정되는 노드는 세지 않는다.
         - ungroundedNodeCount: <document> 가 있으면 문서에서 근거를 찾을 수 없는 노드의 수, 없으면 null
         - comment: 가장 큰 품질 문제를 한국어 한 문장으로 쓴다
         """;

@@ -158,7 +158,7 @@ class TreeEvalRunnerTest {
     @Test
     @DisplayName("리포트는 실패를 준수율 분모에 포함하고 평균은 성공만으로 계산한다")
     void reportAggregates() {
-        TreeMetrics metrics = new TreeMetrics(20, 4, 12, 2, 1, 0, 10);
+        TreeMetrics metrics = new TreeMetrics(20, 4, 12, 2, 1, 3, 0, 10);
         List<TreeEvalRun> runs = List.of(
             new TreeEvalRun("a", "topic", 1, 2, Outcome.SUCCESS, "m", "stop", 1, 100, 2000, metrics, true, true,
                 null, "{}", null),
@@ -169,7 +169,7 @@ class TreeEvalRunnerTest {
 
         assertThat(report)
             .contains("| topic | 2 | 50.0% | 0 | 0 | 0 | 0 | 1 | 0 | 100 | 31.0 | 60.0 | 1 |")
-            .contains("| topic | 50.0% | 50.0% | 20.0 | 4.0 | 10.0% | 1.00 | 0.00 | 50.0% |")
+            .contains("| topic | 50.0% | 50.0% | 20.0 | 4.0 | 10.0% | 1.00 | 3.00 | 0.00 | 50.0% |")
             .doesNotContain("LLM 채점");
     }
 }

@@ -24,7 +24,7 @@ class TreeMetricsTest {
     @Test
     @DisplayName("트리나 루트가 없으면 모든 지표가 0 이다")
     void emptyTree() {
-        TreeMetrics zero = new TreeMetrics(0, 0, 0, 0, 0, 0, 0);
+        TreeMetrics zero = new TreeMetrics(0, 0, 0, 0, 0, 0, 0, 0);
 
         assertThat(TreeMetrics.from(null)).isEqualTo(zero);
         assertThat(TreeMetrics.from(new LlmTreeDTO(null))).isEqualTo(zero);
@@ -58,6 +58,37 @@ class TreeMetricsTest {
 
         assertThat(result.shellCandidateCount()).isEqualTo(2);
         assertThat(metrics(node("트리", null, node("이진 트리", null))).shellCandidateCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("목록의 범용 이름과 부모 이름을 앞에 붙인 범용 이름을 공백을 무시하고 센다")
+    void genericCandidates() {
+        TreeMetrics result = metrics(node("스택", null,
+            node("개요", null),
+            node("스택의 특징", null),
+            node("스택 장단점", null),
+            node("핵심 개념", null),
+            node("push 연산", null),
+            node("스택의 구현", null)));
+
+        assertThat(result.genericCandidateCount()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("루트도 범용 이름이면 세고, 주제에 따라 정상인 이름은 세지 않는다")
+    void genericCandidatesAtRootAndTopicWords() {
+        assertThat(metrics(node("개요", null)).genericCandidateCount()).isEqualTo(1);
+        assertThat(metrics(node("세계 근대사", null, node("역사", null), node("원리", null)))
+            .genericCandidateCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("껍데기 후보이면서 범용 이름인 노드는 두 지표에 모두 센다")
+    void shellAndGenericOverlap() {
+        TreeMetrics result = metrics(node("어패류", null, node("어패류 개요", null)));
+
+        assertThat(result.shellCandidateCount()).isEqualTo(1);
+        assertThat(result.genericCandidateCount()).isEqualTo(1);
     }
 
     @Test

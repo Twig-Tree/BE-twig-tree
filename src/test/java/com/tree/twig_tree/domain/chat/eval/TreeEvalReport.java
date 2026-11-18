@@ -30,12 +30,12 @@ final class TreeEvalReport {
 
         out.append("\n## 구조 (지표 평균은 성공한 실행만, 준수율 분모는 판정 대상 실행 전체)\n\n");
         table(out, groups, List.of("깊이 준수", "노드 수 준수", "평균 노드", "평균 최대 깊이", "일자형 비율", "껍데기 후보/트리",
-            "형제 중복/트리", "memo 채움"), TreeEvalReport::structureRow);
+            "범용 후보/트리", "형제 중복/트리", "memo 채움"), TreeEvalReport::structureRow);
 
         if (runs.stream().anyMatch(run -> run.judgement() != null)) {
             out.append("\n## LLM 채점 (참고용 근사치)\n\n");
-            table(out, groups, List.of("채점 수", "MECE", "추상화 일관성", "학습 순서", "껍데기 비율", "문서 근거 없는 노드 비율"),
-                TreeEvalReport::judgementRow);
+            table(out, groups, List.of("채점 수", "MECE", "추상화 일관성", "학습 순서", "껍데기 비율", "범용 노드 비율",
+                "문서 근거 없는 노드 비율"), TreeEvalReport::judgementRow);
         }
         return out.toString();
     }
@@ -83,6 +83,7 @@ final class TreeEvalReport {
             decimal(runs, success, run -> run.metrics().maxDepth(), 1),
             percentAverage(runs, success, run -> run.metrics().singleChildRatio()),
             decimal(runs, success, run -> run.metrics().shellCandidateCount(), 2),
+            decimal(runs, success, run -> run.metrics().genericCandidateCount(), 2),
             decimal(runs, success, run -> run.metrics().duplicateSiblingCount(), 2),
             percentAverage(runs, success, run -> run.metrics().memoFillRate())
         );
@@ -97,6 +98,7 @@ final class TreeEvalReport {
             decimal(runs, judged, run -> run.judgement().granularity(), 2),
             decimal(runs, judged, run -> run.judgement().ordering(), 2),
             percentAverage(runs, judged, run -> nodeRatio(run, run.judgement().shellNodeCount())),
+            percentAverage(runs, judged, run -> nodeRatio(run, run.judgement().genericNodeCount())),
             percentAverage(runs, documentJudged, run -> nodeRatio(run, run.judgement().ungroundedNodeCount()))
         );
     }
