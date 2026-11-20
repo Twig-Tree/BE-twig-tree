@@ -35,7 +35,11 @@ public final class TreePrompt {
     static final int DEFAULT_MIN_NODES = 30;
     static final int DEFAULT_MAX_NODES = 45;
 
-    /** 사용자가 깊이를 3단계 이하로 지정했을 때의 목표 노드 수. 얕은 트리에 기본 분량을 채우면 폭만 넓어진다. */
+    /**
+     * 사용자가 깊이를 3단계로 지정했을 때의 목표 노드 수. 얕은 트리에 기본 분량을 채우면 폭만 넓어진다.
+     *
+     * <p>2단계 이하는 자식 수 상한({@link #MAX_CHILDREN}) 때문에 이 수를 만들 수 없어(2단계는 최대 9개) 따로 안내한다.
+     */
     static final int SHALLOW_MIN_NODES = 15;
     static final int SHALLOW_MAX_NODES = 30;
 
@@ -118,8 +122,10 @@ public final class TreePrompt {
         - 사용자가 노드 수를 지정하면 위 틀 대신 그 수에 맞춰 대분류와 자식의 수를 정한다. 지정한 수의 20%%를 넘게 벗어나지 않는다.
           먼저 대분류 수와 자식 수로 합계를 계산해 지정한 수에 맞춘 뒤 만든다. 예: 10개 → 루트 1 + 대분류 3 + 대분류마다 자식 2개 = 10개.
           지정한 수가 %d개를 넘으면 %d개로 만든다.
-        - 사용자가 깊이를 3단계 이하로 지정하면 기본 4단계 틀을 쓰지 않는다. 노드는 %d~%d개로 만들고,
-          지정한 깊이보다 깊은 노드는 하나도 만들지 않는다. 예: 3단계 → 루트 > 대분류 > 구체적인 학습 대상.
+        - 사용자가 깊이를 3단계 이하로 지정하면 기본 4단계 틀을 쓰지 않고, 지정한 깊이보다 깊은 노드는 하나도 만들지 않는다.
+          3단계: 노드는 %d~%d개로 만든다. 예: 루트 > 대분류 > 구체적인 학습 대상.
+          2단계: 루트 아래에 대분류만 4~%d개 둔다. 노드는 루트를 포함해 최대 %d개다.
+          1단계: 루트 노드 하나만 만들고, 주제의 핵심은 memo 에 쓴다.
         - 사용자가 깊이를 4~5단계로 지정하면 기본 분량을 그대로 지킨다. 일부 가지만 지정 깊이까지 내려서 맞춘다.
         - 사용자가 깊이를 6단계 이상으로 지정한 경우에만 기본 분량을 넘을 수 있다. 이때도 깊이를 채우는 데 필요한 만큼만 늘린다.
 
@@ -165,7 +171,7 @@ public final class TreePrompt {
         - 문서에 없는 주제로 새로운 큰 가지를 만들지 않는다.
         - 일반 지식으로 문서의 내용을 뒤집거나 바꾸지 않는다.
         """.formatted(NAME_MAX_LENGTH, MEMO_MAX_LENGTH, DEFAULT_MIN_NODES, DEFAULT_MAX_NODES, MAX_NODES, MAX_NODES,
-            SHALLOW_MIN_NODES, SHALLOW_MAX_NODES, MAX_DEPTH, MAX_CHILDREN);
+            SHALLOW_MIN_NODES, SHALLOW_MAX_NODES, MAX_CHILDREN, MAX_CHILDREN + 1, MAX_DEPTH, MAX_CHILDREN);
 
     /**
      * 업로드된 문서를 감싸는 틀.

@@ -146,7 +146,7 @@ class TreeEvalRunnerTest {
         assertThat(cases.stream().map(TreeEvalCase::category).collect(Collectors.toSet()))
             .contains("topic", "depth", "document");
         assertThat(cases.stream().filter(c -> c.category().equals("depth")).map(TreeEvalCase::expectedDepth))
-            .contains(3, 5, 10, 15);
+            .contains(2, 3, 5, 10, 15);
         cases.forEach(c -> {
             assertThat(c.message() != null || c.documentFile() != null).as(c.id()).isTrue();
             if (c.documentFile() != null) {

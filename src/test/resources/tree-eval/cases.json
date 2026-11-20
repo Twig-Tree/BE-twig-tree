@@ -8,6 +8,7 @@
   {"id": "topic-korean-cooking", "category": "topic", "message": "한식 조리 기초", "minNodes": 30, "maxNodes": 45},
   {"id": "topic-ambiguous", "category": "topic", "message": "시간 관리", "minNodes": 30, "maxNodes": 45},
 
+  {"id": "depth-2-os", "category": "depth", "message": "운영체제를 2단계 깊이로 정리해줘", "expectedDepth": 2, "minNodes": 5, "maxNodes": 9},
   {"id": "depth-3-network", "category": "depth", "message": "컴퓨터 네트워크를 3단계 깊이로 정리해줘", "expectedDepth": 3, "minNodes": 15, "maxNodes": 30},
   {"id": "depth-3-biology", "category": "depth", "message": "세포 생물학을 3단계 깊이로 정리해줘", "expectedDepth": 3, "minNodes": 15, "maxNodes": 30},
   {"id": "depth-5-os", "category": "depth", "message": "운영체제를 5단계 깊이로 정리해줘", "expectedDepth": 5, "minNodes": 30, "maxNodes": 45},
