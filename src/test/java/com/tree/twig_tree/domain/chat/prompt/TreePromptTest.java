@@ -37,6 +37,9 @@ class TreePromptTest {
     void systemPromptContainsResolvedLimits() {
         assertThat(TreePrompt.SYSTEM)
             .contains(TreePrompt.DEFAULT_MIN_NODES + "~" + TreePrompt.DEFAULT_MAX_NODES + "개")
+            .contains(TreePrompt.SHALLOW_MIN_NODES + "~" + TreePrompt.SHALLOW_MAX_NODES + "개")
+            .contains("대분류만 4~" + TreePrompt.MAX_CHILDREN + "개")
+            .contains("최대 " + (TreePrompt.MAX_CHILDREN + 1) + "개다")
             .contains("20%를")
             .contains(TreePrompt.MAX_NODES + "개를 넘으면").contains("최대 " + TreePrompt.MAX_CHILDREN + "개")
             .contains(TreePrompt.MAX_DEPTH + "단계를 넘지")

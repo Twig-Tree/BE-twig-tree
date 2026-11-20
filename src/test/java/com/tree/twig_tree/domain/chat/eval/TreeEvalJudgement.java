@@ -6,7 +6,10 @@ package com.tree.twig_tree.domain.chat.eval;
  * @param mece                형제 노드가 겹치지 않고 빠짐없이 나뉘었는지 (1~5)
  * @param granularity         같은 층의 추상화 수준이 일관적인지 (1~5)
  * @param ordering            형제 순서가 학습 흐름에 맞는지 (1~5)
+ * @param specificity         리프 노드가 이름만으로 학습 대상이 특정되는 구체적인 개념인지 (1~5)
+ * @param informativeness     memo 가 정의 반복이 아니라 구분되는 핵심·예시 같은 정보를 주는지 (1~5)
  * @param shellNodeCount      부모와 사실상 같은 뜻인 노드 수
+ * @param genericNodeCount    어느 주제에나 붙는 이름이라 무엇을 배우는지 알 수 없는 노드 수
  * @param ungroundedNodeCount 입력 문서에 근거가 없는 노드 수. 문서 입력이 아니면 {@code null}
  * @param comment             가장 큰 문제 한 줄
  */
@@ -14,12 +17,16 @@ public record TreeEvalJudgement(
     int mece,
     int granularity,
     int ordering,
+    int specificity,
+    int informativeness,
     int shellNodeCount,
+    int genericNodeCount,
     Integer ungroundedNodeCount,
     String comment
 ) {
 
     TreeEvalJudgement withoutGrounding() {
-        return new TreeEvalJudgement(mece, granularity, ordering, shellNodeCount, null, comment);
+        return new TreeEvalJudgement(mece, granularity, ordering, specificity, informativeness, shellNodeCount,
+            genericNodeCount, null, comment);
     }
 }

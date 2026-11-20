@@ -215,9 +215,10 @@ public class ChatService {
 
     private void logTreeMetrics(TreeMetrics metrics) {
         log.info("LLM 트리 지표 (nodes={}, maxDepth={}, leaves={}, singleChild={}, shellCandidates={}, "
-                + "duplicateSiblings={}, memos={})",
+                + "genericCandidates={}, duplicateSiblings={}, memos={})",
             metrics.nodeCount(), metrics.maxDepth(), metrics.leafCount(), metrics.singleChildCount(),
-            metrics.shellCandidateCount(), metrics.duplicateSiblingCount(), metrics.memoCount());
+            metrics.shellCandidateCount(), metrics.genericCandidateCount(), metrics.duplicateSiblingCount(),
+            metrics.memoCount());
     }
 
     private StructuredJsonResult callLlm(LlmClient client, String message, Duration timeout) {
