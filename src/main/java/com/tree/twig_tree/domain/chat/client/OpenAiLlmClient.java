@@ -22,6 +22,9 @@ public class OpenAiLlmClient implements LlmClient {
     @Value("${openai.tree-max-tokens}")
     private int treeMaxTokens;
 
+    @Value("${openai.tree-reasoning-effort}")
+    private String treeReasoningEffort;
+
     public OpenAiLlmClient(@Qualifier("openAiWebClient") WebClient openAiWebClient) {
         this.openAiWebClient = openAiWebClient;
     }
@@ -54,6 +57,7 @@ public class OpenAiLlmClient implements LlmClient {
                 )
             ),
             // reasoning effort 가 none 이 아닌 GPT-6 계열에는 temperature 를 보내지 않는다.
+            "reasoning_effort", treeReasoningEffort,
             "max_completion_tokens", treeMaxTokens
         );
 
