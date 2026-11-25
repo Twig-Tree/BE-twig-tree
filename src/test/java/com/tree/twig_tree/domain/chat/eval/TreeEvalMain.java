@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
  *   <li>{@code OPENAI_API_KEY}: 필수</li>
  *   <li>{@code OPENAI_MODEL}: 평가할 모델. 기본 gpt-6-luna</li>
  *   <li>{@code OPENAI_TREE_MAX_TOKENS}: 응답 토큰 상한. 기본 16000</li>
+ *   <li>{@code OPENAI_TREE_REASONING_EFFORT}: 트리 생성의 추론 강도. 기본 low (application.yml 과 같음)</li>
  *   <li>{@code TREE_EVAL_REPEATS}: 케이스별 반복 횟수. 기본 3</li>
  *   <li>{@code TREE_EVAL_CONCURRENCY}: 동시 호출 수. 기본 4</li>
  *   <li>{@code TREE_EVAL_CATEGORIES}: 실행할 카테고리(쉼표 구분). topic, depth, instruction, document. 기본 전체</li>
@@ -65,6 +66,7 @@ public final class TreeEvalMain {
         int repeats = Integer.parseInt(env("TREE_EVAL_REPEATS", "3"));
         int concurrency = Integer.parseInt(env("TREE_EVAL_CONCURRENCY", "4"));
         int maxTokens = Integer.parseInt(env("OPENAI_TREE_MAX_TOKENS", "16000"));
+        String reasoningEffort = env("OPENAI_TREE_REASONING_EFFORT", "low");
         String baseUrl = env("OPENAI_BASE_URL", "https://api.openai.com/v1");
 
         ObjectMapper mapper = JsonMapper.builder().build();
@@ -72,14 +74,15 @@ public final class TreeEvalMain {
         OpenAiLlmClient client = new OpenAiLlmClient(webClient);
         ReflectionTestUtils.setField(client, "model", model);
         ReflectionTestUtils.setField(client, "treeMaxTokens", maxTokens);
+        ReflectionTestUtils.setField(client, "treeReasoningEffort", reasoningEffort);
 
         TreeEvalJudge judge = judgeModel.isBlank() ? null : new TreeEvalJudge(client, mapper, judgeModel);
         TreeEvalRunner runner = new TreeEvalRunner(client, mapper, new TreeValidator(), judge);
 
         List<TreeEvalCase> cases = selectCases(TreeEvalCases.load(mapper), env("TREE_EVAL_CATEGORIES", ""));
         int total = cases.size() * repeats;
-        System.out.printf("[tree-eval] model=%s, judge=%s, cases=%d, repeats=%d, calls=%d%n",
-            model, judgeModel.isBlank() ? "off" : judgeModel, cases.size(), repeats, total);
+        System.out.printf("[tree-eval] model=%s, reasoningEffort=%s, judge=%s, cases=%d, repeats=%d, calls=%d%n",
+            model, reasoningEffort, judgeModel.isBlank() ? "off" : judgeModel, cases.size(), repeats, total);
 
         List<TreeEvalRun> runs = execute(runner, cases, repeats, concurrency, total);
         Path outputDir = write(model, runs, mapper);

@@ -146,7 +146,7 @@ class TreeEvalRunnerTest {
         assertThat(cases.stream().map(TreeEvalCase::category).collect(Collectors.toSet()))
             .contains("topic", "depth", "document");
         assertThat(cases.stream().filter(c -> c.category().equals("depth")).map(TreeEvalCase::expectedDepth))
-            .contains(3, 5, 10, 15);
+            .contains(2, 3, 5, 10, 15);
         cases.forEach(c -> {
             assertThat(c.message() != null || c.documentFile() != null).as(c.id()).isTrue();
             if (c.documentFile() != null) {
@@ -158,7 +158,7 @@ class TreeEvalRunnerTest {
     @Test
     @DisplayName("리포트는 실패를 준수율 분모에 포함하고 평균은 성공만으로 계산한다")
     void reportAggregates() {
-        TreeMetrics metrics = new TreeMetrics(20, 4, 12, 2, 1, 0, 10);
+        TreeMetrics metrics = new TreeMetrics(20, 4, 12, 2, 1, 3, 0, 10);
         List<TreeEvalRun> runs = List.of(
             new TreeEvalRun("a", "topic", 1, 2, Outcome.SUCCESS, "m", "stop", 1, 100, 2000, metrics, true, true,
                 null, "{}", null),
@@ -169,7 +169,27 @@ class TreeEvalRunnerTest {
 
         assertThat(report)
             .contains("| topic | 2 | 50.0% | 0 | 0 | 0 | 0 | 1 | 0 | 100 | 31.0 | 60.0 | 1 |")
-            .contains("| topic | 50.0% | 50.0% | 20.0 | 4.0 | 10.0% | 1.00 | 0.00 | 50.0% |")
+            .contains("| topic | 50.0% | 50.0% | 20.0 | 4.0 | 10.0% | 1.00 | 3.00 | 0.00 | 50.0% |")
             .doesNotContain("LLM 채점");
+    }
+
+    @Test
+    @DisplayName("채점 리포트는 채점된 실행만으로 점수를 평균하고 개수는 노드 수 대비 비율로 낸다")
+    void reportAggregatesJudgements() {
+        List<TreeEvalRun> runs = List.of(
+            judgedRun(new TreeEvalJudgement(4, 4, 4, 2, 3, 1, 4, null, "리프가 범주 이름에서 멈춘다")),
+            judgedRun(new TreeEvalJudgement(5, 5, 5, 4, 5, 0, 0, null, "없음")),
+            judgedRun(null));
+
+        String report = TreeEvalReport.render("m", runs);
+
+        assertThat(report)
+            .contains("| 채점 수 | MECE | 추상화 일관성 | 학습 순서 | 구체성 | 정보성 | 껍데기 비율 | 범용 노드 비율 |")
+            .contains("| topic | 2 | 4.50 | 4.50 | 4.50 | 3.00 | 4.00 | 2.5% | 10.0% | - |");
+    }
+
+    private static TreeEvalRun judgedRun(TreeEvalJudgement judgement) {
+        return new TreeEvalRun("a", "topic", 1, 1, Outcome.SUCCESS, "m", "stop", 1, 100, 2000,
+            new TreeMetrics(20, 4, 12, 2, 1, 3, 0, 10), true, true, judgement, "{}", null);
     }
 }

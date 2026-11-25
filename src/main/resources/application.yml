@@ -55,6 +55,9 @@ openai:
   model: ${OPENAI_MODEL:gpt-6-luna}
   # 트리 생성 응답 토큰 상한. 잘린 응답은 JSON 파싱에서 실패해 LLM_RESPONSE_INVALID 로 처리된다.
   tree-max-tokens: ${OPENAI_TREE_MAX_TOKENS:16000}
+  # 트리 생성의 추론 강도(none/low/medium/high/xhigh/max). 모델 기본값(medium)은 30~45개 트리에서
+  # 응답이 60초 상한에 닿아 타임아웃이 잦았다(#156 평가). 낮추면 지연이 줄지만 품질이 달라질 수 있어 평가로 정한다.
+  tree-reasoning-effort: ${OPENAI_TREE_REASONING_EFFORT:low}
   # 강의 시나리오 생성은 트리 생성과 따로 모델을 바꿔 가며 평가하므로 설정을 분리한다.
   lecture-model: ${OPENAI_LECTURE_MODEL:gpt-6-luna}
   # 시나리오 JSON 은 scene/beat/cue 로 중첩되어 응답이 길다. 상한이 없으면 비용과 대기 시간이 함께 늘어난다.
